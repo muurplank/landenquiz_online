@@ -85,6 +85,19 @@
             <a id="mix-quiz" class="btn primary">Start mix-sessie</a>
           </div>
         </article>
+
+        <article class="card" id="custom-mix-card">
+          <h3>Aangepaste mix</h3>
+          <p>Kies 2 van de 3 quiztypen voor een mix van alleen die twee.</p>
+          <div class="custom-mix-options" role="group" aria-label="Selecteer twee quiztypen">
+            <label class="custom-mix-check"><input type="checkbox" id="custom-type-capital" value="capital"> Hoofdstad</label>
+            <label class="custom-mix-check"><input type="checkbox" id="custom-type-flag" value="flag"> Vlaggen</label>
+            <label class="custom-mix-check"><input type="checkbox" id="custom-type-map" value="map"> Kaart</label>
+          </div>
+          <div class="btn-row" style="margin-top: 0.75rem;">
+            <a id="custom-mix-quiz" class="btn" href="#">Start aangepaste mix</a>
+          </div>
+        </article>
       </div>
     </section>
   </main>
@@ -232,6 +245,44 @@
 
         document.getElementById('mix-quiz').href =
           `quiz_mix.html?${base}`;
+
+        const customTypeCapital = document.getElementById('custom-type-capital');
+        const customTypeFlag = document.getElementById('custom-type-flag');
+        const customTypeMap = document.getElementById('custom-type-map');
+        const customMixLink = document.getElementById('custom-mix-quiz');
+        const customCheckboxes = [customTypeCapital, customTypeFlag, customTypeMap];
+
+        function updateCustomMixLink() {
+          const checked = customCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+          if (checked.length === 2) {
+            const types = checked.sort().join(',');
+            customMixLink.href = `quiz_mix.html?${base}&types=${encodeURIComponent(types)}`;
+            customMixLink.classList.add('primary');
+            customMixLink.removeAttribute('aria-disabled');
+          } else {
+            customMixLink.href = '#';
+            customMixLink.classList.remove('primary');
+            customMixLink.setAttribute('aria-disabled', 'true');
+          }
+        }
+
+        customMixLink.addEventListener('click', (e) => {
+          if (customMixLink.getAttribute('aria-disabled') === 'true' || customMixLink.href === '#') {
+            e.preventDefault();
+          }
+        });
+
+        customCheckboxes.forEach(cb => {
+          cb.addEventListener('change', () => {
+            const checked = customCheckboxes.filter(c => c.checked);
+            if (checked.length > 2) {
+              const toUncheck = checked.find(c => c !== cb);
+              if (toUncheck) toUncheck.checked = false;
+            }
+            updateCustomMixLink();
+          });
+        });
+        updateCustomMixLink();
       } catch (err) {
         console.error(err);
         titleEl.textContent = 'Fout bij laden van deel';

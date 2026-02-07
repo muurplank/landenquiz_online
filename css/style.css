@@ -411,6 +411,25 @@ h3 {
   gap: 0.5rem;
 }
 
+.custom-mix-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.custom-mix-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+
+.custom-mix-check input {
+  cursor: pointer;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

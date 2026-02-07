@@ -1,5 +1,16 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
+  const typesParam = window.App.getQueryParam('types'); // bijv. "capital,flag" voor aangepaste mix (precies 2 van 3)
+  const allowedTypes = parseCustomTypes(typesParam);
+
+  function parseCustomTypes(param) {
+    if (!param || typeof param !== 'string') return null;
+    const valid = ['capital', 'flag', 'map'];
+    const parts = param.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const allowed = parts.filter(p => valid.includes(p));
+    const unique = [...new Set(allowed)];
+    return unique.length === 2 ? unique.sort() : null; // precies 2 types
+  }
 
   const flagContainerEl = document.getElementById('mix-flag-container');
   const questionEl = document.getElementById('mix-question');
@@ -253,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function chooseQuestionType() {
-    const types = ['capital', 'flag', 'map'];
+    const types = allowedTypes || ['capital', 'flag', 'map'];
     const idx = Math.floor(Math.random() * types.length);
     return types[idx];
   }
@@ -468,16 +479,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     countriesMap = await window.App.loadCountriesMap();
     worldGeo = await window.App.loadWorldGeoJSON();
 
-    const titleBase = 'Mix-quiz';
+    const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
+    const titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
+    const subtitleText = allowedTypes
+      ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
+      : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
-    subtitleEl.textContent = 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
+    subtitleEl.textContent = subtitleText;
 
     countryStats = window.App.createInitialCountryStats(group.countries);
     session = window.App.startSession({
       groupId,
       quizType: 'mix',
-      subMode: 'capital+flag+map'
+      subMode: allowedTypes ? allowedTypes.join('+') : 'capital+flag+map'
     });
 
     const setIso = new Set(group.countries);
