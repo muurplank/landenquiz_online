@@ -929,6 +929,124 @@ html.oefenen-collapsed-init .group-oefenen-arrow::after {
   margin-top: 0;
 }
 
+/* Vlaggen-quiz: inklapbaar overzicht land + vlag (per deel onthouden) */
+.vlaggen-cheatsheet-section {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.vlaggen-cheatsheet-header {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+}
+
+.vlaggen-cheatsheet-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0.35rem 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.vlaggen-cheatsheet-toggle:hover {
+  background: var(--color-border-soft);
+  color: var(--color-text);
+}
+
+.vlaggen-cheatsheet-arrow {
+  display: inline-block;
+  font-size: 0.75rem;
+}
+
+html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-content,
+.vlaggen-cheatsheet-section.cheatsheet-collapsed .vlaggen-cheatsheet-content {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow,
+.vlaggen-cheatsheet-section.cheatsheet-collapsed .vlaggen-cheatsheet-arrow {
+  font-size: 0;
+}
+html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
+.vlaggen-cheatsheet-section.cheatsheet-collapsed .vlaggen-cheatsheet-arrow::after {
+  content: '▶';
+  font-size: 0.75rem;
+}
+
+.vlaggen-cheatsheet-content {
+  overflow: hidden;
+  transition: max-height 0.35s ease-out, opacity 0.2s;
+}
+
+.vlaggen-cheatsheet-content.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-bottom: 0;
+}
+
+.vlaggen-cheatsheet-content:not(.collapsed) {
+  max-height: 3000px;
+  margin-top: 0;
+}
+
+.flags-cheatsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+  table-layout: fixed;
+}
+
+.flags-cheatsheet-table td {
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--color-border);
+  vertical-align: middle;
+  width: 25%;
+}
+
+.flags-cheatsheet-table[data-columns="8"] td {
+  width: 12.5%;
+}
+
+.flags-cheatsheet-table td .flags-cheatsheet-cell {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.flags-cheatsheet-table .flags-cheatsheet-flag {
+  width: 52px;
+  height: 38px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: #fff;
+  vertical-align: middle;
+}
+
+.flags-cheatsheet-table .flags-cheatsheet-name {
+  display: inline-block;
+  line-height: 1.25;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
 .group-countries-aside .group-countries-title {
   margin-top: 0;
   margin-bottom: 0;

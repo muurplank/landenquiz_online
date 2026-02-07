@@ -5,6 +5,17 @@
   <title>Vlaggen Quiz</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="../css/style.css">
+  <script>
+    (function() {
+      var id = new URLSearchParams(window.location.search).get('id');
+      if (!id) return;
+      try {
+        var raw = localStorage.getItem('landjes_vlaggen_cheatsheet_collapsed');
+        var state = raw ? JSON.parse(raw) : {};
+        if (state[id]) document.documentElement.classList.add('vlaggen-cheatsheet-collapsed-init');
+      } catch (_) {}
+    })();
+  </script>
 </head>
 <body>
   <header class="app-header">
@@ -63,6 +74,18 @@
         </div>
         <p class="small">Alles wordt persistent opgeslagen in <code>localStorage</code>.</p>
       </aside>
+    </section>
+
+    <section class="vlaggen-cheatsheet-section" aria-label="Overzicht land en vlag">
+      <h2 class="vlaggen-cheatsheet-header">
+        <button type="button" class="vlaggen-cheatsheet-toggle" id="vlaggen-cheatsheet-toggle" aria-expanded="true" aria-controls="vlaggen-cheatsheet-content">
+          <span class="vlaggen-cheatsheet-arrow" aria-hidden="true">▼</span>
+          Land en vlag – overzicht
+        </button>
+      </h2>
+      <div id="vlaggen-cheatsheet-content" class="vlaggen-cheatsheet-content">
+        <div id="vlaggen-cheatsheet-table-wrap"></div>
+      </div>
     </section>
   </main>
 

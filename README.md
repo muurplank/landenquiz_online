@@ -36,6 +36,8 @@ Voortgang en statistieken worden **lokaal** opgeslagen (localStorage). Er is gee
 - **Weeksets / Delen** — 16 groepen (Zuid-Amerika, Noord-Amerika, Europa, Oceanië, Afrika, Azië) met vaste landensets.
 - **Per continent / Hele wereld** — Op de homepage een sectie met 7 kaartjes (6 continenten + Hele wereld). Klik opent dezelfde groepspagina met alle vier quiztypen voor dat continent of de hele wereld. Voortgang per continent/world wordt ook getoond.
 - **Vier quiztypen** — Hoofdstad (één richting of beide kanten), vlag (één richting of beide kanten), kaart-quiz, mix.
+- **Aangepaste mix** — Op de groepspagina: kies **2 van de 3** quiztypen (Hoofdstad, Vlaggen, Kaart) voor een mix van alleen die twee. Alleen beschikbaar via de groepspagina; link naar mix-quiz met `types=...` in de URL.
+- **Vlaggen-quiz: overzicht land + vlag** — Alleen op de vlaggen-quizpagina staat onder het quiz-gedeelte een **inklapbare** sectie “Land en vlag – overzicht”: een tabel met alle landen van het deel, per cel vlag + landnaam (om te oefenen voordat je start). **4 kolommen** bij kleinere delen (bijv. Zuid-Amerika), **8 kolommen** bij meer dan 16 landen (bijv. Europa). De ingeklapte staat wordt **per deel** onthouden in localStorage (`landjes_vlaggen_cheatsheet_collapsed`).
 - **Vraagvolgorde** — In alle quizzen komen eerst alle landen één keer aan bod (willekeurige volgorde); pas daarna kunnen vragen herhaald worden. Volgende ronde weer alle landen een keer.
 - **Beide kanten (hoofdstad/vlag)** — De modus “Beide kanten” loopt **oneindig** door (geen automatisch einde); telt **niet** mee voor de progress bar op de homepage. Handig om onbeperkt te oefenen zonder dat het de sterren/voortgang beïnvloedt.
 - **Voortgang per week** — Progress bar op de homepage: 33% per type (hoofdstad, vlag, kaart), 5 “sterren” totaal; beheersing = min. 1× correct per land per type. Alleen de één-richting-modussen en mix/kaart-quiz tellen mee; “Beide kanten”-sessies worden genegeerd.
@@ -173,15 +175,15 @@ Let op: bij een *project*-Pages site is de base-URL `.../landenquiz_online/`. Zo
 - **Volgorde** — Eerst een sectie **Oefenen** (kaart + landenlijst), daaronder **Quiz-modi**.
 - **Oefenen** — Kop “▼ Oefenen” (klikbaar om in te klappen; pijl wordt ▶). Links een grote **wereldkaart** (standaard leeg: alle landen groen), rechts een sticky kolom **Landen in dit deel** met landen + hoofdsteden. Onder de titel en tussen elk land een lijn over de volle breedte van de card.
 - **Kaart** — Zonder hover: lege wereldkaart. **Hover** op een land: dat land wit, oranje pijl (+ ellips indien kleiner dan Nederland) en linksboven op de kaart de **vlag** van dat land. Bij mouseleave van het hele blok (kaart + lijst) weer lege kaart. Lege kaart en per-land preview worden gecached (geen hertekenen bij opnieuw hoveren).
-- **Quiz-modi** — Kies Hoofdstad, Vlaggen, Kaart-quiz of Mix; knoppen linken naar de juiste quiz-URL met `id=<groupId>` en eventueel `mode=...`.
+- **Quiz-modi** — Kies Hoofdstad, Vlaggen, Kaart-quiz, Mix of **Aangepaste mix**. Bij Aangepaste mix: vink precies 2 van de 3 opties aan (Hoofdstad, Vlaggen, Kaart); “Start aangepaste mix” linkt naar `quiz_mix.html?id=<groupId>&types=capital,flag` (of de gekozen combinatie). Overige knoppen linken naar de juiste quiz-URL met `id=` en eventueel `mode=...`.
 - Wereldkaart: `high_res_usa.json`; ingestorte staat Oefenen: `landjes_oefenen_collapsed` (per groep).
 
 ### Quizpagina’s (`pages/quiz_*.html`)
 
 - **Hoofdstad** (`quiz_capitals.html`) — Vraag toont land of hoofdstad; je geeft aan of je antwoord correct/fout was (zelfscore); toon antwoord met Spatiebalk. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar.
-- **Vlaggen** (`quiz_flags.html`) — Zelfde idee: vlag of landnaam, correct/incorrect, antwoord tonen. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar.
+- **Vlaggen** (`quiz_flags.html`) — Zelfde idee: vlag of landnaam, correct/incorrect, antwoord tonen. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar. **Onder** het quiz-gedeelte staat de inklapbare sectie “Land en vlag – overzicht” (alleen op de vlaggen-quiz): tabel met vlag + landnaam per land, 4 of 8 kolommen; ingeklapte staat per deel onthouden.
+- **Mix / Aangepaste mix** (`quiz_mix.html`) — Standaard: mix van hoofdstad, vlag en kaart. Via groepspagina “Aangepaste mix” kun je met `types=capital,flag` (of `capital,map`, `flag,map`) alleen twee van de drie typen door elkaar krijgen.
 - **Kaart** (`quiz_map.html`) — Eén land wit op de kaart; kies het juiste land in de lijst rechts. Bij **Per continent / Hele wereld** (`id=continent_*` of `id=world`): dezelfde wereldkaart als de oefen-preview (Greenwich gecentreerd), een aparte **typ-card** boven “Landen in dit deel” om de landnaam te typen (Enter of Controleer); antwoorden met Levenshtein-afstand ≤ 4 worden goed gerekend. De kaart-quizpagina kan scrollen.
-- **Mix** (`quiz_mix.html`) — Per vraag willekeurig hoofdstad-, vlag- of kaartvraag; antwoord tonen, dan correct/incorrect.
 - **Vraagvolgorde** — In alle quizzen komen eerst alle landen één keer voorbij (geen herhaling tot iedereen aan bod is geweest); daarna begint een nieuwe ronde.
 - **Sessie** — Loopt tot je stopt of (bij één-richting/mix/kaart) tot elk land min. 1× goed is. “Beide kanten” (hoofdstad/vlag) stopt niet automatisch. Bij afsluiten of verlaten wordt de sessie opgeslagen in `localStorage`.
 - **Download log** — Sla de huidige sessie (of history) als JSON op.
@@ -204,6 +206,7 @@ Er is **geen** configuratiebestand of environment variables. Alles wordt bepaald
   - `landjes_history_v1` — Sessies en per-group aggregaten.
   - `landjes_theme` — `"light"` of `"dark"`.
   - `landjes_oefenen_collapsed` — JSON-object met per groep-id of de Oefenen-sectie is ingeklapt (bijv. `{"week1_zuid-amerika": true}`).
+  - `landjes_vlaggen_cheatsheet_collapsed` — JSON-object met per groep-id of het vlaggen-overzicht “Land en vlag” op de vlaggen-quizpagina is ingeklapt.
 
 Je kunt de app aanpassen door:
 
@@ -270,7 +273,8 @@ Landjes V4/
 - **Componenten** — Cards, buttons, badge, stats-list, quiz-controls, country-list-buttons, map-wrapper, pill.
 - **Quiz-specifiek** — `.quiz-main`, `.quiz-card`, `.map-country`, `.target`; voor map-quiz: `.page-quiz-map` met `min-height: 100vh` (pagina kan scrollen). Rechterkolom: `.quiz-aside` met twee cards; bovenste card voor typ-box (`.map-quiz-type-card`, `#map-quiz-type-wrap`) bij continent/world.
 - **Progress** — `.group-progress`, `.progress-bar-wrap`, `.progress-bar-fill`, `.progress-detail`.
-- **Groepspagina** — `.group-oefenen-section`, `.group-oefenen-toggle`, `.group-oefenen-content` (collapsible); `html.oefenen-collapsed-init` tegen flits bij laden; `.group-map-row` (kaart + aside), `.group-countries-aside`, `.countries-hover-list` met lijntjes over volle breedte (titeltje + tussen landen); `.country-preview-flag-box` (vlag linksboven, geen achtergrondkleur); `.country-preview-world-map`, `.country-preview-box`.
+- **Groepspagina** — `.group-oefenen-section`, `.group-oefenen-toggle`, `.group-oefenen-content` (collapsible); `html.oefenen-collapsed-init` tegen flits bij laden; `.group-map-row` (kaart + aside), `.group-countries-aside`, `.countries-hover-list` met lijntjes over volle breedte (titeltje + tussen landen); `.country-preview-flag-box` (vlag linksboven, geen achtergrondkleur); `.country-preview-world-map`, `.country-preview-box`. **Aangepaste mix** — `.custom-mix-options`, `.custom-mix-check` voor de 2-van-3 selectie.
+- **Vlaggen-quiz: overzicht** — `.vlaggen-cheatsheet-section`, `.vlaggen-cheatsheet-toggle`, `.vlaggen-cheatsheet-content` (collapsible, onder het quiz-gedeelte); `html.vlaggen-cheatsheet-collapsed-init` en `.cheatsheet-collapsed` voor pijl/status; `.flags-cheatsheet-table` (4 of 8 kolommen via `data-columns`), `.flags-cheatsheet-cell` (vlag + naam naast elkaar), `.flags-cheatsheet-flag`, `.flags-cheatsheet-name`.
 - **Responsive** — Media queries o.a. voor small screens; groepspagina wordt één kolom, aside niet meer sticky.
 
 ---
@@ -367,6 +371,7 @@ Daarnaast bevat `app.js`:
 ### `js/quiz_flags.js`
 
 - **Doel** — Vlaggen-quiz: zelfde patroon als hoofdstad, met vlag-afbeelding (`assets/flags/`) en vraagtypen “vlag→land” en “land→vlag”. **Beide kanten** (`mode === 'both'`) loopt oneindig door en telt niet mee voor de progress bar.
+- **Overzicht land + vlag** — Alleen op de vlaggen-quiz: onder het quiz-gedeelte wordt een inklapbare tabel gebouwd met alle landen van het deel (vlag + landnaam per cel). **4 kolommen** bij ≤16 landen, **8 kolommen** bij >16 landen. Ingeklapte staat per groep opgeslagen in `landjes_vlaggen_cheatsheet_collapsed`; init-script in de HTML-head voorkomt flits bij laden.
 - **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound` (Set): eerst alle landen één keer, daarna nieuwe ronde.
 - **Functies** — `renderFlag(iso)`, `updateSessionStatsUI`, `showNextQuestion`, `handleAnswer`, enz.; integratie met `App` identiek aan capitals.
 
@@ -385,7 +390,8 @@ Daarnaast bevat `app.js`:
 
 ### `js/quiz_mix.js`
 
-- **Doel** — Mix-quiz: per vraag willekeurig hoofdstad-, vlag- of kaartvraag;zelfde sessie- en master-logica. **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound`: eerst alle landen één keer, daarna nieuwe ronde.
+- **Doel** — Mix-quiz: per vraag willekeurig hoofdstad-, vlag- of kaartvraag;zelfde sessie- en master-logica. **Aangepaste mix**: URL-parameter `types` (bijv. `types=capital,flag`) beperkt de vraagtypen tot precies twee; `parseCustomTypes(typesParam)` valideert en `chooseQuestionType()` kiest alleen uit die types. Titel wordt dan “Aangepaste mix” en subMode bijv. `capital+flag`.
+- **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound`: eerst alle landen één keer, daarna nieuwe ronde.
 - **Functies** — Dezelfde kaart-/projectie-helpers als in quiz_map; `chooseQuestionType`, `prepareCapitalQuestion`, `prepareFlagQuestion`, `prepareMapQuestion`, `showNextQuestion`, `handleSelfScoredAnswer`, `handleMapGuess`; toetsenbord: Spatie, 1, 2.
 
 ---
@@ -438,7 +444,7 @@ Daarnaast bevat `app.js`:
 - **Layout** — Eerst `group-oefenen-section` met kop “Oefenen” (collapsible), dan `group-map-row`: links kaart, rechts `group-countries-aside` met titel “Landen in dit deel” en `countries-hover-list`. Onder de titel en tussen elk land een lijn over de volle breedte (CSS met negatieve marge t.o.v. aside-padding).
 - **Init** — Inline script in `<head>` leest `landjes_oefenen_collapsed` en zet bij ingeklapte staat `html.oefenen-collapsed-init` om flits te voorkomen. Na DOMContentLoaded: opgeslagen staat toepassen, klik-handler voor toggle, state per groep opslaan.
 - **Kaart** — Eerst `buildWorldMapEmpty(worldGeo)` tonen (eenmalig bouwen, daarna `cachedEmptyMapHtml`). Bij mouseenter op een land: uit cache of `buildWorldMapPreview(iso3, worldGeo)` + vlag in wrapper; resultaat in `previewCache`; bij mouseleave op het hele blok weer lege kaart.
-- **Links** — Quiz-URLs dynamisch met `id=<groupId>` en eventueel `mode=...`.
+- **Links** — Quiz-URLs dynamisch met `id=<groupId>` en eventueel `mode=...`. Card “Aangepaste mix”: drie checkboxes (Hoofdstad, Vlaggen, Kaart); bij precies 2 geselecteerd wordt de link naar `quiz_mix.html?id=<groupId>&types=<type1>,<type2>` actief.
 
 ---
 

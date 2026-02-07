@@ -216,6 +216,88 @@ document.addEventListener('DOMContentLoaded', async () => {
       subMode: mode
     });
 
+    const cheatsheetTableWrap = document.getElementById('vlaggen-cheatsheet-table-wrap');
+    const cheatsheetContent = document.getElementById('vlaggen-cheatsheet-content');
+    const cheatsheetToggle = document.getElementById('vlaggen-cheatsheet-toggle');
+    const CHEATSHEET_STORAGE_KEY = 'landjes_vlaggen_cheatsheet_collapsed';
+
+    function getCheatsheetCollapsedState() {
+      try {
+        const raw = localStorage.getItem(CHEATSHEET_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function setCheatsheetCollapsedForGroup(gid, collapsed) {
+      const state = getCheatsheetCollapsedState();
+      state[gid] = collapsed;
+      try {
+        localStorage.setItem(CHEATSHEET_STORAGE_KEY, JSON.stringify(state));
+      } catch (_) {}
+    }
+
+    if (cheatsheetTableWrap) {
+      const table = document.createElement('table');
+      const countries = group.countries.filter(iso => countriesMap[iso]);
+      const COLUMNS = countries.length > 16 ? 8 : 4;
+      table.className = 'flags-cheatsheet-table';
+      table.setAttribute('role', 'table');
+      table.dataset.columns = String(COLUMNS);
+      const tbody = document.createElement('tbody');
+      for (let i = 0; i < countries.length; i += COLUMNS) {
+        const tr = document.createElement('tr');
+        for (let j = 0; j < COLUMNS; j++) {
+          const iso = countries[i + j];
+          const td = document.createElement('td');
+          if (iso) {
+            const c = countriesMap[iso];
+            const cellInner = document.createElement('div');
+            cellInner.className = 'flags-cheatsheet-cell';
+            const img = document.createElement('img');
+            img.src = `../assets/flags/${window.App.getFlagFilename(iso)}`;
+            img.alt = '';
+            img.className = 'flags-cheatsheet-flag';
+            cellInner.appendChild(img);
+            const name = document.createElement('span');
+            name.className = 'flags-cheatsheet-name';
+            name.textContent = c.name_nl;
+            cellInner.appendChild(name);
+            td.appendChild(cellInner);
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      cheatsheetTableWrap.appendChild(table);
+    }
+
+    const cheatsheetSection = document.querySelector('.vlaggen-cheatsheet-section');
+    const savedCheatsheetCollapsed = getCheatsheetCollapsedState()[group.id] === true;
+    document.documentElement.classList.remove('vlaggen-cheatsheet-collapsed-init');
+    if (cheatsheetContent) {
+      if (savedCheatsheetCollapsed) {
+        cheatsheetContent.classList.add('collapsed');
+        if (cheatsheetSection) cheatsheetSection.classList.add('cheatsheet-collapsed');
+        if (cheatsheetToggle) cheatsheetToggle.setAttribute('aria-expanded', 'false');
+      } else {
+        cheatsheetContent.classList.remove('collapsed');
+        if (cheatsheetSection) cheatsheetSection.classList.remove('cheatsheet-collapsed');
+        if (cheatsheetToggle) cheatsheetToggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    if (cheatsheetToggle && cheatsheetContent) {
+      cheatsheetToggle.addEventListener('click', () => {
+        const isCollapsed = cheatsheetContent.classList.toggle('collapsed');
+        if (cheatsheetSection) cheatsheetSection.classList.toggle('cheatsheet-collapsed', isCollapsed);
+        setCheatsheetCollapsedForGroup(group.id, isCollapsed);
+        if (cheatsheetToggle) cheatsheetToggle.setAttribute('aria-expanded', String(!isCollapsed));
+      });
+    }
+
     showNextQuestion();
     if (quizCard) quizCard.focus();
   } catch (err) {
