@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
+    if (mode === 'both') return; // Beide kanten: oneindig doorgaan
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showNextQuestion() {
     if (sessionEnded) return;
-    if (window.App.allMastered(countryStats)) {
+    if (mode !== 'both' && window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
       return;
     }

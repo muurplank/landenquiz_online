@@ -35,9 +35,11 @@ Voortgang en statistieken worden **lokaal** opgeslagen (localStorage). Er is gee
 
 - **Weeksets / Delen** — 16 groepen (Zuid-Amerika, Noord-Amerika, Europa, Oceanië, Afrika, Azië) met vaste landensets.
 - **Per continent / Hele wereld** — Op de homepage een sectie met 7 kaartjes (6 continenten + Hele wereld). Klik opent dezelfde groepspagina met alle vier quiztypen voor dat continent of de hele wereld. Voortgang per continent/world wordt ook getoond.
-- **Vier quiztypen** — Hoofdstad (beide richtingen), vlag (beide richtingen), kaart-quiz, mix.
-- **Voortgang per week** — Progress bar op de homepage: 33% per type (hoofdstad, vlag, kaart), 5 “sterren” totaal; beheersing = min. 1× correct per land per type.
-- **Sessie-statistieken** — Tijdens de quiz: aantal vragen, nauwkeurigheid, gem. responstijd, streak; sessie eindigt wanneer elk land min. 1× goed is (optioneel).
+- **Vier quiztypen** — Hoofdstad (één richting of beide kanten), vlag (één richting of beide kanten), kaart-quiz, mix.
+- **Vraagvolgorde** — In alle quizzen komen eerst alle landen één keer aan bod (willekeurige volgorde); pas daarna kunnen vragen herhaald worden. Volgende ronde weer alle landen een keer.
+- **Beide kanten (hoofdstad/vlag)** — De modus “Beide kanten” loopt **oneindig** door (geen automatisch einde); telt **niet** mee voor de progress bar op de homepage. Handig om onbeperkt te oefenen zonder dat het de sterren/voortgang beïnvloedt.
+- **Voortgang per week** — Progress bar op de homepage: 33% per type (hoofdstad, vlag, kaart), 5 “sterren” totaal; beheersing = min. 1× correct per land per type. Alleen de één-richting-modussen en mix/kaart-quiz tellen mee; “Beide kanten”-sessies worden genegeerd.
+- **Sessie-statistieken** — Tijdens de quiz: aantal vragen, nauwkeurigheid, gem. responstijd, streak. Sessie eindigt wanneer elk land min. 1× goed is — **behalve** bij Hoofdstad/Vlaggen “Beide kanten”, die loopt door tot je zelf stopt.
 - **Uitgebreide statistiekenpagina** — Filters (periode, groep, quiztype), drie tabs:
   - **Algemeen** — KPIs (sessies, vragen, nauwkeurigheid, streak, studietijd), verdeling per quiztype, beste/slechtste landen (min. 3× gezien), extra inzichten (“meest geoefend”, “snel maar fout”, “langzaam maar goed”).
   - **Per week/onderdeel** — Per groupId: sessies, vragen, accuracy, streak, top 3 zwakke landen; rolling accuracy (k=5) per quiztype.
@@ -153,6 +155,7 @@ Let op: bij een *project*-Pages site is de base-URL `.../landenquiz_online/`. Zo
 - **Vlaggen**: zorg dat `assets/flags/` (en eventueel `scripts/fetch-flags.sh` lokaal uitgevoerd) al gevuld is vóór je uploadt, anders ontbreken vlaggen op de live site.
 - **HTTPS**: alle genoemde diensten bieden automatisch HTTPS.
 - **localStorage**: werkt gewoon; data blijft per browser/device.
+- **Git**: de map `.cache/` staat in `.gitignore` (gebruikt door `fetch-flags.sh`); er is geen submodule meer, zodat GitHub Pages zonder build-fouten deployt.
 
 ---
 
@@ -175,11 +178,12 @@ Let op: bij een *project*-Pages site is de base-URL `.../landenquiz_online/`. Zo
 
 ### Quizpagina’s (`pages/quiz_*.html`)
 
-- **Hoofdstad** (`quiz_capitals.html`) — Vraag toont land of hoofdstad; je geeft aan of je antwoord correct/fout was (zelfscore); toon antwoord met Spatiebalk.
-- **Vlaggen** (`quiz_flags.html`) — Zelfde idee: vlag of landnaam, correct/incorrect, antwoord tonen.
+- **Hoofdstad** (`quiz_capitals.html`) — Vraag toont land of hoofdstad; je geeft aan of je antwoord correct/fout was (zelfscore); toon antwoord met Spatiebalk. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar.
+- **Vlaggen** (`quiz_flags.html`) — Zelfde idee: vlag of landnaam, correct/incorrect, antwoord tonen. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar.
 - **Kaart** (`quiz_map.html`) — Eén land wit op de kaart; kies het juiste land in de lijst rechts. Bij **Per continent / Hele wereld** (`id=continent_*` of `id=world`): dezelfde wereldkaart als de oefen-preview (Greenwich gecentreerd), een aparte **typ-card** boven “Landen in dit deel” om de landnaam te typen (Enter of Controleer); antwoorden met Levenshtein-afstand ≤ 4 worden goed gerekend. De kaart-quizpagina kan scrollen.
 - **Mix** (`quiz_mix.html`) — Per vraag willekeurig hoofdstad-, vlag- of kaartvraag; antwoord tonen, dan correct/incorrect.
-- **Sessie** — Loopt tot je stopt of (indien van toepassing) elk land min. 1× goed hebt. Bij afsluiten of verlaten wordt de sessie opgeslagen in `localStorage`.
+- **Vraagvolgorde** — In alle quizzen komen eerst alle landen één keer voorbij (geen herhaling tot iedereen aan bod is geweest); daarna begint een nieuwe ronde.
+- **Sessie** — Loopt tot je stopt of (bij één-richting/mix/kaart) tot elk land min. 1× goed is. “Beide kanten” (hoofdstad/vlag) stopt niet automatisch. Bij afsluiten of verlaten wordt de sessie opgeslagen in `localStorage`.
 - **Download log** — Sla de huidige sessie (of history) als JSON op.
 
 ### Statistieken (`pages/stats.html`)
@@ -213,6 +217,7 @@ Je kunt de app aanpassen door:
 
 ```
 Landjes V4/
+├── .gitignore              # .cache/, .DS_Store (geen country-flags submodule in repo)
 ├── index.html              # Homepagina: weeksets, Per continent, link naar stats
 ├── css/
 │   ├── style.css           # Algemene stijlen, thema, quiz- en kaart-CSS
@@ -309,6 +314,7 @@ Kernmodule: één globale namespace `window.App` (IIFE). Belangrijkste onderdele
 - **`createInitialCountryStats(isoList)`** — Maakt per land een object `{ iso, seen_count, correct_count, incorrect_count, is_mastered, events: [] }`.
 - **`allMastered(countryStats)`** — `true` als elk land `is_mastered` is.
 - **`pickRandomCountry(countryStats)`** — Willekeurig land uit de lijst.
+- **`pickNextCountryNoRepeat(countryStats, askedThisRound)`** — Zie onder “Voortgang per week”.
 - **`nowIso()`** — Huidige tijd als ISO-string.
 - **`loadHistory()`** — Leest `landjes_history_v1` uit localStorage; default `{ version: 1, sessions: [], perGroup: {} }`.
 - **`saveHistory(history)`** — Schrijft history naar localStorage.
@@ -327,8 +333,9 @@ Kernmodule: één globale namespace `window.App` (IIFE). Belangrijkste onderdele
 
 #### Voortgang per week (home)
 
-- **`getGroupProgress(groupId, countryIds, history)`** — Berekent per type (capital, flag, map) welk deel van `countryIds` “beheerst” is (min. 1× correct in dat type, inclusief mix-events); geeft ook `stars` (0–5) als som van de drie bijdragen (elk max 5/3).
+- **`getGroupProgress(groupId, countryIds, history)`** — Berekent per type (capital, flag, map) welk deel van `countryIds` “beheerst” is (min. 1× correct in dat type, inclusief mix-events); geeft ook `stars` (0–5) als som van de drie bijdragen (elk max 5/3). Sessies met **Beide kanten** (`subMode === 'both'` voor capital/flag) worden **genegeerd** voor de progress bar.
 - **`formatProgressStars(stars)`** — Geeft een string met ★/☆ voor weergave.
+- **`pickNextCountryNoRepeat(countryStats, askedThisRound)`** — Kiest het volgende land zo dat eerst alle landen één keer aan bod komen (geen herhaling in dezelfde ronde); wanneer iedereen is gevraagd, wordt de ronde gereset. `askedThisRound` is een `Set` van iso-codes die de caller bijhoudt.
 
 #### Wereldkaart-preview (group-pagina)
 
@@ -350,7 +357,8 @@ Daarnaast bevat `app.js`:
 ### `js/quiz_capitals.js`
 
 - **Doel** — Hoofdstad-quiz: vraag toont land of hoofdstad; gebruiker geeft correct/incorrect; sessie wordt bijgehouden.
-- **Flow** — Leest `id` en `mode` uit URL; laadt groep en landen; initialiseert `countryStats` en `session`; toont vragen tot alle landen “mastered” of tot stop.
+- **Flow** — Leest `id` en `mode` uit URL; laadt groep en landen; initialiseert `countryStats` en `session`; toont vragen. Bij **één richting**: sessie eindigt wanneer alle landen “mastered”. Bij **Beide kanten** (`mode === 'both'`): sessie loopt oneindig door (geen `maybeEndSessionIfMastered`).
+- **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound` (Set): eerst alle landen één keer, daarna nieuwe ronde.
 - **Functies** — o.a. `updateSessionStatsUI`, `updateDeckStatus`, `showNextQuestion`, `handleAnswer`, `maybeEndSessionIfMastered`; roept `App.recordQuestionResult` en `App.finalizeSession` aan.
 - **Keyboard** — Spatiebalk = toon antwoord; 1/2 = correct/incorrect (indien van toepassing).
 
@@ -358,14 +366,15 @@ Daarnaast bevat `app.js`:
 
 ### `js/quiz_flags.js`
 
-- **Doel** — Vlaggen-quiz:zelfde patroon als hoofdstad, met vlag-afbeelding (`assets/flags/`) en vraagtypen “vlag→land” en “land→vlag”.
+- **Doel** — Vlaggen-quiz: zelfde patroon als hoofdstad, met vlag-afbeelding (`assets/flags/`) en vraagtypen “vlag→land” en “land→vlag”. **Beide kanten** (`mode === 'both'`) loopt oneindig door en telt niet mee voor de progress bar.
+- **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound` (Set): eerst alle landen één keer, daarna nieuwe ronde.
 - **Functies** — `renderFlag(iso)`, `updateSessionStatsUI`, `showNextQuestion`, `handleAnswer`, enz.; integratie met `App` identiek aan capitals.
 
 ---
 
 ### `js/quiz_map.js`
 
-- **Doel** — Kaart-quiz: één land wit op de kaart; gebruiker kiest het land in de lijst (of typt de landnaam bij continent/world).
+- **Doel** — Kaart-quiz: één land wit op de kaart; gebruiker kiest het land in de lijst (of typt de landnaam bij continent/world). **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound`: eerst alle landen één keer, daarna nieuwe ronde.
 - **Twee modi:**
   - **Week-quizzes** (`id=week*`): Eigen Mercator-SVG: `renderMap`, `scaleInfo` uit groep-features, zoom op het deel. `setTargetOnMap(iso)` en `updateArrow(iso)` voor highlight en pijl/ellips (kleiner dan Nederland → ellips).
   - **Per continent / Hele wereld** (`id=continent_*` of `id=world`): Zelfde kaart als oefen-preview: `App.buildWorldMapEmpty(world)` bij start, bij elke vraag `App.buildWorldMapPreview(currentCountry.iso, worldGeo)`. Geen eigen `renderMap`; wereldkaart gecentreerd op 0° (Greenwich). **Typ-card** zichtbaar: input + Controleer; antwoord geldt als goed bij exacte match of Levenshtein-afstand ≤ 4 op de Nederlandse landnaam (`isTypedAnswerCorrect`, `levenshtein`).
@@ -376,7 +385,7 @@ Daarnaast bevat `app.js`:
 
 ### `js/quiz_mix.js`
 
-- **Doel** — Mix-quiz: per vraag willekeurig hoofdstad-, vlag- of kaartvraag;zelfde sessie- en master-logica.
+- **Doel** — Mix-quiz: per vraag willekeurig hoofdstad-, vlag- of kaartvraag;zelfde sessie- en master-logica. **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound`: eerst alle landen één keer, daarna nieuwe ronde.
 - **Functies** — Dezelfde kaart-/projectie-helpers als in quiz_map; `chooseQuestionType`, `prepareCapitalQuestion`, `prepareFlagQuestion`, `prepareMapQuestion`, `showNextQuestion`, `handleSelfScoredAnswer`, `handleMapGuess`; toetsenbord: Spatie, 1, 2.
 
 ---

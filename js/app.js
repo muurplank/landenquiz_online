@@ -346,6 +346,8 @@ window.App = (function () {
 
     sessions.forEach(s => {
       const sessionType = s.quizType;
+      // "Beide kanten"-sessies tellen niet mee voor de progress bar
+      if ((sessionType === 'capital' || sessionType === 'flag') && s.subMode === 'both') return;
       if (types.includes(sessionType)) {
         Object.entries(s.perCountryStats || {}).forEach(([iso, stat]) => {
           if (!countryIds.includes(iso)) return;
