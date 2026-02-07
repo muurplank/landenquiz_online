@@ -1,0 +1,18 @@
+[
+  {"id": "week1_zuid-amerika", "title": "Week 1 - Zuid-Amerika", "continent": "South America", "countries": ["ARG", "BOL", "BRA", "CHL", "COL", "ECU", "GUY", "PRY", "PER", "SUR", "URY", "VEN"]},
+  {"id": "week2_noord-amerika_deel1", "title": "Week 2 - Noord-Amerika (deel 1)", "continent": "North America", "countries": ["ATG", "BHS", "BRB", "BLZ", "CAN", "CRI", "CUB", "DMA", "DOM", "SLV", "GRD", "GTM"]},
+  {"id": "week3_noord-amerika_deel2", "title": "Week 3 - Noord-Amerika (deel 2)", "continent": "North America", "countries": ["HTI", "HND", "JAM", "MEX", "NIC", "PAN", "KNA", "LCA", "VCT", "TTO", "USA"]},
+  {"id": "week4_europa_deel1", "title": "Week 4 - Europa (deel 1)", "continent": "Europe", "countries": ["ALB", "AND", "BEL", "BIH", "BGR", "CYP", "DNK", "DEU", "EST", "FIN", "FRA", "GRC", "HUN", "IRL", "ISL", "ITA", "HRV", "LVA", "LIE", "LTU", "LUX", "MLT"]},
+  {"id": "week5_europa_deel2", "title": "Week 5 - Europa (deel 2)", "continent": "Europe", "countries": ["MDA", "MCO", "MNE", "NLD", "MKD", "NOR", "UKR", "AUT", "POL", "PRT", "ROU", "RUS", "SMR", "SRB", "SVK", "SVN", "ESP", "CZE", "VAT", "GBR", "BLR", "CHE", "XKX"]},
+  {"id": "week6_oceanie", "title": "Week 6 - Oceanië", "continent": "Oceania", "countries": ["AUS", "FJI", "KIR", "MHL", "FSM", "NRU", "NZL", "PLW", "PNG", "SLB", "WSM", "TON", "TUV", "VUT"]},
+  {"id": "week7_afrika_deel1", "title": "Week 7 - Afrika (deel 1)", "continent": "Africa", "countries": ["DZA", "EGY", "LBY", "TUN", "MAR", "SDN", "SSD", "ETH", "ERI", "DJI", "SOM"]},
+  {"id": "week8_afrika_deel2", "title": "Week 8 - Afrika (deel 2)", "continent": "Africa", "countries": ["NGA", "GHA", "CIV", "SEN", "GMB", "GIN", "GNB", "SLE", "LBR", "BEN", "TGO"]},
+  {"id": "week9_afrika_deel3", "title": "Week 9 - Afrika (deel 3)", "continent": "Africa", "countries": ["CMR", "CAF", "TCD", "COG", "COD", "GNQ", "GAB", "STP", "AGO", "NAM", "ZMB"]},
+  {"id": "week10_afrika_deel4", "title": "Week 10 - Afrika (deel 4)", "continent": "Africa", "countries": ["ZWE", "MOZ", "MWI", "TZA", "KEN", "UGA", "RWA", "BDI", "ZAF", "LSO", "SWZ"]},
+  {"id": "week11_afrika_deel5", "title": "Week 11 - Afrika (deel 5)", "continent": "Africa", "countries": ["BWA", "ZMB", "NER", "MLI", "BFA", "MRT", "CPV", "SYC", "COM", "MUS", "MDG"]},
+  {"id": "week12_azie_deel1", "title": "Week 12 - Azië (deel 1)", "continent": "Asia", "countries": ["CHN", "JPN", "KOR", "PRK", "MNG", "TWN", "THA", "VNM", "LAO", "KHM"]},
+  {"id": "week13_azie_deel2", "title": "Week 13 - Azië (deel 2)", "continent": "Asia", "countries": ["IND", "PAK", "BGD", "LKA", "NPL", "BTN", "MMR", "MDV", "AFG", "IRN"]},
+  {"id": "week14_azie_deel3", "title": "Week 14 - Azië (deel 3)", "continent": "Asia", "countries": ["KAZ", "UZB", "TKM", "TJK", "KGZ", "ARM", "AZE", "GEO", "RUS", "TUR"]},
+  {"id": "week15_azie_deel4", "title": "Week 15 - Azië (deel 4)", "continent": "Asia", "countries": ["SAU", "ARE", "QAT", "KWT", "OMN", "YEM", "IRQ", "SYR", "JOR", "ISR"]},
+  {"id": "week16_azie_deel5", "title": "Week 16 - Azië (deel 5)", "continent": "Asia", "countries": ["IDN", "MYS", "SGP", "PHL", "BRN", "TLS", "CYP", "BHR", "LBN"]}
+]

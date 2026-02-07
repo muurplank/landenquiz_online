@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Landjes Trainer - Deel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    (function() {
+      var id = new URLSearchParams(window.location.search).get('id');
+      if (!id) return;
+      try {
+        var raw = localStorage.getItem('landjes_oefenen_collapsed');
+        var state = raw ? JSON.parse(raw) : {};
+        if (state[id]) document.documentElement.classList.add('oefenen-collapsed-init');
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body>
+  <header class="app-header">
+    <a href="../index.html" class="back-link">&larr; Terug naar home</a>
+    <h1 id="group-title">Deel</h1>
+    <p id="group-meta"></p>
+  </header>
+
+  <main class="container">
+    <!-- 1. Oefenen: kaart + landenlijst (collapsible) -->
+    <section class="group-oefenen-section" aria-label="Oefenen met kaart en landen">
+      <h2 class="group-oefenen-header">
+        <button type="button" class="group-oefenen-toggle" id="oefenen-toggle" aria-expanded="true" aria-controls="group-oefenen-content">
+          <span class="group-oefenen-arrow" aria-hidden="true">▼</span>
+          Oefenen
+        </button>
+      </h2>
+      <div id="group-oefenen-content" class="group-oefenen-content">
+        <div class="group-map-row" aria-label="Wereldkaart en landen in dit deel">
+          <div id="country-preview-map" class="country-preview-box country-preview-map-box">
+            <p class="country-preview-placeholder">Hover over een land in de lijst → wereldkaart met pijl</p>
+          </div>
+          <aside class="group-countries-aside">
+            <h3 class="group-countries-title">Landen in dit deel</h3>
+            <ul id="countries-list" class="plain-list countries-hover-list"></ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Quiz-modi -->
+    <section class="group-quiz-section">
+      <h2>Quiz-modi</h2>
+      <div class="card-grid">
+        <article class="card">
+          <h3>Hoofdstad / Land</h3>
+          <p>Flashcards in beide richtingen.</p>
+          <div class="btn-row">
+            <a id="capitals-land-to-capital" class="btn primary">Land → Hoofdstad</a>
+            <a id="capitals-capital-to-land" class="btn">Hoofdstad → Land</a>
+            <a id="capitals-both" class="btn">Beide kanten</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Vlaggen</h3>
+          <p>Herken vlaggen en landen.</p>
+          <div class="btn-row">
+            <a id="flags-flag-to-land" class="btn primary">Vlag → Land</a>
+            <a id="flags-land-to-flag" class="btn">Land → Vlag</a>
+            <a id="flags-both" class="btn">Beide kanten</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Kaart-quiz</h3>
+          <p>Herken het wit gemarkeerde land.</p>
+          <div class="btn-row">
+            <a id="map-quiz" class="btn primary">Start kaart-quiz</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Mix</h3>
+          <p>Hoofdstad, vlag en kaart door elkaar.</p>
+          <div class="btn-row">
+            <a id="mix-quiz" class="btn primary">Start mix-sessie</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const groupId = params.get('id');
+      const titleEl = document.getElementById('group-title');
+      const metaEl = document.getElementById('group-meta');
+      const countriesListEl = document.getElementById('countries-list');
+
+      if (!groupId) {
+        titleEl.textContent = 'Geen deel geselecteerd';
+        metaEl.textContent = 'Ga terug naar de homepagina en kies een deel.';
+        return;
+      }
+
+      try {
+        const group = await window.App.loadGroupById(groupId);
+        const countriesMap = await window.App.loadCountriesMap();
+        const worldGeo = await window.App.loadWorldGeoJSON();
+        titleEl.textContent = group.title;
+        metaEl.textContent = `${group.title} · ${group.countries.length} landen`;
+
+        const mapBox = document.getElementById('country-preview-map');
+        const mapRow = document.querySelector('.group-map-row');
+
+        let cachedEmptyMapHtml = null;
+
+        function showEmptyMap() {
+          if (cachedEmptyMapHtml === null) {
+            cachedEmptyMapHtml = window.App.buildWorldMapEmpty(worldGeo) || '<p class="country-preview-placeholder">Kaart niet beschikbaar.</p>';
+          }
+          mapBox.innerHTML = cachedEmptyMapHtml;
+          mapBox.classList.remove('filled');
+        }
+
+        const previewCache = new Map();
+
+        function showCountryOnMap(iso3) {
+          let html = previewCache.get(iso3);
+          if (!html) {
+            const mapHtml = window.App.buildWorldMapPreview(iso3, worldGeo);
+            if (!mapHtml) {
+              showEmptyMap();
+              return;
+            }
+            const flagFile = window.App.getFlagFilename(iso3);
+            const flagSrc = `../assets/flags/${flagFile}`;
+            html = `<div class="country-preview-world-wrap"><div class="country-preview-flag-box" aria-hidden="true"><img src="${flagSrc}" alt="" width="84" height="60"></div>${mapHtml}</div>`;
+            previewCache.set(iso3, html);
+          }
+          mapBox.innerHTML = html;
+          mapBox.classList.add('filled');
+        }
+
+        function clearMap() {
+          showEmptyMap();
+        }
+
+        showEmptyMap();
+
+        group.countries.forEach(iso3 => {
+          const c = countriesMap[iso3];
+          if (!c) return;
+          const li = document.createElement('li');
+          li.textContent = `${c.name_nl} — ${c.capitals_nl.join(', ')}`;
+          li.dataset.iso = iso3;
+          if (mapBox) {
+            li.addEventListener('mouseenter', () => showCountryOnMap(iso3));
+          }
+          countriesListEl.appendChild(li);
+        });
+
+        if (mapRow && mapBox) {
+          mapRow.addEventListener('mouseleave', () => clearMap());
+        }
+
+        const oefenenToggle = document.getElementById('oefenen-toggle');
+        const oefenenContent = document.getElementById('group-oefenen-content');
+        const OEFENEN_STORAGE_KEY = 'landjes_oefenen_collapsed';
+
+        function getOefenenCollapsedState() {
+          try {
+            const raw = localStorage.getItem(OEFENEN_STORAGE_KEY);
+            if (!raw) return {};
+            return JSON.parse(raw);
+          } catch (_) {
+            return {};
+          }
+        }
+
+        function setOefenenCollapsedForGroup(groupId, collapsed) {
+          const state = getOefenenCollapsedState();
+          state[groupId] = collapsed;
+          try {
+            localStorage.setItem(OEFENEN_STORAGE_KEY, JSON.stringify(state));
+          } catch (_) {}
+        }
+
+        function applyOefenenState(collapsed) {
+          document.documentElement.classList.toggle('oefenen-collapsed-init', false);
+          const arrowEl = oefenenToggle && oefenenToggle.querySelector('.group-oefenen-arrow');
+          if (collapsed) {
+            oefenenContent.classList.add('collapsed');
+            if (oefenenToggle) oefenenToggle.setAttribute('aria-expanded', 'false');
+            if (arrowEl) arrowEl.textContent = '▶';
+          } else {
+            oefenenContent.classList.remove('collapsed');
+            if (oefenenToggle) oefenenToggle.setAttribute('aria-expanded', 'true');
+            if (arrowEl) arrowEl.textContent = '▼';
+          }
+        }
+
+        const savedCollapsed = getOefenenCollapsedState()[group.id] === true;
+        applyOefenenState(savedCollapsed);
+
+        if (oefenenToggle && oefenenContent) {
+          oefenenToggle.addEventListener('click', () => {
+            const isCollapsed = oefenenContent.classList.toggle('collapsed');
+            setOefenenCollapsedForGroup(group.id, isCollapsed);
+            applyOefenenState(isCollapsed);
+          });
+        }
+
+        const base = `id=${encodeURIComponent(group.id)}`;
+        document.getElementById('capitals-land-to-capital').href =
+          `quiz_capitals.html?${base}&mode=land-to-capital`;
+        document.getElementById('capitals-capital-to-land').href =
+          `quiz_capitals.html?${base}&mode=capital-to-land`;
+        document.getElementById('capitals-both').href =
+          `quiz_capitals.html?${base}&mode=both`;
+
+        document.getElementById('flags-flag-to-land').href =
+          `quiz_flags.html?${base}&mode=flag-to-land`;
+        document.getElementById('flags-land-to-flag').href =
+          `quiz_flags.html?${base}&mode=land-to-flag`;
+        document.getElementById('flags-both').href =
+          `quiz_flags.html?${base}&mode=both`;
+
+        document.getElementById('map-quiz').href =
+          `quiz_map.html?${base}`;
+
+        document.getElementById('mix-quiz').href =
+          `quiz_mix.html?${base}`;
+      } catch (err) {
+        console.error(err);
+        titleEl.textContent = 'Fout bij laden van deel';
+        metaEl.textContent = 'Controleer of je een webserver gebruikt (bijv. python -m http.server).';
+      }
+    });
+  </script>
+</body>
+</html>
+

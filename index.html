@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Land Trainer - Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="dark-mode-switch-wrap">
+      <label class="dark-mode-toggle" for="dark-mode-cb">
+        <input type="checkbox" id="dark-mode-cb" aria-label="Donkere weergave">
+        <span class="switch-slider"></span>
+        <span class="switch-label">Donker</span>
+      </label>
+      <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+    </div>
+    <h1>Land Trainer</h1>
+    <p>Leer samen alle landen, hoofdsteden, vlaggen en kaartherkenning.</p>
+  </header>
+
+  <main class="container">
+    <section>
+      <h2>Delen / Weeksets</h2>
+      <p>Kies een deel om te starten.</p>
+      <ul id="groups-list" class="card-list"></ul>
+    </section>
+    <section style="margin-top: 2rem;">
+      <h2>Per continent</h2>
+      <p>Oefen alle landen per continent of de hele wereld. Klik op een kaart voor de vier quiztypen.</p>
+      <ul id="continents-list" class="card-list"></ul>
+    </section>
+    <section style="margin-top: 2rem;">
+      <h2>Statistieken</h2>
+      <p>Bekijk je voortgang, nauwkeurigheid per land en per continent.</p>
+      <a href="pages/stats.html" class="btn primary">Open statistieken</a>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const groupsListEl = document.getElementById('groups-list');
+      try {
+        const groups = await window.App.loadGroups();
+        const history = window.App.loadHistory();
+        groups.forEach(group => {
+          const progress = window.App.getGroupProgress(group.id, group.countries, history);
+          const li = document.createElement('li');
+          li.className = 'card';
+          const link = document.createElement('a');
+          link.href = `pages/group.html?id=${encodeURIComponent(group.id)}`;
+          link.className = 'card-link';
+          const pct = Math.min(100, (progress.stars / 5) * 100);
+          link.innerHTML = `
+            <h3>${group.title}</h3>
+            <p>Continent: ${group.continent}</p>
+            <p>${group.countries.length} landen</p>
+            <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
+              <span class="progress-bar-wrap"><span class="progress-bar-fill" style="width:${pct}%"></span></span>
+              <span class="progress-detail">${Math.round(pct)}%</span>
+            </p>
+          `;
+          li.appendChild(link);
+          groupsListEl.appendChild(li);
+        });
+      } catch (err) {
+        groupsListEl.innerHTML = '<li class="error">Kon groepen niet laden. Start een simpele webserver (bijv. <code>python -m http.server</code>) en open dan deze pagina.</li>';
+        console.error(err);
+      }
+
+      const continentsListEl = document.getElementById('continents-list');
+      if (continentsListEl) {
+        try {
+          const continentGroups = await window.App.getContinentAndWorldGroups();
+          const history = window.App.loadHistory();
+          continentGroups.forEach(group => {
+            const progress = window.App.getGroupProgress(group.id, group.countries, history);
+            const li = document.createElement('li');
+            li.className = 'card';
+            const link = document.createElement('a');
+            link.href = `pages/group.html?id=${encodeURIComponent(group.id)}`;
+            link.className = 'card-link';
+            const pct = Math.min(100, (progress.stars / 5) * 100);
+            const meta = group.id === 'world' ? `${group.countries.length} landen` : `${group.continent} · ${group.countries.length} landen`;
+            link.innerHTML = `
+              <h3>${group.title}</h3>
+              <p>${meta}</p>
+              <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
+                <span class="progress-bar-wrap"><span class="progress-bar-fill" style="width:${pct}%"></span></span>
+                <span class="progress-detail">${Math.round(pct)}%</span>
+              </p>
+            `;
+            li.appendChild(link);
+            continentsListEl.appendChild(li);
+          });
+        } catch (err) {
+          continentsListEl.innerHTML = '<li class="error">Kon continenten niet laden.</li>';
+          console.error(err);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

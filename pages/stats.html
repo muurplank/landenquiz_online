@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Statistieken — Land Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/stats.css">
+</head>
+<body class="page-stats">
+  <header class="app-header">
+    <div class="dark-mode-switch-wrap">
+      <label class="dark-mode-toggle" for="dark-mode-cb">
+        <input type="checkbox" id="dark-mode-cb" aria-label="Donkere weergave">
+        <span class="switch-slider"></span>
+        <span class="switch-label">Donker</span>
+      </label>
+      <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+    </div>
+    <a href="../index.html" class="back-link">&larr; Terug naar home</a>
+    <h1>Statistieken</h1>
+    <p>Overzicht van je sessies, nauwkeurigheid en voortgang per week en continent.</p>
+  </header>
+
+  <main class="container stats-container">
+    <!-- Globale filters (altijd zichtbaar) -->
+    <section class="stats-filters card">
+      <h2 class="stats-filters-title">Filters</h2>
+      <div class="filters-row">
+        <div class="filter-group">
+          <label for="filter-period">Periode</label>
+          <select id="filter-period">
+            <option value="all">Alles</option>
+            <option value="7">Laatste 7 dagen</option>
+            <option value="30">Laatste 30 dagen</option>
+            <option value="this_week">Deze week</option>
+            <option value="custom">Aangepast bereik</option>
+          </select>
+        </div>
+        <div class="filter-group filter-custom-range" id="wrap-custom-range" hidden>
+          <label for="filter-date-from">Van</label>
+          <input type="date" id="filter-date-from">
+          <label for="filter-date-to">Tot</label>
+          <input type="date" id="filter-date-to">
+        </div>
+        <div class="filter-group">
+          <label for="filter-group">Groep / week</label>
+          <select id="filter-group">
+            <option value="">Alle groepen</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-quiz-type">Quiztype</label>
+          <select id="filter-quiz-type">
+            <option value="all">Alle</option>
+            <option value="capital">Hoofdstad</option>
+            <option value="flag">Vlag</option>
+            <option value="map">Kaart</option>
+            <option value="mix">Mix</option>
+          </select>
+        </div>
+      </div>
+      <p class="stats-last-updated" id="stats-last-updated">Laatste update: —</p>
+    </section>
+
+    <!-- Tabs -->
+    <div class="stats-tabs" role="tablist">
+      <button type="button" class="stats-tab active" role="tab" id="tab-general" aria-selected="true" aria-controls="panel-general">Algemene statistieken</button>
+      <button type="button" class="stats-tab" role="tab" id="tab-per-week" aria-selected="false" aria-controls="panel-per-week">Per week / onderdeel</button>
+      <button type="button" class="stats-tab" role="tab" id="tab-continents" aria-selected="false" aria-controls="panel-continents">Per continent</button>
+    </div>
+
+    <!-- Panel 1: Algemene statistieken -->
+    <section id="panel-general" class="stats-panel" role="tabpanel" aria-labelledby="tab-general">
+      <div class="kpi-grid" id="kpi-cards"></div>
+      <div class="stats-grid-two">
+        <div class="card">
+          <h3>Verdeling per quiztype</h3>
+          <div id="chart-quiz-type" class="chart-wrap"></div>
+        </div>
+        <div class="card">
+          <h3>Beste landen <span class="small">(min. 3× gezien)</span></h3>
+          <p class="small" style="margin-bottom:0.5rem;">Sterren: ★★★★★ ≥90% + 5× · ★★★★ ≥80% + 4× · ★★★ ≥65% + 3× · ★★ ≥45% + 2× · ★ anders</p>
+          <ul id="list-best-countries" class="country-stats-list"></ul>
+        </div>
+      </div>
+      <div class="stats-grid-two">
+        <div class="card">
+          <h3>Slechtste landen <span class="small">(min. 3× gezien)</span></h3>
+          <ul id="list-worst-countries" class="country-stats-list"></ul>
+        </div>
+        <div class="card">
+          <h3>Extra inzichten</h3>
+          <div id="insights-extra" class="insights-extra"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 2: Per week / onderdeel -->
+    <section id="panel-per-week" class="stats-panel hidden" role="tabpanel" aria-labelledby="tab-per-week">
+      <div class="per-group-cards" id="per-group-cards"></div>
+      <div class="card">
+        <h3>Rolling accuracy (laatste 5 antwoorden) per quiztype</h3>
+        <p class="small">Gebaseerd op event-niveau waar beschikbaar. Kies een groep om per groep te zien.</p>
+        <div id="rolling-accuracy-charts" class="rolling-charts"></div>
+      </div>
+    </section>
+
+    <!-- Panel 3: Per continent -->
+    <section id="panel-continents" class="stats-panel hidden" role="tabpanel" aria-labelledby="tab-continents">
+      <div class="continent-heatmap" id="continent-heatmap"></div>
+      <div class="continent-details" id="continent-details"></div>
+    </section>
+
+    <section class="stats-empty card hidden" id="stats-empty">
+      <p>Nog geen voltooide sessies in dit filter. Speel eerst wat quizzen om hier statistieken te zien.</p>
+    </section>
+  </main>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/stats.js"></script>
+</body>
+</html>

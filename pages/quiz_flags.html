@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Vlaggen Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="javascript:history.back()" class="back-link">&larr; Terug naar deel</a>
+    <div class="quiz-header-row">
+      <div>
+        <h1 id="quiz-title">Vlaggen</h1>
+        <p id="quiz-subtitle" class="small"></p>
+      </div>
+      <div>
+        <span id="deck-status" class="badge">Deck: 0/0 mastered</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="quiz-main">
+      <article class="quiz-card">
+        <p class="small">Modus: <span id="mode-label"></span></p>
+        <div id="flag-container" class="quiz-question"></div>
+        <div id="question" class="quiz-question"></div>
+        <div id="answer" class="quiz-answer" hidden></div>
+
+        <div class="quiz-controls">
+          <button id="btn-show-answer" class="btn primary">
+            <span class="btn-label">Toon antwoord</span>
+            <span class="btn-shortcut">(Spatiebalk)</span>
+          </button>
+          <button id="btn-correct" class="btn" disabled>
+            <span class="btn-label">Correct</span>
+            <span class="btn-shortcut">(1)</span>
+          </button>
+          <button id="btn-incorrect" class="btn" disabled>
+            <span class="btn-label">Incorrect</span>
+            <span class="btn-shortcut">(2)</span>
+          </button>
+        </div>
+
+        <p id="session-status" class="status-label"></p>
+      </article>
+
+      <aside class="quiz-card">
+        <h2>Statistiek (sessie)</h2>
+        <dl class="stats-list">
+          <dt>Vragen</dt>
+          <dd id="stat-questions">0</dd>
+          <dt>Accuracy</dt>
+          <dd id="stat-accuracy">0%</dd>
+          <dt>Gem. reactietijd</dt>
+          <dd id="stat-avg-time">-</dd>
+          <dt>Streak</dt>
+          <dd id="stat-streak">0 (beste 0)</dd>
+        </dl>
+        <div class="log-download-row">
+          <button id="btn-download-log" class="btn">Download log (JSON)</button>
+        </div>
+        <p class="small">Alles wordt persistent opgeslagen in <code>localStorage</code>.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/quiz_flags.js"></script>
+</body>
+</html>
+
