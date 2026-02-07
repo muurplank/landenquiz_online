@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentSubType = null;
   let questionStartTime = null;
   let sessionEnded = false;
+  const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
   let svgEl = null;
   let pathsByIso = {};
   let useLonWrap = false;
@@ -337,7 +338,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       maybeEndSessionIfMastered();
       return;
     }
-    currentCountry = window.App.pickRandomCountry(countryStats);
+    currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound);
+    askedThisRound.add(currentCountry.iso);
     questionStartTime = performance.now();
 
     currentQuestionType = chooseQuestionType();

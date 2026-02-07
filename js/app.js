@@ -153,6 +153,23 @@ window.App = (function () {
     return list[idx];
   }
 
+  /**
+   * Kiest het volgende land zo dat eerst alle landen één keer aan bod komen
+   * voordat er herhalingen zijn. askedThisRound is een Set van iso-codes
+   * die deze ronde al gevraagd zijn; wordt door de caller bijgehouden.
+   */
+  function pickNextCountryNoRepeat(countryStats, askedThisRound) {
+    const list = Object.values(countryStats);
+    if (!list.length) return null;
+    const notYetAsked = list.filter(c => !askedThisRound.has(c.iso));
+    const pool = notYetAsked.length > 0 ? notYetAsked : list;
+    if (pool.length === list.length && askedThisRound.size === list.length) {
+      askedThisRound.clear();
+    }
+    const idx = Math.floor(Math.random() * pool.length);
+    return pool[idx];
+  }
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -680,6 +697,7 @@ window.App = (function () {
     createInitialCountryStats,
     allMastered,
     pickRandomCountry,
+    pickNextCountryNoRepeat,
     startSession,
     finalizeSession,
     recordQuestionResult,

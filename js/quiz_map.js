@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let svgEl = null;
   let pathsByIso = {};
   let sessionEnded = false;
+  const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
   let scaleInfo = null;
   let allContinentFeatures = [];
   let useLonWrap = false;
@@ -304,7 +305,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       maybeEndSessionIfMastered();
       return;
     }
-    currentCountry = window.App.pickRandomCountry(countryStats);
+    currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound);
+    askedThisRound.add(currentCountry.iso);
     questionStartTime = performance.now();
     const isContinentOrWorld = groupId === 'world' || groupId.startsWith('continent_');
     if (isContinentOrWorld && worldGeo && currentCountry && mapContainerEl) {

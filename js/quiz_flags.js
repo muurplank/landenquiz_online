@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentQuestionMode = null; // bij mode 'both': 'flag-to-land' of 'land-to-flag'
   let questionStartTime = null;
   let sessionEnded = false;
+  const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
 
   function updateDeckStatus() {
     const all = Object.values(countryStats);
@@ -92,7 +93,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       maybeEndSessionIfMastered();
       return;
     }
-    currentCountry = window.App.pickRandomCountry(countryStats);
+    currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound);
+    askedThisRound.add(currentCountry.iso);
     questionStartTime = performance.now();
 
     const c = countriesMap[currentCountry.iso];
