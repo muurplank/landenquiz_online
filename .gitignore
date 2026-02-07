@@ -1,0 +1,5 @@
+# Lokale cache voor fetch-flags.sh (country-flags clone)
+.cache/
+
+# macOS
+.DS_Store

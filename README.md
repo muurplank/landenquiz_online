@@ -129,9 +129,9 @@ De app is **puur statisch** (HTML, CSS, JS, JSON). Je kunt hem gratis hosten op 
 3. Bij **Source** kies **Deploy from a branch**.
 4. Branch: `main` (of `master`), map: **/ (root)**.
 5. Klik **Save**. Na even wachten is de site bereikbaar op:
-   `https://<jouw-gebruikersnaam>.github.io/<repo-naam>/`
+   **https://muurplank.github.io/landenquiz_online/**
 
-Let op: bij een *project*-Pages site is de base-URL `.../repo-naam/`. Zorg dat links in de app relatief zijn (zoals `pages/group.html`) — dat is al het geval.
+Let op: bij een *project*-Pages site is de base-URL `.../landenquiz_online/`. Zorg dat links in de app relatief zijn (zoals `pages/group.html`) — dat is al het geval.
 
 ### Optie B: Netlify (gratis)
 
