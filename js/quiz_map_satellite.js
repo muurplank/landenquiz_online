@@ -155,9 +155,7 @@
     const height = maxLat - minLat;
     
     // Als de breedte > 180°, dan ligt het land over de dateline
-    // In dat geval is de berekening niet betrouwbaar
     if (width > 180) {
-      console.warn(`Land met breedte > 180° gedetecteerd, waarschijnlijk dateline issue`);
       return 0.01; // Behandel als klein land
     }
     
@@ -256,7 +254,6 @@
     // Check eerst of er een handmatige uitzondering is
     const iso = getIsoFromProperties(feature.properties);
     if (iso && MANUAL_CENTROIDS[iso]) {
-      console.log(`Gebruik handmatige centroid voor ${iso}:`, MANUAL_CENTROIDS[iso]);
       return MANUAL_CENTROIDS[iso];
     }
 
@@ -351,9 +348,7 @@
     const nlFeature = geoJsonData.features[nlFeatureId];
     if (!nlFeature) return null;
     
-    const area = getFeatureArea(nlFeature);
-    console.log(`Nederland oppervlakte (referentie): ${area.toFixed(4)}°²`);
-    return area;
+    return getFeatureArea(nlFeature);
   }
 
   /**
@@ -364,11 +359,7 @@
     
     // Bereken Nederland's oppervlakte
     if (netherlandsArea === null) {
-      netherlandsArea = calculateNetherlandsArea();
-      if (netherlandsArea === null) {
-        console.warn('Kon Nederland niet vinden, gebruik fallback threshold');
-        netherlandsArea = 0.5;
-      }
+      netherlandsArea = calculateNetherlandsArea() || 0.5;
     }
 
     smallCountriesSet.clear();
@@ -389,48 +380,29 @@
         );
       }
     });
-
-    console.log(`${smallCountriesSet.size} kleine landen geïdentificeerd (< Nederland)`);
   }
 
   /**
    * Voeg een opvallende cirkel toe voor een klein land
    */
   function addSmallCountryMarker(iso) {
-    if (!map || !geoJsonData) {
-      console.warn('addSmallCountryMarker: map of geoJsonData niet beschikbaar');
-      return;
-    }
+    if (!map || !geoJsonData) return;
 
     const featureId = isoToFeatureId.get(iso);
-    if (featureId === undefined) {
-      console.warn(`addSmallCountryMarker: geen feature ID voor ${iso}`);
-      return;
-    }
+    if (featureId === undefined) return;
 
     const feature = geoJsonData.features[featureId];
-    if (!feature) {
-      console.warn(`addSmallCountryMarker: geen feature voor ${iso}`);
-      return;
-    }
+    if (!feature) return;
 
     const area = getFeatureArea(feature);
-    console.log(`${iso} oppervlakte: ${area.toFixed(6)}°²`);
-    
     let largestCentroid = getLargestPolygonCentroid(feature);
     
     // Fallback: als centroid berekening faalt, gebruik gewone centroid
     if (!largestCentroid) {
-      console.warn(`Kon largest centroid niet berekenen voor ${iso}, probeer gewone centroid`);
       largestCentroid = getFeatureCentroid(feature);
     }
     
-    if (!largestCentroid) {
-      console.error(`Kon geen centroid berekenen voor ${iso}, skip marker`);
-      return;
-    }
-
-    console.log(`${iso} centroid: [${largestCentroid[0].toFixed(2)}, ${largestCentroid[1].toFixed(2)}]`);
+    if (!largestCentroid) return;
 
     // Bereken Nederland's oppervlakte als referentie (eenmalig)
     if (netherlandsArea === null) {
@@ -483,8 +455,6 @@
         .addTo(map);
 
       smallCountryMarkers.push(arrowMarker);
-      
-      console.log(`Pijl toegevoegd voor klein land: ${iso} (oppervlakte: ${area.toFixed(4)}°² < NL: ${netherlandsArea.toFixed(4)}°²)`);
     }
   }
 
@@ -557,18 +527,6 @@
       // Geen IDs toevoegen - MapLibre doet dit automatisch met generateId: true
 
       isoToFeatureId = buildIsoIndex(geoJsonData);
-      console.log(`GeoJSON geladen: ${geoJsonData.features.length} landen, ${isoToFeatureId.size} met ISO code`);
-      
-      // Debug: check eerste feature
-      if (geoJsonData.features.length > 0) {
-        const firstFeature = geoJsonData.features[0];
-        console.log('Eerste feature:', {
-          id: firstFeature.id,
-          type: firstFeature.type,
-          geometry: firstFeature.geometry ? firstFeature.geometry.type : 'geen geometry',
-          properties: Object.keys(firstFeature.properties || {})
-        });
-      }
     } catch (err) {
       console.error('Kon GeoJSON niet laden:', err);
       return null;
@@ -720,17 +678,6 @@
       map.on('load', resolve);
     });
 
-    // Debug: check of layers zijn toegevoegd
-    const style = map.getStyle();
-    console.log('Layers geladen:', style.layers.map(l => l.id));
-    console.log('Sources geladen:', Object.keys(style.sources));
-    
-    // Check of countries source data heeft
-    const countriesSource = map.getSource('countries');
-    if (countriesSource) {
-      console.log('Countries source type:', countriesSource.type);
-    }
-
     // Disable rotation
     map.dragRotate.disable();
     map.touchZoomRotate.disableRotation();
@@ -738,7 +685,6 @@
     // Identificeer kleine landen en style ze oranje
     identifySmallCountries();
 
-    console.log('Satelliet kaart geïnitialiseerd');
     return map;
   }
 
@@ -746,13 +692,9 @@
    * Highlight een land (wit maken)
    */
   function highlightCountry(iso) {
-    if (!map || !geoJsonData) {
-      console.warn('highlightCountry: map of geoJsonData niet beschikbaar');
-      return;
-    }
+    if (!map || !geoJsonData) return;
 
     const normalizedIso = normalizeIso(iso);
-    console.log(`highlightCountry aangeroepen: ${iso} → ${normalizedIso}`);
     
     // Verwijder oude markers
     clearSmallCountryMarkers();
@@ -765,7 +707,6 @@
           { source: 'countries', id: prevFeatureId },
           { active: false }
         );
-        console.log(`Reset vorige highlight: ${currentHighlightedIso}`);
       }
     }
 
@@ -778,21 +719,13 @@
           { active: true }
         );
         currentHighlightedIso = normalizedIso;
-        console.log(`✓ Land WIT gemaakt: ${normalizedIso} (feature ID: ${featureId})`);
         
         // Voeg marker toe voor kleine landen
         addSmallCountryMarker(normalizedIso);
-        
-        // Debug: check feature state
-        const state = map.getFeatureState({ source: 'countries', id: featureId });
-        console.log('Feature state na update:', state);
       } else {
-        console.warn(`✗ Land niet gevonden in ISO index: ${normalizedIso}`);
-        console.log('Beschikbare ISO codes (eerste 10):', Array.from(isoToFeatureId.keys()).slice(0, 10));
         currentHighlightedIso = null;
       }
     } else {
-      console.log('Geen ISO code opgegeven, reset highlight');
       currentHighlightedIso = null;
     }
   }
@@ -804,10 +737,7 @@
     if (!map) return;
 
     const bounds = getBoundsForCountries(isoCodes);
-    if (!bounds) {
-      console.warn('Geen bounds gevonden voor regio:', isoCodes);
-      return;
-    }
+    if (!bounds) return;
 
     const defaultOptions = {
       padding: { top: 50, bottom: 50, left: 50, right: 50 },
@@ -816,7 +746,6 @@
     };
 
     map.fitBounds(bounds, { ...defaultOptions, ...options });
-    console.log(`Zoom naar regio: ${isoCodes.length} landen`);
   }
 
   /**

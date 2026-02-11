@@ -95,12 +95,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setTargetOnMap(iso) {
-    // Nieuwe implementatie: gebruik satelliet kaart
     if (window.SatelliteMap && satelliteMapInitialized) {
       window.SatelliteMap.highlightCountry(iso);
-      console.log(`Mix quiz: highlight land ${iso}`);
-    } else {
-      console.warn('Mix quiz: satelliet kaart niet geïnitialiseerd');
     }
   }
 
