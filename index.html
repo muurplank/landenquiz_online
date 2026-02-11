@@ -7,20 +7,26 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="app-header">
-    <div class="dark-mode-switch-wrap">
-      <label class="dark-mode-toggle" for="dark-mode-cb">
-        <input type="checkbox" id="dark-mode-cb" aria-label="Donkere weergave">
-        <span class="switch-slider"></span>
-        <span class="switch-label">Donker</span>
-      </label>
-      <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+  <main class="container" style="padding-top: 1.5rem;">
+    <!-- Header Cards -->
+    <div class="header-cards-row">
+      <div class="header-card title-card">
+        <h1 class="group-title-card">Land Trainer</h1>
+        <p class="group-meta-card">Leer samen alle landen, hoofdsteden, vlaggen en kaartherkenning.</p>
+      </div>
+      <div class="header-card settings-card">
+        <div class="settings-card-content">
+          <label class="dark-mode-toggle" for="dark-mode-cb">
+            <input type="checkbox" id="dark-mode-cb" aria-label="Donkere weergave">
+            <span class="switch-slider"></span>
+            <span class="switch-label">Donker</span>
+          </label>
+          <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+        </div>
+      </div>
     </div>
-    <h1>Land Trainer</h1>
-    <p>Leer samen alle landen, hoofdsteden, vlaggen en kaartherkenning.</p>
-  </header>
 
-  <main class="container">
+  <main class="container" style="padding-top: 0;">
     <section>
       <h2>Delen / Weeksets</h2>
       <p>Kies een deel om te starten.</p>

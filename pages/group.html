@@ -20,13 +20,18 @@
   </script>
 </head>
 <body>
-  <header class="app-header">
-    <a href="../index.html" class="back-link">&larr; Terug naar home</a>
-    <h1 id="group-title">Deel</h1>
-    <p id="group-meta"></p>
-  </header>
+  <main class="container" style="padding-top: 1.5rem;">
+    <!-- Navigation and Title Cards -->
+    <div class="header-cards-row">
+      <div class="header-card back-card">
+        <a href="../index.html" class="back-link-card">&larr; Terug naar home</a>
+      </div>
+      <div class="header-card title-card">
+        <h1 id="group-title" class="group-title-card">Deel</h1>
+        <p id="group-meta" class="group-meta-card"></p>
+      </div>
+    </div>
 
-  <main class="container">
     <!-- 1. Oefenen: kaart + landenlijst (collapsible) -->
     <section class="group-oefenen-section" aria-label="Oefenen met kaart en landen">
       <h2 class="group-oefenen-header">
@@ -39,6 +44,9 @@
         <div class="group-map-row" aria-label="Wereldkaart en landen in dit deel">
           <div class="country-preview-box country-preview-map-box filled" style="position: relative;">
             <div id="country-preview-map" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;"></div>
+            <div id="country-preview-flag" class="country-preview-flag-overlay" style="display: none;">
+              <img id="country-preview-flag-img" src="" alt="Vlag">
+            </div>
           </div>
           <aside class="group-countries-aside">
             <h3 class="group-countries-title">Landen in dit deel</h3>
@@ -150,15 +158,31 @@
           }
         }
 
+        const flagOverlay = document.getElementById('country-preview-flag');
+        const flagImg = document.getElementById('country-preview-flag-img');
+
         function showCountryOnMap(iso3) {
           if (satelliteMapInitialized && window.SatelliteMap) {
             window.SatelliteMap.highlightCountry(iso3);
+          }
+          
+          // Toon vlag linksboven
+          if (flagOverlay && flagImg) {
+            const flagFilename = window.App.getFlagFilename(iso3);
+            flagImg.src = `../assets/flags/${flagFilename}`;
+            flagImg.alt = `Vlag van ${countriesMap[iso3]?.name_nl || iso3}`;
+            flagOverlay.style.display = 'block';
           }
         }
 
         function clearMap() {
           if (satelliteMapInitialized && window.SatelliteMap) {
             window.SatelliteMap.highlightCountry(null);
+          }
+          
+          // Verberg vlag
+          if (flagOverlay) {
+            flagOverlay.style.display = 'none';
           }
         }
 

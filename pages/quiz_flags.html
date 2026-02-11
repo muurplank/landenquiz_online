@@ -18,20 +18,22 @@
   </script>
 </head>
 <body>
-  <header class="app-header">
-    <a href="javascript:history.back()" class="back-link">&larr; Terug naar deel</a>
-    <div class="quiz-header-row">
-      <div>
-        <h1 id="quiz-title">Vlaggen</h1>
-        <p id="quiz-subtitle" class="small"></p>
+  <main class="container" style="padding-top: 1.5rem;">
+    <!-- Header Cards -->
+    <div class="header-cards-row">
+      <div class="header-card back-card">
+        <a href="javascript:history.back()" class="back-link-card">&larr; Terug naar deel</a>
       </div>
-      <div>
+      <div class="header-card title-card">
+        <h1 id="quiz-title" class="group-title-card">Vlaggen</h1>
+        <p id="quiz-subtitle" class="group-meta-card"></p>
+      </div>
+      <div class="header-card badge-card">
         <span id="deck-status" class="badge">Deck: 0/0 mastered</span>
       </div>
     </div>
-  </header>
 
-  <main class="container">
+  <main class="container" style="padding-top: 0;">
     <section class="quiz-main">
       <article class="quiz-card">
         <p class="small">Modus: <span id="mode-label"></span></p>

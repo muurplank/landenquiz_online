@@ -8,21 +8,29 @@
   <link rel="stylesheet" href="../css/stats.css">
 </head>
 <body class="page-stats">
-  <header class="app-header">
-    <div class="dark-mode-switch-wrap">
-      <label class="dark-mode-toggle" for="dark-mode-cb">
-        <input type="checkbox" id="dark-mode-cb" aria-label="Donkere weergave">
-        <span class="switch-slider"></span>
-        <span class="switch-label">Donker</span>
-      </label>
-      <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+  <main class="container stats-container" style="padding-top: 1.5rem;">
+    <!-- Header Cards -->
+    <div class="header-cards-row">
+      <div class="header-card back-card">
+        <a href="../index.html" class="back-link-card">&larr; Terug naar home</a>
+      </div>
+      <div class="header-card title-card">
+        <h1 class="group-title-card">Statistieken</h1>
+        <p class="group-meta-card">Overzicht van je sessies, nauwkeurigheid en voortgang per week en continent.</p>
+      </div>
+      <div class="header-card settings-card">
+        <div class="settings-card-content">
+          <label class="dark-mode-toggle" for="dark-mode-cb">
+            <input type="checkbox" id="dark-mode-cb" aria-label="Donkere weergave">
+            <span class="switch-slider"></span>
+            <span class="switch-label">Donker</span>
+          </label>
+          <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+        </div>
+      </div>
     </div>
-    <a href="../index.html" class="back-link">&larr; Terug naar home</a>
-    <h1>Statistieken</h1>
-    <p>Overzicht van je sessies, nauwkeurigheid en voortgang per week en continent.</p>
-  </header>
 
-  <main class="container stats-container">
+  <main class="container stats-container" style="padding-top: 0;">
     <!-- Globale filters (altijd zichtbaar) -->
     <section class="stats-filters card">
       <h2 class="stats-filters-title">Filters</h2>
