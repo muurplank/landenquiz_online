@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let group;
   let countriesMap;
-  let worldGeo;
   let countryStats;
   let session;
   let currentCountry = null;
@@ -54,38 +53,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let questionStartTime = null;
   let sessionEnded = false;
   const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
-  let svgEl = null;
-  let pathsByIso = {};
-  let useLonWrap = false;
+  let satelliteMapInitialized = false;
 
-  function getLonExtent(features) {
-    let minLon = Infinity, maxLon = -Infinity;
-    const walk = (coords) => {
-      coords.forEach(c => {
-        if (typeof c[0] === 'number') {
-          if (c[0] < minLon) minLon = c[0];
-          if (c[0] > maxLon) maxLon = c[0];
-        } else walk(c);
-      });
-    };
-    features.forEach(f => {
-      const geom = f.geometry;
-      if (!geom) return;
-      if (geom.type === 'Polygon') geom.coordinates.forEach(ring => walk(ring));
-      else if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => poly.forEach(ring => walk(ring)));
-    });
-    return { minLon, maxLon };
-  }
-
-  // Alleen lon < -100° wrappen (Pacific eilanden, Rusland Verre Oosten), zodat UK/Portugal links blijven
-  const LON_WRAP_THRESHOLD = -100;
-  function wrapLon(lon) {
-    return useLonWrap && lon < LON_WRAP_THRESHOLD ? lon + 360 : lon;
-  }
-
-  function projectPoint(lon, lat) {
-    return window.App.mercatorProject(wrapLon(lon), lat);
-  }
+  // Oude SVG rendering functies verwijderd - vervangen door satelliet kaart
 
   function updateDeckStatus() {
     const all = Object.values(countryStats);
@@ -125,143 +95,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setTargetOnMap(iso) {
-    Object.keys(pathsByIso).forEach(k => {
-      const path = pathsByIso[k];
-      if (!path) return;
-      if (k === iso) {
-        path.classList.add('target');
-        path.setAttribute('fill', '#fff');
-      } else {
-        path.classList.remove('target');
-        path.setAttribute('fill', '#16a34a');
-      }
-    });
+    // Nieuwe implementatie: gebruik satelliet kaart
+    if (window.SatelliteMap && satelliteMapInitialized) {
+      window.SatelliteMap.highlightCountry(iso);
+      console.log(`Mix quiz: highlight land ${iso}`);
+    } else {
+      console.warn('Mix quiz: satelliet kaart niet geïnitialiseerd');
+    }
   }
 
-  function computeScaleInfo(features) {
-    const ext = getLonExtent(features);
-    useLonWrap = (ext.maxLon - ext.minLon) > 180;
-
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-
-    features.forEach(f => {
-      const geom = f.geometry;
-      if (!geom) return;
-      const type = geom.type;
-
-      const processRing = ring => {
-        ring.forEach(coord => {
-          const [lon, lat] = coord;
-          const proj = projectPoint(lon, lat);
-          if (proj.x < minX) minX = proj.x;
-          if (proj.x > maxX) maxX = proj.x;
-          if (proj.y < minY) minY = proj.y;
-          if (proj.y > maxY) maxY = proj.y;
-        });
-      };
-
-      if (type === 'Polygon') {
-        geom.coordinates.forEach(ring => processRing(ring));
-      } else if (type === 'MultiPolygon') {
-        geom.coordinates.forEach(poly => {
-          poly.forEach(ring => processRing(ring));
-        });
-      }
-    });
-
-    const pad = 20;
-    const contentWidth = 800;
-    const contentHeight = 450;
-    let dx = maxX - minX || 1;
-    let dy = maxY - minY || 1;
-    const expand = 0.08;
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    dx *= (1 + expand);
-    dy *= (1 + expand);
-    minX = cx - dx / 2;
-    maxX = cx + dx / 2;
-    minY = cy - dy / 2;
-    maxY = cy + dy / 2;
-    const innerW = contentWidth - 2 * pad;
-    const innerH = contentHeight - 2 * pad;
-    const scaleX = innerW / dx;
-    const scaleY = innerH / dy;
-
-    return { minX, maxY, scaleX, scaleY, pad, contentWidth, contentHeight };
-  }
-
-  function buildPathFromCoords(coordsList, scaleInfo) {
-    const { minX, maxY, scaleX, scaleY, pad, contentWidth } = scaleInfo;
-    const wrapThreshold = contentWidth * 0.5;
-    let d = '';
-    coordsList.forEach((ring) => {
-      let prevX = null;
-      ring.forEach((coord, i) => {
-        const [lon, lat] = coord;
-        const proj = projectPoint(lon, lat);
-        const x = pad + (proj.x - minX) * scaleX;
-        const y = pad + (maxY - proj.y) * scaleY;
-        const useMove = i === 0 || (prevX !== null && Math.abs(x - prevX) > wrapThreshold);
-        d += (useMove ? 'M' : 'L') + x + ' ' + y + ' ';
-        prevX = x;
-      });
-      d += 'Z ';
-    });
-    return d.trim();
-  }
-
-  function renderMap(featuresToDraw, scaleInfoFromGroup, groupCountrySet) {
-    const scaleInfo = scaleInfoFromGroup || computeScaleInfo(featuresToDraw);
-    svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svgEl.setAttribute('viewBox', `0 0 ${scaleInfo.contentWidth} ${scaleInfo.contentHeight}`);
-    svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('width', scaleInfo.contentWidth);
-    rect.setAttribute('height', scaleInfo.contentHeight);
-    rect.setAttribute('fill', '#2563eb');
-    svgEl.appendChild(rect);
-
-    pathsByIso = {};
-
-    featuresToDraw.forEach(f => {
-      const geom = f.geometry;
-      if (!geom) return;
-      const type = geom.type;
-      let coordsList = [];
-
-      if (type === 'Polygon') {
-        coordsList = geom.coordinates;
-      } else if (type === 'MultiPolygon') {
-        geom.coordinates.forEach(poly => coordsList.push(...poly));
-      }
-
-      const d = buildPathFromCoords(coordsList, scaleInfo);
-      const p = f.properties || {};
-      const raw = p.iso_a3 || p.ISO_A3 || p.ADM0_A3 || p.ISO3 || p.iso3 || p.sov_a3 || p.adm0_a3 || p.iso_a2;
-      const iso = raw ? window.App.normalizeCountryIso(raw) : raw;
-
-      const isInGroup = iso && groupCountrySet && groupCountrySet.has(iso);
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', d);
-      path.setAttribute('class', 'map-country');
-      path.setAttribute('fill', '#16a34a');
-      path.setAttribute('stroke', '#000');
-      path.setAttribute('stroke-width', '0.5');
-      if (iso) path.dataset.iso = iso;
-
-      svgEl.appendChild(path);
-      if (isInGroup) pathsByIso[iso] = path;
-    });
-
-    mapContainerEl.innerHTML = '';
-    mapContainerEl.appendChild(svgEl);
-  }
+  // Oude SVG rendering functies verwijderd - vervangen door satelliet kaart
 
   function chooseQuestionType() {
     const types = allowedTypes || ['capital', 'flag', 'map'];
@@ -472,12 +315,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!sessionEnded && session) {
       window.App.finalizeSession(session);
     }
+    // Cleanup satelliet kaart
+    if (window.SatelliteMap) {
+      window.SatelliteMap.destroy();
+    }
   });
 
   try {
     group = await window.App.loadGroupById(groupId);
     countriesMap = await window.App.loadCountriesMap();
-    worldGeo = await window.App.loadWorldGeoJSON();
 
     const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
     const titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
@@ -495,37 +341,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       subMode: allowedTypes ? allowedTypes.join('+') : 'capital+flag+map'
     });
 
-    const setIso = new Set(group.countries);
-    const cont = group.continent;
-
-    const getIso = (f) => {
-      const p = f.properties || {};
-      const raw = p.iso_a3 || p.ISO_A3 || p.ADM0_A3 || p.ISO3 || p.iso3 || p.sov_a3 || p.adm0_a3 || p.iso_a2;
-      return raw ? window.App.normalizeCountryIso(raw) : raw;
-    };
-    const getContinent = (f) => {
-      const p = f.properties || {};
-      return p.continent || p.CONTINENT || p.Continent;
-    };
-
-    const matchesContinent = (iso, c) =>
-      !cont || c === cont || (countriesMap[iso] && countriesMap[iso].continent === cont);
-
-    const groupFeatures = worldGeo.features.filter(f => {
-      const iso = getIso(f);
-      const c = getContinent(f);
-      return iso && setIso.has(iso) && matchesContinent(iso, c);
-    });
-    // Noord-Amerika deel 2: zoom zonder USA, zodat Mexico/Caraïben goed passen
-    const featuresForExtent = groupId === 'week3_noord-amerika_deel2'
-      ? groupFeatures.filter(f => getIso(f) !== 'USA')
-      : groupFeatures;
-    const scaleInfo = computeScaleInfo(featuresForExtent.length ? featuresForExtent : groupFeatures);
-
-    // Alle landen tekenen (zoom blijft gelijk, landen buiten zicht worden geknipt)
-    const allContinentFeatures = worldGeo.features.filter(f => getIso(f));
-
-    renderMap(allContinentFeatures, scaleInfo, setIso);
+    // Initialiseer satelliet kaart
+    if (window.SatelliteMap) {
+      await window.SatelliteMap.init('mix-map-container', '../assets/maps/high_res_usa.json');
+      satelliteMapInitialized = true;
+      
+      // Zoom naar de landen in dit deel (geen animatie)
+      if (group.countries && group.countries.length > 0) {
+        // Speciale zoom voor Noord-Amerika deel 2 (zonder USA)
+        const zoomCountries = groupId === 'week3_noord-amerika_deel2'
+          ? group.countries.filter(iso => iso !== 'USA')
+          : group.countries;
+        
+        window.SatelliteMap.fitToRegion(zoomCountries.length ? zoomCountries : group.countries, {
+          padding: { top: 30, bottom: 30, left: 30, right: 30 },
+          maxZoom: 5,
+          duration: 0
+        });
+      }
+    } else {
+      throw new Error('SatelliteMap module niet geladen');
+    }
 
     // landknoppen
     group.countries.forEach(iso => {
