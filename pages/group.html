@@ -5,6 +5,8 @@
   <title>Landjes Trainer - Deel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
   <script>
     (function() {
       var id = new URLSearchParams(window.location.search).get('id');
@@ -35,8 +37,8 @@
       </h2>
       <div id="group-oefenen-content" class="group-oefenen-content">
         <div class="group-map-row" aria-label="Wereldkaart en landen in dit deel">
-          <div id="country-preview-map" class="country-preview-box country-preview-map-box">
-            <p class="country-preview-placeholder">Hover over een land in de lijst → wereldkaart met pijl</p>
+          <div class="country-preview-box country-preview-map-box filled" style="position: relative;">
+            <div id="country-preview-map" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;"></div>
           </div>
           <aside class="group-countries-aside">
             <h3 class="group-countries-title">Landen in dit deel</h3>
@@ -103,6 +105,7 @@
   </main>
 
   <script src="../js/app.js"></script>
+  <script src="../js/quiz_map_satellite.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
@@ -120,47 +123,44 @@
       try {
         const group = await window.App.loadGroupById(groupId);
         const countriesMap = await window.App.loadCountriesMap();
-        const worldGeo = await window.App.loadWorldGeoJSON();
         titleEl.textContent = group.title;
         metaEl.textContent = `${group.title} · ${group.countries.length} landen`;
 
         const mapBox = document.getElementById('country-preview-map');
         const mapRow = document.querySelector('.group-map-row');
 
-        let cachedEmptyMapHtml = null;
-
-        function showEmptyMap() {
-          if (cachedEmptyMapHtml === null) {
-            cachedEmptyMapHtml = window.App.buildWorldMapEmpty(worldGeo) || '<p class="country-preview-placeholder">Kaart niet beschikbaar.</p>';
+        // Initialiseer satelliet kaart
+        let satelliteMapInitialized = false;
+        if (window.SatelliteMap) {
+          try {
+            await window.SatelliteMap.init('country-preview-map', '../assets/maps/high_res_usa.json');
+            satelliteMapInitialized = true;
+            console.log('Preview satelliet kaart geïnitialiseerd');
+            
+            // Zoom naar de landen in dit deel (geen animatie)
+            if (group.countries && group.countries.length > 0) {
+              window.SatelliteMap.fitToRegion(group.countries, {
+                padding: { top: 50, bottom: 50, left: 50, right: 50 },
+                maxZoom: 5,
+                duration: 0
+              });
+            }
+          } catch (err) {
+            console.error('Kon satelliet kaart niet initialiseren:', err);
           }
-          mapBox.innerHTML = cachedEmptyMapHtml;
-          mapBox.classList.remove('filled');
         }
 
-        const previewCache = new Map();
-
         function showCountryOnMap(iso3) {
-          let html = previewCache.get(iso3);
-          if (!html) {
-            const mapHtml = window.App.buildWorldMapPreview(iso3, worldGeo);
-            if (!mapHtml) {
-              showEmptyMap();
-              return;
-            }
-            const flagFile = window.App.getFlagFilename(iso3);
-            const flagSrc = `../assets/flags/${flagFile}`;
-            html = `<div class="country-preview-world-wrap"><div class="country-preview-flag-box" aria-hidden="true"><img src="${flagSrc}" alt="" width="84" height="60"></div>${mapHtml}</div>`;
-            previewCache.set(iso3, html);
+          if (satelliteMapInitialized && window.SatelliteMap) {
+            window.SatelliteMap.highlightCountry(iso3);
           }
-          mapBox.innerHTML = html;
-          mapBox.classList.add('filled');
         }
 
         function clearMap() {
-          showEmptyMap();
+          if (satelliteMapInitialized && window.SatelliteMap) {
+            window.SatelliteMap.highlightCountry(null);
+          }
         }
-
-        showEmptyMap();
 
         group.countries.forEach(iso3 => {
           const c = countriesMap[iso3];
