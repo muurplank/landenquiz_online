@@ -89,6 +89,14 @@
         </article>
 
         <article class="card">
+          <h3>Kwartet</h3>
+          <p>Match kaart, landnaam, hoofdstad en vlag per land.</p>
+          <div class="btn-row">
+            <a id="kwartet-quiz" class="btn primary">Start kwartet-quiz</a>
+          </div>
+        </article>
+
+        <article class="card">
           <h3>Mix</h3>
           <p>Hoofdstad, vlag en kaart door elkaar.</p>
           <div class="btn-row">
@@ -267,6 +275,9 @@
 
         document.getElementById('map-quiz').href =
           `quiz_map.html?${base}`;
+
+        document.getElementById('kwartet-quiz').href =
+          `quiz_kwartet.html?${base}`;
 
         document.getElementById('mix-quiz').href =
           `quiz_mix.html?${base}`;

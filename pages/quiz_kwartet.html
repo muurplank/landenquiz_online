@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Kwartet-quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+</head>
+<body class="page-quiz-kwartet">
+  <main class="container" style="padding-top: 1.5rem;">
+    <div class="header-cards-row">
+      <div class="header-card back-card">
+        <a href="javascript:history.back()" class="back-link-card">&larr; Terug naar deel</a>
+      </div>
+      <div class="header-card title-card">
+        <h1 id="quiz-title" class="group-title-card">Kwartet-quiz</h1>
+        <p id="quiz-subtitle" class="group-meta-card">Match kaart, landnaam, hoofdstad en vlag. Klik in elke kolom één optie, dan Opslaan.</p>
+      </div>
+      <div class="header-card badge-card">
+        <span id="deck-status" class="badge">0 / 0 kwartetten</span>
+      </div>
+    </div>
+
+  <main class="container" style="padding-top: 0;">
+    <section class="kwartet-section">
+      <div id="kwartet-hint" class="kwartet-hint-box">
+        <span class="kwartet-hint-label">Gegeven:</span>
+        <span id="kwartet-hint-content"></span>
+      </div>
+      <div class="kwartet-three-col">
+        <div id="kwartet-col-map" class="kwartet-column kwartet-map-full">
+          <h2 class="kwartet-column-title">Kaart — klik op het land</h2>
+          <div class="map-wrapper kwartet-map-wrapper">
+            <div id="kwartet-map-container"></div>
+          </div>
+        </div>
+        <div id="kwartet-col-land" class="kwartet-column">
+          <h2 class="kwartet-column-title">Land</h2>
+          <ul id="kwartet-list-land" class="kwartet-list"></ul>
+        </div>
+        <div id="kwartet-col-capital" class="kwartet-column">
+          <h2 class="kwartet-column-title">Hoofdstad</h2>
+          <ul id="kwartet-list-capital" class="kwartet-list"></ul>
+        </div>
+        <div id="kwartet-col-flag" class="kwartet-column kwartet-flag-cols">
+          <h2 class="kwartet-column-title">Vlag</h2>
+          <div class="kwartet-flag-grid">
+            <ul id="kwartet-list-flag-1" class="kwartet-list"></ul>
+            <ul id="kwartet-list-flag-2" class="kwartet-list"></ul>
+            <ul id="kwartet-list-flag-3" class="kwartet-list"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="kwartet-actions">
+        <button type="button" id="kwartet-opslaan" class="btn primary" disabled>Opslaan</button>
+      </div>
+      <p id="kwartet-status" class="status-label"></p>
+    </section>
+  </main>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/quiz_map_satellite.js"></script>
+  <script src="../js/quiz_kwartet.js"></script>
+</body>
+</html>

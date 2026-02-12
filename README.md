@@ -8,11 +8,12 @@
 
 ### Wat doet dit project?
 
-Land Trainer is een **single-page-achtige webapplicatie** waarmee je geografie kunt oefenen in blokken van landen (“weeks” of “delen”): per week kies je een set landen (bijv. “Week 1 - Zuid-Amerika”) en oefen je via vier quiztypen:
+Land Trainer is een **single-page-achtige webapplicatie** waarmee je geografie kunt oefenen in blokken van landen (“weeks” of “delen”): per week kies je een set landen (bijv. “Week 1 - Zuid-Amerika”) en oefen je via vijf quiztypen:
 
 - **Hoofdstad/Land** — Flashcards: land → hoofdstad, hoofdstad → land, of beide kanten.
 - **Vlaggen** — Vlag herkennen of land bij vlag.
 - **Kaart-quiz** — Welk land is wit gemarkeerd op de satellietkaart met NASA Blue Marble achtergrond?
+- **Kwartet** — Match kaart, landnaam, hoofdstad en vlag: je krijgt één willekeurig gegeven (bijv. hoofdstad "Quito") en kiest de bijbehorende land op de kaart, landnaam en vlag; bij de derde keuze wordt automatisch gecontroleerd.
 - **Mix** — Willekeurige mix van hoofdstad-, vlag- en kaartvragen.
 
 Voortgang en statistieken worden **lokaal** opgeslagen (localStorage). Er is geen server, account of database.
@@ -34,8 +35,10 @@ Voortgang en statistieken worden **lokaal** opgeslagen (localStorage). Er is gee
 ## 2. Features
 
 - **Weeksets / Delen** — 16 groepen (Zuid-Amerika, Noord-Amerika, Europa, Oceanië, Afrika, Azië) met vaste landensets.
-- **Per continent / Hele wereld** — Op de homepage een sectie met 7 kaartjes (6 continenten + Hele wereld). Klik opent dezelfde groepspagina met alle vier quiztypen voor dat continent of de hele wereld. Voortgang per continent/world wordt ook getoond.
-- **Vier quiztypen** — Hoofdstad (één richting of beide kanten), vlag (één richting of beide kanten), kaart-quiz, mix.
+- **Per continent / Hele wereld** — Op de homepage een sectie met 7 kaartjes (6 continenten + Hele wereld). Klik opent dezelfde groepspagina met alle quiztypen voor dat continent of de hele wereld. Voortgang per continent/world wordt ook getoond.
+- **Vijf quiztypen** — Hoofdstad (één richting of beide kanten), vlag (één richting of beide kanten), kaart-quiz, **kwartet**, mix.
+- **Kwartet-quiz** — Eén willekeurig gegeven (hoofdstad, landnaam of vlag); je vult de andere drie in: land op de kaart (klik), landnaam en vlag (of hoofdstad + vlag als het gegeven land is). Vlaggen staan in minimaal 3 kolommen; de kolom rechts van de kaart zit er recht tegenaan. Bij de derde gekozen optie wordt het antwoord automatisch ingeleverd. Goed gemaakte landen worden op de kaart grijs.
+- **Mix oneindig** — Knop "Mix oneindig" op de groepspagina: mix-quiz zonder einde (zoals "Beide kanten" bij hoofdstad/vlag); telt niet mee voor de progress bar.
 - **Aangepaste mix** — Op de groepspagina: kies **2 van de 3** quiztypen (Hoofdstad, Vlaggen, Kaart) voor een mix van alleen die twee. Alleen beschikbaar via de groepspagina; link naar mix-quiz met `types=...` in de URL.
 - **Vlaggen-quiz: overzicht land + vlag** — Alleen op de vlaggen-quizpagina staat onder het quiz-gedeelte een **inklapbare** sectie “Land en vlag – overzicht”: een tabel met alle landen van het deel, per cel vlag + landnaam (om te oefenen voordat je start). **4 kolommen** bij kleinere delen (bijv. Zuid-Amerika), **8 kolommen** bij meer dan 16 landen (bijv. Europa). De ingeklapte staat wordt **per deel** onthouden in localStorage (`landjes_vlaggen_cheatsheet_collapsed`).
 - **Vraagvolgorde** — In alle quizzen komen eerst alle landen één keer aan bod (willekeurige volgorde); pas daarna kunnen vragen herhaald worden. Volgende ronde weer alle landen een keer.
@@ -885,7 +888,7 @@ SatelliteMap.highlightCountry(null)
 ### Homepagina (`index.html`)
 
 - **Delen / Weeksets** — Klik op een kaart (bijv. “Week 1 - Zuid-Amerika”) om naar het overzicht van dat deel te gaan.
-- **Per continent** — Sectie met 7 kaartjes: Zuid-Amerika, Noord-Amerika, Europa, Afrika, Azië, Oceanië, en Hele wereld. Elk kaartje toont het aantal landen en een progress bar; klik opent `pages/group.html?id=continent_<Continent>` of `id=world` met de vier quiztypen voor dat bereik.
+- **Per continent** — Sectie met 7 kaartjes: Zuid-Amerika, Noord-Amerika, Europa, Afrika, Azië, Oceanië, en Hele wereld. Elk kaartje toont het aantal landen en een progress bar; klik opent `pages/group.html?id=continent_<Continent>` of `id=world` met alle quiztypen (inclusief kwartet) voor dat bereik.
 - **Statistieken** — Knop “Open statistieken” opent `pages/stats.html`.
 - **Header** — Donkere modus (toggle), “Clear stats” (wist alle sessies).
 
@@ -894,7 +897,7 @@ SatelliteMap.highlightCountry(null)
 - **Volgorde** — Eerst een sectie **Oefenen** (kaart + landenlijst), daaronder **Quiz-modi**.
 - **Oefenen** — Kop “▼ Oefenen” (klikbaar om in te klappen; pijl wordt ▶). Links een grote **wereldkaart** (standaard leeg: alle landen groen), rechts een sticky kolom **Landen in dit deel** met landen + hoofdsteden. Onder de titel en tussen elk land een lijn over de volle breedte van de card.
 - **Kaart** — Zonder hover: lege wereldkaart. **Hover** op een land: dat land wit, oranje pijl (+ ellips indien kleiner dan Nederland) en linksboven op de kaart de **vlag** van dat land. Bij mouseleave van het hele blok (kaart + lijst) weer lege kaart. Lege kaart en per-land preview worden gecached (geen hertekenen bij opnieuw hoveren).
-- **Quiz-modi** — Kies Hoofdstad, Vlaggen, Kaart-quiz, Mix of **Aangepaste mix**. Bij Aangepaste mix: vink precies 2 van de 3 opties aan (Hoofdstad, Vlaggen, Kaart); “Start aangepaste mix” linkt naar `quiz_mix.html?id=<groupId>&types=capital,flag` (of de gekozen combinatie). Overige knoppen linken naar de juiste quiz-URL met `id=` en eventueel `mode=...`.
+- **Quiz-modi** — Kies Hoofdstad, Vlaggen, Kaart-quiz, **Kwartet**, Mix of **Aangepaste mix**. **Kwartet** opent `quiz_kwartet.html?id=<groupId>`. **Mix oneindig** opent `quiz_mix.html?id=<groupId>&infinite=1`. Bij Aangepaste mix: vink precies 2 van de 3 opties aan (Hoofdstad, Vlaggen, Kaart); “Start aangepaste mix” linkt naar `quiz_mix.html?id=<groupId>&types=capital,flag` (of de gekozen combinatie). Overige knoppen linken naar de juiste quiz-URL met `id=` en eventueel `mode=...`.
 - Wereldkaart: `high_res_usa.json`; ingestorte staat Oefenen: `landjes_oefenen_collapsed` (per groep).
 
 ### Quizpagina’s (`pages/quiz_*.html`)
@@ -994,7 +997,8 @@ Landjes V4/
 │   ├── quiz_capitals.js    # Hoofdstad-quiz logica
 │   ├── quiz_flags.js       # Vlaggen-quiz logica
 │   ├── quiz_map.js         # Kaart-quiz: week = eigen zoom; continent/world = preview-kaart + typ-box
-│   ├── quiz_mix.js         # Mix-quiz: hoofdstad + vlag + kaart
+│   ├── quiz_mix.js         # Mix-quiz: hoofdstad + vlag + kaart (incl. oneindige modus)
+│   ├── quiz_kwartet.js     # Kwartet-quiz: match kaart, land, hoofdstad, vlag
 │   └── stats.js            # Statistieken: filters, aggregatie, rendering
 ├── pages/
 │   ├── group.html          # Overzicht per week: quiz-keuze + landenlijst + wereldkaart-preview
@@ -1002,6 +1006,7 @@ Landjes V4/
 │   ├── quiz_flags.html     # Vlaggen-quiz UI
 │   ├── quiz_map.html       # Kaart-quiz UI
 │   ├── quiz_mix.html       # Mix-quiz UI
+│   ├── quiz_kwartet.html   # Kwartet-quiz UI
 │   └── stats.html          # Statistieken met drie tabs
 ├── data/
 │   ├── groups.json         # Weeksets: id, title, continent, countries (ISO3-lijst)
@@ -1207,6 +1212,11 @@ Handmatig ingestelde centroids voor problematische landen (dateline, MultiPolygo
   7. Check of land klein is (< Nederland)
   8. Als klein: roep `addSmallCountryMarker(iso)` aan
   9. Update `lastHighlightedIso`
+- Returns: void
+
+**`setCompletedCountries(isoList)`**
+- Zet landen als “voltooid” (grijs op kaart). Gebruikt aparte GeoJSON-bron `completed-countries`; bij aanroep wordt een FeatureCollection van de opgegeven landen gezet, zodat ze grijs worden getekend. Gebruikt door de kwartet-quiz.
+- Parameters: `isoList` — Array<string> van ISO3-codes
 - Returns: void
 
 **`fitToRegion(isoCodes, options = {})`**
@@ -1518,6 +1528,16 @@ Daarnaast bevat `app.js`:
 - **Doel** — Mix-quiz: per vraag willekeurig hoofdstad-, vlag- of kaartvraag;zelfde sessie- en master-logica. **Aangepaste mix**: URL-parameter `types` (bijv. `types=capital,flag`) beperkt de vraagtypen tot precies twee; `parseCustomTypes(typesParam)` valideert en `chooseQuestionType()` kiest alleen uit die types. Titel wordt dan “Aangepaste mix” en subMode bijv. `capital+flag`.
 - **Vraagvolgorde** — `pickNextCountryNoRepeat` + `askedThisRound`: eerst alle landen één keer, daarna nieuwe ronde.
 - **Functies** — Dezelfde kaart-/projectie-helpers als in quiz_map; `chooseQuestionType`, `prepareCapitalQuestion`, `prepareFlagQuestion`, `prepareMapQuestion`, `showNextQuestion`, `handleSelfScoredAnswer`, `handleMapGuess`; toetsenbord: Spatie, 1, 2.
+- **Mix oneindig** — URL-parameter `infinite=1`: sessie stopt niet bij “allemaal beheerst”; `maybeEndSessionIfMastered()` en einde-check in `showNextQuestion()` worden overgeslagen; telt niet mee voor progress bar.
+
+---
+
+### `js/quiz_kwartet.js`
+
+- **Doel** — Kwartet-quiz: match kaart, landnaam, hoofdstad en vlag voor één land. Eén willekeurig gegeven (hoofdstad, landnaam of vlag) wordt getoond; de speler vult de andere drie in (kaart-klik + twee van de drie lijsten; de gegeven kolom is verborgen).
+- **Layout** — Drie kolommen naast elkaar: kaart (vaste breedte), twee lijstkolommen (Land/Hoofdstad/Vlag, afhankelijk van hint). Vlaggen worden over minimaal 3 subkolommen verdeeld; de kolom rechts van de kaart zit er recht tegenaan (geen gap).
+- **Flow** — `setTarget(iso)` kiest random hint-type en toont gegeven; bij de derde gekozen optie wordt automatisch `checkAnswer()` aangeroepen. Goed: land grijs op kaart via `SatelliteMap.setCompletedCountries()`, volgende kwartet. Fout: korte rode flits, selectie geleegd.
+- **Data** — Zelfde `group` en `countriesMap` als andere quizzen; vlaggen over drie `<ul>` (kwartet-list-flag-1/2/3) verdeeld.
 
 ---
 
@@ -1726,7 +1746,7 @@ In de huidige versie is de kaart-quiz volledig gemigreerd van een custom SVG Mer
 - Geen custom projectie code (MapLibre handelt dit af)
 - Declaratieve layer definitions (MapLibre style spec)
 - Centralized map logic in één module
-- Eenvoudige API (`init`, `highlightCountry`, `fitToRegion`)
+- Eenvoudige API (`init`, `highlightCountry`, `setCompletedCountries`, `fitToRegion`)
 
 **Accessibility:**
 - Betere contrast (wit land op satelliet vs groen op wit)

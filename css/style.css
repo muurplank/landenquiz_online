@@ -1690,3 +1690,189 @@ html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
     font-size: 1.2rem;
   }
 }
+
+/* ===== Kwartet-quiz ===== */
+.kwartet-section {
+  margin-top: 1rem;
+}
+
+.kwartet-target {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.kwartet-hint-box {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.kwartet-hint-label {
+  color: var(--color-text-muted);
+  margin-right: 0.5rem;
+}
+
+.kwartet-hint-type {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.kwartet-hint-flag {
+  max-height: 2rem;
+  width: auto;
+  vertical-align: middle;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+  border: 1px solid var(--color-border);
+}
+
+/* Drie invul-items naast elkaar: alle kolommen zo breed als hun inhoud; box rechts van kaart er tegenaan */
+.kwartet-three-col {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  column-gap: 0;
+  row-gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: start;
+}
+
+.kwartet-three-col .kwartet-column:nth-child(2) {
+  margin-left: 0;
+}
+
+.kwartet-three-col .kwartet-column:nth-child(3) {
+  margin-left: 1rem;
+}
+
+@media (max-width: 900px) {
+  .kwartet-three-col {
+    grid-template-columns: 1fr;
+  }
+
+  .kwartet-three-col .kwartet-column:nth-child(2),
+  .kwartet-three-col .kwartet-column:nth-child(3) {
+    margin-left: 0;
+  }
+}
+
+/* Kaartbox even breed als de kaart (geen uitrekken) */
+.kwartet-three-col .kwartet-map-full {
+  width: 420px;
+  min-height: 280px;
+  box-sizing: border-box;
+}
+
+.kwartet-three-col .kwartet-map-full .kwartet-map-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Vlaggen in minimaal 3 kolommen */
+.kwartet-flag-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.kwartet-flag-cols .kwartet-list {
+  min-width: 0;
+}
+
+.kwartet-column {
+  background: var(--color-surface-elevated);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  min-height: 200px;
+}
+
+.kwartet-column-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+.kwartet-map-wrapper {
+  height: 320px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.kwartet-map-wrapper .maplibregl-map {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.kwartet-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0.25rem 0 0 0;
+}
+
+.kwartet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kwartet-option {
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.35rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.kwartet-option:hover:not(.kwartet-completed) {
+  background: var(--color-primary-soft);
+}
+
+.kwartet-option.selected {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
+.kwartet-option.kwartet-completed {
+  background: var(--color-border-soft);
+  color: var(--color-text-muted);
+  cursor: default;
+  opacity: 0.85;
+}
+
+.kwartet-option.kwartet-flash {
+  animation: kwartet-flash-red 0.4s ease;
+}
+
+.kwartet-map-wrapper.kwartet-flash {
+  animation: kwartet-flash-red 0.4s ease;
+}
+
+@keyframes kwartet-flash-red {
+  0%, 100% { background-color: transparent; box-shadow: none; }
+  50% { background-color: var(--color-danger-soft); box-shadow: 0 0 0 3px var(--color-danger); }
+}
+
+.kwartet-option .kwartet-flag-img {
+  display: block;
+  max-width: 120px;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+
+.kwartet-actions {
+  margin-bottom: 0.5rem;
+}
+
+.kwartet-actions .btn {
+  min-width: 140px;
+}

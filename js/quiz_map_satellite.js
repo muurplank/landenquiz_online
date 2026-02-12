@@ -551,6 +551,10 @@
             type: 'geojson',
             data: geoJsonData,
             generateId: true // Laat MapLibre automatisch IDs genereren
+          },
+          'completed-countries': {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
           }
         },
         layers: [
@@ -664,6 +668,24 @@
                 0
               ]
             }
+          },
+          {
+            id: 'countries-fill-completed',
+            type: 'fill',
+            source: 'completed-countries',
+            paint: {
+              'fill-color': 'rgba(100, 100, 100, 0.85)',
+              'fill-opacity': 1
+            }
+          },
+          {
+            id: 'countries-outline-completed',
+            type: 'line',
+            source: 'completed-countries',
+            paint: {
+              'line-color': 'rgba(80, 80, 80, 0.9)',
+              'line-width': 2
+            }
           }
         ]
       },
@@ -761,6 +783,30 @@
   }
 
   /**
+   * Zet landen als "voltooid" (grijs op kaart, voor kwartet-quiz).
+   * Gebruikt een aparte GeoJSON-bron zodat voltooide landen altijd zichtbaar grijs zijn.
+   * @param {string[]} isoList - Lijst van ISO3 codes
+   */
+  function setCompletedCountries(isoList) {
+    if (!map || !geoJsonData) return;
+    const set = new Set(isoList && isoList.length ? isoList.map(iso => normalizeIso(iso)) : []);
+    const features = [];
+    geoJsonData.features.forEach((feature) => {
+      const iso = getIsoFromProperties(feature.properties);
+      const normalizedIso = iso ? normalizeIso(iso) : null;
+      if (normalizedIso && set.has(normalizedIso)) {
+        features.push({ type: 'Feature', properties: feature.properties, geometry: feature.geometry });
+      }
+    });
+    try {
+      const source = map.getSource('completed-countries');
+      if (source) source.setData({ type: 'FeatureCollection', features });
+    } catch (e) {
+      console.warn('setCompletedCountries:', e);
+    }
+  }
+
+  /**
    * Cleanup
    */
   function destroy() {
@@ -778,10 +824,12 @@
   window.SatelliteMap = {
     init: initMap,
     highlightCountry,
+    setCompletedCountries,
     fitToRegion,
     resetView,
     destroy,
-    getMap: () => map
+    getMap: () => map,
+    getIsoFromProperties
   };
 
 })();
