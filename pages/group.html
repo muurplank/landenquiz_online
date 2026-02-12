@@ -93,6 +93,7 @@
           <p>Hoofdstad, vlag en kaart door elkaar.</p>
           <div class="btn-row">
             <a id="mix-quiz" class="btn primary">Start mix-sessie</a>
+            <a id="mix-quiz-infinite" class="btn">Mix oneindig</a>
           </div>
         </article>
 
@@ -269,6 +270,8 @@
 
         document.getElementById('mix-quiz').href =
           `quiz_mix.html?${base}`;
+        document.getElementById('mix-quiz-infinite').href =
+          `quiz_mix.html?${base}&infinite=1`;
 
         const customTypeCapital = document.getElementById('custom-type-capital');
         const customTypeFlag = document.getElementById('custom-type-flag');

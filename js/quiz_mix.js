@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
   const typesParam = window.App.getQueryParam('types'); // bijv. "capital,flag" voor aangepaste mix (precies 2 van 3)
   const allowedTypes = parseCustomTypes(typesParam);
+  const infiniteMode = window.App.getQueryParam('infinite') === '1';
 
   function parseCustomTypes(param) {
     if (!param || typeof param !== 'string') return null;
@@ -75,6 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
+    if (infiniteMode) return; // Oneindige modus: nooit automatisch eindigen
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
@@ -186,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sessionEnded) return;
     if (window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
-      return;
+      if (!infiniteMode) return;
     }
     currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound);
     askedThisRound.add(currentCountry.iso);
@@ -323,9 +325,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
     const titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
-    const subtitleText = allowedTypes
+    let subtitleText = allowedTypes
       ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
       : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
+    if (infiniteMode) subtitleText += ' Oneindige modus: ga door zolang je wilt.';
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
     subtitleEl.textContent = subtitleText;
