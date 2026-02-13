@@ -149,9 +149,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     quizCard.addEventListener('keydown', handleQuizKeydown);
   }
 
-  btnDownloadLog.addEventListener('click', () => {
-    window.App.downloadHistoryAsJSON();
-  });
+  if (btnDownloadLog) {
+    btnDownloadLog.addEventListener('click', () => {
+      window.App.downloadHistoryAsJSON();
+    });
+  }
 
   window.addEventListener('beforeunload', () => {
     if (!sessionEnded && session) {
@@ -177,6 +179,98 @@ document.addEventListener('DOMContentLoaded', async () => {
       quizType: 'capital',
       subMode: mode
     });
+
+    const cheatsheetTableWrap = document.getElementById('hoofdsteden-cheatsheet-table-wrap');
+    const cheatsheetContent = document.getElementById('hoofdsteden-cheatsheet-content');
+    const cheatsheetToggle = document.getElementById('hoofdsteden-cheatsheet-toggle');
+    const CHEATSHEET_STORAGE_KEY = 'landjes_hoofdsteden_cheatsheet_collapsed';
+
+    function getCheatsheetCollapsedState() {
+      try {
+        const raw = localStorage.getItem(CHEATSHEET_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function setCheatsheetCollapsedForGroup(gid, collapsed) {
+      const state = getCheatsheetCollapsedState();
+      state[gid] = collapsed;
+      try {
+        localStorage.setItem(CHEATSHEET_STORAGE_KEY, JSON.stringify(state));
+      } catch (_) {}
+    }
+
+    const wrap = cheatsheetTableWrap || document.querySelector('#hoofdsteden-cheatsheet-table-wrap');
+    if (wrap) {
+      const table = document.createElement('table');
+      const countries = (group.countries || []).filter(iso => iso && countriesMap[iso]);
+      const COLUMNS = countries.length > 16 ? 8 : 4;
+      table.className = 'flags-cheatsheet-table hoofdsteden-cheatsheet-table';
+      table.setAttribute('role', 'table');
+      table.dataset.columns = String(COLUMNS);
+      const tbody = document.createElement('tbody');
+      for (let i = 0; i < countries.length; i += COLUMNS) {
+        const tr = document.createElement('tr');
+        for (let j = 0; j < COLUMNS; j++) {
+          const iso = countries[i + j];
+          const td = document.createElement('td');
+          if (iso) {
+            const c = countriesMap[iso];
+            if (c) {
+              const cellInner = document.createElement('div');
+              cellInner.className = 'flags-cheatsheet-cell hoofdsteden-cheatsheet-cell';
+              const img = document.createElement('img');
+              img.src = `../assets/flags/${window.App.getFlagFilename(iso)}`;
+              img.alt = '';
+              img.className = 'flags-cheatsheet-flag';
+              cellInner.appendChild(img);
+              const textWrap = document.createElement('div');
+              textWrap.className = 'hoofdsteden-cheatsheet-text';
+              const name = document.createElement('span');
+              name.className = 'flags-cheatsheet-name';
+              name.textContent = c.name_nl || iso;
+              textWrap.appendChild(name);
+              const capital = document.createElement('span');
+              capital.className = 'hoofdsteden-cheatsheet-capital';
+              capital.textContent = (c.capitals_nl && c.capitals_nl.length) ? c.capitals_nl.join(', ') : '';
+              textWrap.appendChild(capital);
+              cellInner.appendChild(textWrap);
+              td.appendChild(cellInner);
+            }
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+    }
+
+    const cheatsheetSection = document.querySelector('.hoofdsteden-cheatsheet-section');
+    const savedCheatsheetCollapsed = getCheatsheetCollapsedState()[group.id] === true;
+    document.documentElement.classList.remove('hoofdsteden-cheatsheet-collapsed-init');
+    if (cheatsheetContent) {
+      if (savedCheatsheetCollapsed) {
+        cheatsheetContent.classList.add('collapsed');
+        if (cheatsheetSection) cheatsheetSection.classList.add('cheatsheet-collapsed');
+        if (cheatsheetToggle) cheatsheetToggle.setAttribute('aria-expanded', 'false');
+      } else {
+        cheatsheetContent.classList.remove('collapsed');
+        if (cheatsheetSection) cheatsheetSection.classList.remove('cheatsheet-collapsed');
+        if (cheatsheetToggle) cheatsheetToggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    if (cheatsheetToggle && cheatsheetContent) {
+      cheatsheetToggle.addEventListener('click', () => {
+        const isCollapsed = cheatsheetContent.classList.toggle('collapsed');
+        if (cheatsheetSection) cheatsheetSection.classList.toggle('cheatsheet-collapsed', isCollapsed);
+        setCheatsheetCollapsedForGroup(group.id, isCollapsed);
+        if (cheatsheetToggle) cheatsheetToggle.setAttribute('aria-expanded', String(!isCollapsed));
+      });
+    }
 
     showNextQuestion();
     if (quizCard) quizCard.focus();

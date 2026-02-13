@@ -1190,6 +1190,7 @@ html.oefenen-collapsed-init .group-oefenen-arrow::after {
 }
 
 html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-content,
+html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-content,
 .vlaggen-cheatsheet-section.cheatsheet-collapsed .vlaggen-cheatsheet-content {
   max-height: 0 !important;
   opacity: 0;
@@ -1198,10 +1199,12 @@ html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-content,
 }
 
 html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow,
+html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow,
 .vlaggen-cheatsheet-section.cheatsheet-collapsed .vlaggen-cheatsheet-arrow {
   font-size: 0;
 }
 html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
+html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
 .vlaggen-cheatsheet-section.cheatsheet-collapsed .vlaggen-cheatsheet-arrow::after {
   content: '▶';
   font-size: 0.75rem;
@@ -1268,6 +1271,21 @@ html.vlaggen-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   min-width: 0;
   font-weight: 700;
   font-size: 0.9375rem;
+}
+
+/* Hoofdsteden-quiz: cellen met land + hoofdstad */
+.hoofdsteden-cheatsheet-cell .hoofdsteden-cheatsheet-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.hoofdsteden-cheatsheet-capital {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text-muted);
 }
 
 .group-countries-aside .group-countries-title {

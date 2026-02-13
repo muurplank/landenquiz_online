@@ -5,6 +5,17 @@
   <title>Hoofdsteden Quiz</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="../css/style.css">
+  <script>
+    (function() {
+      var id = new URLSearchParams(window.location.search).get('id');
+      if (!id) return;
+      try {
+        var raw = localStorage.getItem('landjes_hoofdsteden_cheatsheet_collapsed');
+        var state = raw ? JSON.parse(raw) : {};
+        if (state[id]) document.documentElement.classList.add('hoofdsteden-cheatsheet-collapsed-init');
+      } catch (_) {}
+    })();
+  </script>
 </head>
 <body>
   <main class="container" style="padding-top: 1.5rem;">
@@ -64,6 +75,18 @@
         </div>
         <p class="small">Alles wordt persistent opgeslagen in <code>localStorage</code>.</p>
       </aside>
+    </section>
+
+    <section class="vlaggen-cheatsheet-section hoofdsteden-cheatsheet-section" aria-label="Overzicht land en hoofdstad">
+      <h2 class="vlaggen-cheatsheet-header">
+        <button type="button" class="vlaggen-cheatsheet-toggle" id="hoofdsteden-cheatsheet-toggle" aria-expanded="true" aria-controls="hoofdsteden-cheatsheet-content">
+          <span class="vlaggen-cheatsheet-arrow" aria-hidden="true">▼</span>
+          Land en hoofdstad – overzicht
+        </button>
+      </h2>
+      <div id="hoofdsteden-cheatsheet-content" class="vlaggen-cheatsheet-content">
+        <div id="hoofdsteden-cheatsheet-table-wrap"></div>
+      </div>
     </section>
   </main>
 
