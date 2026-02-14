@@ -1257,11 +1257,8 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
 .flags-cheatsheet-table .flags-cheatsheet-flag {
   width: 52px;
   height: 38px;
-  object-fit: contain;
+  object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: #fff;
   vertical-align: middle;
 }
 
