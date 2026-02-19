@@ -35,7 +35,30 @@ window.App = (function () {
 
   const CONTINENT_IDS = ['South America', 'North America', 'Europe', 'Africa', 'Asia', 'Oceania'];
 
+  const CUSTOM_GROUP_KEY = 'landjes_custom_group';
+
+  function getCustomGroup() {
+    try {
+      const raw = sessionStorage.getItem(CUSTOM_GROUP_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setCustomGroup(group) {
+    sessionStorage.setItem(CUSTOM_GROUP_KEY, JSON.stringify(group));
+  }
+
   async function loadGroupById(id) {
+    if (id === 'custom') {
+      const custom = getCustomGroup();
+      if (!custom || !Array.isArray(custom.countries) || custom.countries.length === 0) {
+        throw new Error('Geen custom selectie opgeslagen. Maak eerst een selectie op de homepagina.');
+      }
+      return custom;
+    }
     if (id === 'world') {
       const countries = await loadCountries();
       return {
@@ -691,6 +714,8 @@ window.App = (function () {
     loadCountries,
     loadCountriesFromRoot,
     loadGroupById,
+    getCustomGroup,
+    setCustomGroup,
     getContinentAndWorldGroups,
     loadCountriesMap,
     getQueryParam,

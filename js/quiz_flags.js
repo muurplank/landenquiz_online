@@ -253,6 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const td = document.createElement('td');
           if (iso) {
             const c = countriesMap[iso];
+            td.dataset.search = (c.name_nl || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
             const cellInner = document.createElement('div');
             cellInner.className = 'flags-cheatsheet-cell';
             const img = document.createElement('img');
@@ -272,6 +273,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       table.appendChild(tbody);
       cheatsheetTableWrap.appendChild(table);
+
+      const cheatsheetSearch = document.getElementById('vlaggen-cheatsheet-search');
+      if (cheatsheetSearch) {
+        cheatsheetSearch.addEventListener('input', () => {
+          const q = (cheatsheetSearch.value || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+          tbody.querySelectorAll('td').forEach(td => {
+            const search = td.dataset.search;
+            const show = !search || !q || search.includes(q);
+            td.style.display = show ? '' : 'none';
+          });
+        });
+      }
     }
 
     const cheatsheetSection = document.querySelector('.vlaggen-cheatsheet-section');

@@ -22,6 +22,7 @@
             <span class="switch-label">Donker</span>
           </label>
           <button type="button" class="header-btn clear-stats-btn" id="clear-stats-btn" aria-label="Statistieken wissen">Clear stats</button>
+          <a href="#" class="btn primary header-btn" id="start-custom-quiz-btn">Start custom quiz</a>
         </div>
       </div>
     </div>
@@ -29,12 +30,12 @@
   <main class="container" style="padding-top: 0;">
     <section>
       <h2>Delen / Weeksets</h2>
-      <p>Kies een deel om te starten.</p>
+      <p>Kies een deel om te starten. Vink kaarten aan voor een custom quiz en klik rechtsboven op <strong>Start custom quiz</strong>.</p>
       <ul id="groups-list" class="card-list"></ul>
     </section>
     <section style="margin-top: 2rem;">
       <h2>Per continent</h2>
-      <p>Oefen alle landen per continent of de hele wereld. Klik op een kaart voor de vier quiztypen.</p>
+      <p>Oefen alle landen per continent of de hele wereld. Vink kaarten aan voor een custom quiz.</p>
       <ul id="continents-list" class="card-list"></ul>
     </section>
     <section style="margin-top: 2rem;">
@@ -48,64 +49,94 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const groupsListEl = document.getElementById('groups-list');
+      const continentsListEl = document.getElementById('continents-list');
+      let groups = [];
+      let continentGroups = [];
+      let history = { sessions: [], perGroup: {} };
+
       try {
-        const groups = await window.App.loadGroups();
-        const history = window.App.loadHistory();
-        groups.forEach(group => {
-          const progress = window.App.getGroupProgress(group.id, group.countries, history);
-          const li = document.createElement('li');
-          li.className = 'card';
-          const link = document.createElement('a');
-          link.href = `pages/group.html?id=${encodeURIComponent(group.id)}`;
-          link.className = 'card-link';
-          const pct = Math.min(100, (progress.stars / 5) * 100);
-          link.innerHTML = `
-            <h3>${group.title}</h3>
-            <p>Continent: ${group.continent}</p>
-            <p>${group.countries.length} landen</p>
-            <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
-              <span class="progress-bar-wrap"><span class="progress-bar-fill" style="width:${pct}%"></span></span>
-              <span class="progress-detail">${Math.round(pct)}%</span>
-            </p>
-          `;
-          li.appendChild(link);
-          groupsListEl.appendChild(li);
-        });
+        [groups, continentGroups, history] = await Promise.all([
+          window.App.loadGroups(),
+          window.App.getContinentAndWorldGroups(),
+          window.App.loadHistory()
+        ]);
       } catch (err) {
-        groupsListEl.innerHTML = '<li class="error">Kon groepen niet laden. Start een simpele webserver (bijv. <code>python -m http.server</code>) en open dan deze pagina.</li>';
+        groupsListEl.innerHTML = '<li class="error">Kon data niet laden. Start een simpele webserver (bijv. <code>python -m http.server</code>) en open dan deze pagina.</li>';
         console.error(err);
+        return;
       }
 
-      const continentsListEl = document.getElementById('continents-list');
-      if (continentsListEl) {
-        try {
-          const continentGroups = await window.App.getContinentAndWorldGroups();
-          const history = window.App.loadHistory();
-          continentGroups.forEach(group => {
-            const progress = window.App.getGroupProgress(group.id, group.countries, history);
-            const li = document.createElement('li');
-            li.className = 'card';
-            const link = document.createElement('a');
-            link.href = `pages/group.html?id=${encodeURIComponent(group.id)}`;
-            link.className = 'card-link';
-            const pct = Math.min(100, (progress.stars / 5) * 100);
-            const meta = group.id === 'world' ? `${group.countries.length} landen` : `${group.continent} · ${group.countries.length} landen`;
-            link.innerHTML = `
-              <h3>${group.title}</h3>
-              <p>${meta}</p>
-              <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
-                <span class="progress-bar-wrap"><span class="progress-bar-fill" style="width:${pct}%"></span></span>
-                <span class="progress-detail">${Math.round(pct)}%</span>
-              </p>
-            `;
-            li.appendChild(link);
-            continentsListEl.appendChild(li);
-          });
-        } catch (err) {
-          continentsListEl.innerHTML = '<li class="error">Kon continenten niet laden.</li>';
-          console.error(err);
-        }
+      const allGroupsForCustom = [...groups, ...continentGroups];
+
+      function addCardWithCustomCheck(container, group, progress, linkContent) {
+        const li = document.createElement('li');
+        li.className = 'card';
+        const checkLabel = document.createElement('label');
+        checkLabel.className = 'card-custom-check';
+        checkLabel.title = 'Meenemen in custom quiz';
+        checkLabel.innerHTML = `<input type="checkbox" class="custom-select-check" data-group-id="${encodeURIComponent(group.id)}" aria-label="Meenemen in custom quiz">`;
+        const link = document.createElement('a');
+        link.href = `pages/group.html?id=${encodeURIComponent(group.id)}`;
+        link.className = 'card-link';
+        link.innerHTML = linkContent;
+        checkLabel.addEventListener('click', (e) => e.stopPropagation());
+        link.addEventListener('click', (e) => { if (e.target.closest('.card-custom-check')) e.preventDefault(); });
+        li.appendChild(checkLabel);
+        li.appendChild(link);
+        container.appendChild(li);
       }
+
+      groups.forEach(group => {
+        const progress = window.App.getGroupProgress(group.id, group.countries, history);
+        const pct = Math.min(100, (progress.stars / 5) * 100);
+        const linkContent = `
+          <h3>${group.title}</h3>
+          <p>Continent: ${group.continent}</p>
+          <p>${group.countries.length} landen</p>
+          <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
+            <span class="progress-bar-wrap"><span class="progress-bar-fill" style="width:${pct}%"></span></span>
+            <span class="progress-detail">${Math.round(pct)}%</span>
+          </p>
+        `;
+        addCardWithCustomCheck(groupsListEl, group, progress, linkContent);
+      });
+
+      continentGroups.forEach(group => {
+        const progress = window.App.getGroupProgress(group.id, group.countries, history);
+        const pct = Math.min(100, (progress.stars / 5) * 100);
+        const meta = group.id === 'world' ? `${group.countries.length} landen` : `${group.continent} · ${group.countries.length} landen`;
+        const linkContent = `
+          <h3>${group.title}</h3>
+          <p>${meta}</p>
+          <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
+            <span class="progress-bar-wrap"><span class="progress-bar-fill" style="width:${pct}%"></span></span>
+            <span class="progress-detail">${Math.round(pct)}%</span>
+          </p>
+        `;
+        addCardWithCustomCheck(continentsListEl, group, progress, linkContent);
+      });
+
+      document.getElementById('start-custom-quiz-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const checked = document.querySelectorAll('.custom-select-check:checked');
+        if (!checked.length) {
+          alert('Selecteer minimaal één deel: vink de gewenste kaarten aan.');
+          return;
+        }
+        const countrySet = new Set();
+        checked.forEach(cb => {
+          const id = decodeURIComponent(cb.dataset.groupId);
+          const g = allGroupsForCustom.find(x => x.id === id);
+          if (g) g.countries.forEach(iso => countrySet.add(iso));
+        });
+        window.App.setCustomGroup({
+          id: 'custom',
+          title: 'Mijn selectie',
+          continent: 'Custom',
+          countries: Array.from(countrySet)
+        });
+        window.location.href = 'pages/group.html?id=custom';
+      });
     });
   </script>
 </body>

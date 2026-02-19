@@ -50,6 +50,10 @@
           </div>
           <aside class="group-countries-aside">
             <h3 class="group-countries-title">Landen in dit deel</h3>
+            <div class="list-search-wrap">
+              <label for="countries-list-search" class="visually-hidden">Zoek in landen en hoofdsteden</label>
+              <input type="text" class="list-search-input" id="countries-list-search" placeholder="Zoek land of hoofdstad…" autocomplete="off">
+            </div>
             <ul id="countries-list" class="plain-list countries-hover-list"></ul>
           </aside>
         </div>
@@ -201,11 +205,23 @@
           const li = document.createElement('li');
           li.textContent = `${c.name_nl} — ${c.capitals_nl.join(', ')}`;
           li.dataset.iso = iso3;
+          li.dataset.search = (c.name_nl + ' ' + (c.capitals_nl || []).join(' ')).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
           if (mapBox) {
             li.addEventListener('mouseenter', () => showCountryOnMap(iso3));
           }
           countriesListEl.appendChild(li);
         });
+
+        const countriesListSearch = document.getElementById('countries-list-search');
+        if (countriesListSearch) {
+          countriesListSearch.addEventListener('input', () => {
+            const q = (countriesListSearch.value || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+            countriesListEl.querySelectorAll('li').forEach(li => {
+              const show = !q || (li.dataset.search || '').includes(q);
+              li.style.display = show ? '' : 'none';
+            });
+          });
+        }
 
         if (mapRow && mapBox) {
           mapRow.addEventListener('mouseleave', () => clearMap());

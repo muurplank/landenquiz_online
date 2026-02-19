@@ -552,14 +552,44 @@ h3 {
   text-decoration: none;
 }
 
+.card-list .card .card-link {
+  padding-right: 2rem;
+}
+
 .card-link:hover h3 {
   color: var(--color-primary);
   text-decoration: none;
 }
 
+.card-list .card {
+  position: relative;
+}
+
 .card-list .card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-card-hover);
+}
+
+/* Checkbox op card voor custom quiz (index) */
+.card-custom-check {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-custom-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  cursor: pointer;
+  accent-color: var(--color-primary, #2563eb);
+}
+.card-list .card:has(.custom-select-check:checked) {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
 }
 
 .card-link p {
@@ -714,6 +744,36 @@ h3 {
 }
 
 /* ===== Plain list (countries) ===== */
+/* Zoekbalk boven lange lijsten (landen/hoofdsteden) */
+.list-search-wrap {
+  margin-bottom: 0.5rem;
+}
+.list-search-input {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+.list-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+.list-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* Verborgen bij zoeken in lijst (o.a. kwartet) */
+.list-search-hidden {
+  display: none !important;
+}
+
 .plain-list {
   list-style: none;
   padding: 0;
@@ -1356,6 +1416,66 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
 
 .group-quiz-section h2 {
   margin-bottom: 1rem;
+}
+
+/* Custom quiz (index): keuze van delen */
+.custom-quiz-section h2 {
+  margin-bottom: 0.5rem;
+}
+.custom-quiz-section > p {
+  margin-bottom: 1rem;
+}
+.custom-quiz-panel {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.custom-quiz-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 640px) {
+  .custom-quiz-columns {
+    grid-template-columns: 1fr;
+  }
+}
+.custom-quiz-column h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-text-muted);
+}
+.custom-quiz-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.custom-quiz-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.custom-quiz-check input {
+  flex-shrink: 0;
+}
+.custom-quiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+.custom-quiz-count {
+  margin-right: auto;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
 }
 
 /* Legacy: enkele preview-rij (niet meer gebruikt op group-pagina) */

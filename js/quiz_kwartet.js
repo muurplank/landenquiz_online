@@ -182,14 +182,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function norm(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+  }
+
   function renderLists() {
     const shuffledCountries = shuffle(countryList);
-    listLandEl.innerHTML = shuffledCountries.map(c => `
-      <li class="kwartet-option" data-iso="${c.iso}" role="button" tabindex="0">${c.name_nl}</li>
-    `).join('');
-    listCapitalEl.innerHTML = shuffle(countryList).map(c => `
-      <li class="kwartet-option" data-iso="${c.iso}" role="button" tabindex="0">${c.capitals_nl.join(', ')}</li>
-    `).join('');
+    listLandEl.innerHTML = '';
+    shuffledCountries.forEach(c => {
+      const li = document.createElement('li');
+      li.className = 'kwartet-option';
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+      li.setAttribute('data-iso', c.iso);
+      li.dataset.search = norm(c.name_nl);
+      li.textContent = c.name_nl;
+      listLandEl.appendChild(li);
+    });
+    listCapitalEl.innerHTML = '';
+    shuffle(countryList).forEach(c => {
+      const capStr = (c.capitals_nl || []).join(', ');
+      const li = document.createElement('li');
+      li.className = 'kwartet-option';
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+      li.setAttribute('data-iso', c.iso);
+      li.dataset.search = norm(capStr);
+      li.textContent = capStr;
+      listCapitalEl.appendChild(li);
+    });
 
     const shuffledFlags = shuffle(countryList);
     const n = listFlagEls.length;
@@ -250,6 +271,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     subtitleEl.textContent = `${group.title} · Match kaart, land, hoofdstad en vlag.`;
 
     renderLists();
+
+    const searchLandEl = document.getElementById('kwartet-search-land');
+    const searchCapitalEl = document.getElementById('kwartet-search-capital');
+    function filterKwartetList(listEl, query) {
+      if (!listEl) return;
+      const q = norm(query);
+      listEl.querySelectorAll('.kwartet-option').forEach(li => {
+        const searchText = (li.dataset.search || '').trim();
+        const show = !q || searchText.includes(q);
+        li.classList.toggle('list-search-hidden', !show);
+      });
+    }
+    if (searchLandEl) {
+      searchLandEl.addEventListener('input', () => filterKwartetList(listLandEl, searchLandEl.value));
+    }
+    if (searchCapitalEl) {
+      searchCapitalEl.addEventListener('input', () => filterKwartetList(listCapitalEl, searchCapitalEl.value));
+    }
 
     if (window.SatelliteMap) {
       await window.SatelliteMap.init('kwartet-map-container', '../assets/maps/high_res_usa.json');

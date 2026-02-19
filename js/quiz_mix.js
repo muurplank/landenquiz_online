@@ -369,9 +369,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const btn = document.createElement('button');
       btn.textContent = c.name_nl;
       btn.dataset.iso = iso;
+      btn.dataset.search = (c.name_nl || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
       btn.addEventListener('click', () => handleMapGuess(iso));
       countryButtonsEl.appendChild(btn);
     });
+
+    const countryButtonsSearch = document.getElementById('country-buttons-search');
+    if (countryButtonsSearch) {
+      countryButtonsSearch.addEventListener('input', () => {
+        const q = (countryButtonsSearch.value || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+        countryButtonsEl.querySelectorAll('button').forEach(btn => {
+          const show = !q || (btn.dataset.search || '').includes(q);
+          btn.style.display = show ? '' : 'none';
+        });
+      });
+    }
 
     showNextQuestion();
     if (quizCard) quizCard.focus();
