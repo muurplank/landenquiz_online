@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mapQuizTypeWrap = document.getElementById('map-quiz-type-wrap');
   const mapQuizTypeInput = document.getElementById('map-quiz-type-input');
   const mapQuizTypeSubmit = document.getElementById('map-quiz-type-submit');
+  let countryButtonsSearch = null;
 
   if (!groupId) {
     sessionStatusEl.textContent = 'Geen deel geselecteerd.';
@@ -139,6 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isCorrect) {
       sessionStatusEl.textContent = `✓ Correct! Het was ${correctName}.`;
       sessionStatusEl.className = 'status-label ok';
+      if (mapQuizTypeInput) mapQuizTypeInput.value = '';
+      if (countryButtonsSearch) {
+        countryButtonsSearch.value = '';
+        countryButtonsSearch.dispatchEvent(new Event('input'));
+      }
     } else {
       sessionStatusEl.textContent = `✗ Fout! Het witte land was ${correctName}.`;
       sessionStatusEl.className = 'status-label bad';
@@ -178,6 +184,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isCorrect) {
       sessionStatusEl.textContent = `✓ Correct! Het was ${countriesMap[currentCountry.iso].name_nl}.`;
       sessionStatusEl.className = 'status-label ok';
+      if (countryButtonsSearch) {
+        countryButtonsSearch.value = '';
+        countryButtonsSearch.dispatchEvent(new Event('input'));
+      }
     } else {
       const c = countriesMap[currentCountry.iso];
       sessionStatusEl.textContent = `✗ Fout! Het witte land was ${c.name_nl}.`;
@@ -272,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       countryButtonsEl.appendChild(btn);
     });
 
-    const countryButtonsSearch = document.getElementById('country-buttons-search');
+    countryButtonsSearch = document.getElementById('country-buttons-search');
     if (countryButtonsSearch) {
       countryButtonsSearch.addEventListener('input', () => {
         const q = (countryButtonsSearch.value || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
@@ -282,6 +292,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       });
     }
+
+    // Pijltje omhoog/omlaag: navigeer door landenlijst, Enter: selecteer highlighted item
+    function getVisibleCountryButtons() {
+      return Array.from(countryButtonsEl.querySelectorAll('button')).filter(btn => btn.style.display !== 'none');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!countryButtonsEl || sessionEnded) return;
+      if (useTypeBox && mapQuizTypeInput && document.activeElement === mapQuizTypeInput) return;
+
+      const visible = getVisibleCountryButtons();
+      if (!visible.length) return;
+
+      const active = document.activeElement;
+      const inSearchBox = countryButtonsSearch && active === countryButtonsSearch;
+      const currentIdx = visible.indexOf(active);
+      let nextIdx = -1;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (inSearchBox) {
+          visible[0].focus();
+        } else {
+          nextIdx = currentIdx < visible.length - 1 ? currentIdx + 1 : 0;
+          visible[nextIdx].focus();
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (inSearchBox) {
+          visible[visible.length - 1].focus();
+        } else {
+          nextIdx = currentIdx <= 0 ? visible.length - 1 : currentIdx - 1;
+          visible[nextIdx].focus();
+        }
+      } else if (e.key === 'Enter') {
+        if (currentIdx >= 0 && active === visible[currentIdx]) {
+          e.preventDefault();
+          visible[currentIdx].click();
+        }
+      }
+    }, true);
 
     showNextQuestion();
   } catch (err) {

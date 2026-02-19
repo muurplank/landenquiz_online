@@ -35,6 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let hintType = null; // 'capital' | 'land' | 'flag' — welk gegeven wordt getoond
   const selection = { map: null, land: null, capital: null, flag: null };
   let satelliteMapInitialized = false;
+  let searchLandEl = null;
+  let searchCapitalEl = null;
 
   const HINT_TYPES = ['capital', 'land', 'flag'];
 
@@ -163,6 +165,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.SatelliteMap.setCompletedCountries(Array.from(completed));
       }
       updateDeckStatus();
+      if (searchLandEl) {
+        searchLandEl.value = '';
+        searchLandEl.dispatchEvent(new Event('input'));
+      }
+      if (searchCapitalEl) {
+        searchCapitalEl.value = '';
+        searchCapitalEl.dispatchEvent(new Event('input'));
+      }
       const next = pickNextTarget();
       if (next) {
         setTarget(next);
@@ -272,8 +282,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderLists();
 
-    const searchLandEl = document.getElementById('kwartet-search-land');
-    const searchCapitalEl = document.getElementById('kwartet-search-capital');
+    searchLandEl = document.getElementById('kwartet-search-land');
+    searchCapitalEl = document.getElementById('kwartet-search-capital');
     function filterKwartetList(listEl, query) {
       if (!listEl) return;
       const q = norm(query);
@@ -289,6 +299,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (searchCapitalEl) {
       searchCapitalEl.addEventListener('input', () => filterKwartetList(listCapitalEl, searchCapitalEl.value));
     }
+
+    function getVisibleOptions(listEl) {
+      if (!listEl) return [];
+      return Array.from(listEl.querySelectorAll('.kwartet-option')).filter(li => !li.classList.contains('list-search-hidden'));
+    }
+
+    function isColumnVisible(colEl) {
+      return colEl && window.getComputedStyle(colEl).display !== 'none';
+    }
+
+    function handleKwartetArrowKeys(e) {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+
+      const active = document.activeElement;
+
+      let listEl = null;
+      let searchEl = null;
+      if (isColumnVisible(colLandEl) && colLandEl.contains(active)) {
+        listEl = listLandEl;
+        searchEl = searchLandEl;
+      } else if (isColumnVisible(colCapitalEl) && colCapitalEl.contains(active)) {
+        listEl = listCapitalEl;
+        searchEl = searchCapitalEl;
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const landVisible = getVisibleOptions(listLandEl);
+        const capVisible = getVisibleOptions(listCapitalEl);
+        const targetList = isColumnVisible(colLandEl) && landVisible.length ? listLandEl : (isColumnVisible(colCapitalEl) && capVisible.length ? listCapitalEl : null);
+        if (targetList) {
+          const vis = targetList === listLandEl ? landVisible : capVisible;
+          e.preventDefault();
+          e.stopPropagation();
+          vis[e.key === 'ArrowDown' ? 0 : vis.length - 1].focus();
+          vis[e.key === 'ArrowDown' ? 0 : vis.length - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+      if (!listEl) return;
+
+      const visible = getVisibleOptions(listEl);
+      if (!visible.length) return;
+
+      const inSearch = searchEl && active === searchEl;
+      const currentIdx = visible.indexOf(active);
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = inSearch ? visible[0] : visible[currentIdx < visible.length - 1 ? currentIdx + 1 : 0];
+        next.focus();
+        next.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = inSearch ? visible[visible.length - 1] : visible[currentIdx <= 0 ? visible.length - 1 : currentIdx - 1];
+        next.focus();
+        next.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else if (e.key === 'Enter') {
+        if (currentIdx >= 0 && active === visible[currentIdx] && !active.classList.contains('kwartet-completed')) {
+          e.preventDefault();
+          e.stopPropagation();
+          active.click();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKwartetArrowKeys, true);
 
     if (window.SatelliteMap) {
       await window.SatelliteMap.init('kwartet-map-container', '../assets/maps/high_res_usa.json');

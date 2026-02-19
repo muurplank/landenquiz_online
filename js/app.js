@@ -794,3 +794,54 @@ window.App = (function () {
   }
 })();
 
+// F-toets: focus zoekveld (indien aanwezig) om direct te kunnen typen
+// Tab: schakel tussen meerdere zoekvelden (bijv. kwartet: land ↔ hoofdstad)
+(function () {
+  function getVisibleSearchInputs() {
+    var inputs = [];
+    document.querySelectorAll('.list-search-input').forEach(function (input) {
+      if (input.offsetParent !== null) inputs.push(input);
+    });
+    return inputs;
+  }
+
+  function initFocusSearchOnF() {
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') {
+        var active = document.activeElement;
+        if (active && active.classList.contains('list-search-input')) {
+          var visible = getVisibleSearchInputs();
+          if (visible.length >= 2) {
+            var idx = visible.indexOf(active);
+            if (idx >= 0) {
+              var next = e.shiftKey ? (idx - 1 + visible.length) % visible.length : (idx + 1) % visible.length;
+              e.preventDefault();
+              visible[next].focus();
+              return;
+            }
+          }
+        }
+      }
+      if (e.key !== 'f' && e.key !== 'F') return;
+      if (e.ctrlKey || e.metaKey) return;
+      var active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.classList.contains('list-search-input')) {
+        return;
+      }
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        return;
+      }
+      var visible = getVisibleSearchInputs();
+      if (visible.length) {
+        e.preventDefault();
+        visible[0].focus();
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFocusSearchOnF);
+  } else {
+    initFocusSearchOnF();
+  }
+})();
+
