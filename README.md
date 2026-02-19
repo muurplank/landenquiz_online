@@ -4,6 +4,41 @@
 
 ---
 
+## Inhoudsopgave
+
+1. [Overzicht / Beschrijving](#1-overzicht--beschrijving)
+2. [Features](#2-features)
+3. [Technologieën](#3-technologieën)
+4. [Installatie](#4-installatie)
+5. [Hosting](#5-hosting-website-online-zetten)
+6. [Satellietkaart Implementatie](#6-satellietkaart-implementatie-maplibre-gl-js)
+7. [Gebruik](#7-gebruik)
+8. [Configuratie](#7-configuratie)
+9. [Projectstructuur](#8-projectstructuur)
+10. [Bestanden en functies](#9-bestanden-en-functies-gedetailleerd)
+11. [Dataflow en state](#10-dataflow-en-state)
+12. [Troubleshooting](#troubleshooting)
+13. [Roadmap](#12-roadmap-optioneel)
+14. [Contributing](#13-contributing)
+15. [Licentie](#14-licentie)
+16. [Satellietkaart – Technische Details](#15-satellietkaart-upgrade---technische-details)
+17. [Snelstart](#snelstart)
+18. [Veelgestelde vragen](#veelgestelde-vragen-faq)
+
+---
+
+## Snelstart
+
+1. **Clone + start server:** `git clone <repo> && cd landenquiz_online && python3 -m http.server 8000`
+2. **Open:** `http://localhost:8000`
+3. **Kies een deel** — Klik op een kaart (bijv. Week 1 - Zuid-Amerika) of een continent (bijv. Europa).
+4. **Oefenen** — Bekijk de kaart en landenlijst; hover op een land om het te highlighten.
+5. **Quizzen** — Start Hoofdstad, Vlaggen, Kaart-quiz, Kwartet of Mix.
+6. **Custom quiz** — Vink meerdere kaarten aan op de homepage → "Start custom quiz".
+7. **Toetsenbord** — **F** = focus zoekveld; **↑/↓** + **Enter** in kaart- en kwartet-quiz.
+
+---
+
 ## 1. Overzicht / Beschrijving
 
 ### Wat doet dit project?
@@ -59,6 +94,26 @@ Voortgang en statistieken worden **lokaal** opgeslagen (localStorage). Er is gee
 - **Kaart-quiz scrollen** — De kaart-quizpagina kan scrollen bij veel inhoud (geen vaste viewport-hoogte meer).
 - **Clear stats** — Knop om alle sessies en statistieken te wissen.
 - **Export** — Download sessie-history als JSON (per quizpagina).
+- **Custom quiz** — Selecteer meerdere delen (weeksets en/of continenten) via checkboxes op de kaarten; knop "Start custom quiz" in de header opent een gecombineerde quiz over alle geselecteerde landen. Sessie-gegevens in `sessionStorage`.
+- **Zoekbalken** — Bij alle lange lijsten (landen, hoofdsteden): een zoekveld om te filteren. Op de groepspagina (Landen in dit deel), kaart-quiz, mix-quiz, vlaggen-quiz (overzicht land+vlag) en kwartet-quiz (Land- en Hoofdstad-kolommen). Zoeken is accentongevoelig (bijv. "Bogota" vindt "Bogotá").
+- **Toetsenbordnavigatie** — Zie sectie 2b hieronder.
+
+### 2b. Toetsenbord en zoekfuncties (quick reference)
+
+| Actie | Toets | Waar |
+|-------|-------|------|
+| Focus zoekveld | **F** | Elke pagina met een zoekbalk (groep, kaart-quiz, mix, vlaggen, kwartet) |
+| Schakel tussen zoekvelden | **Tab** / **Shift+Tab** | Kwartet-quiz (tussen Land- en Hoofdstad-zoekveld) |
+| Navigeer door landenlijst | **↑** / **↓** | Kaart-quiz, Kwartet-quiz |
+| Selecteer highlighted item | **Enter** | Kaart-quiz, Kwartet-quiz |
+| Zoekveld legen | — | Automatisch bij een correct antwoord (kaart-quiz, kwartet) |
+
+**Details:**
+- **F** — Spring naar het eerste zichtbare zoekveld; werkt niet als je al in een ander invoerveld typt. Ctrl+F / Cmd+F blijft browser-zoeken.
+- **Tab** — Bij twee of meer zichtbare zoekvelden (kwartet): wissel tussen ze (met wrap-around).
+- **Pijltjes** — In de kaart-quiz en kwartet-quiz: vanuit het zoekveld gaat ↓ naar het eerste item, ↑ naar het laatste; binnen de lijst navigeer je met ↑/↓. Automatisch scrollen naar het geselecteerde item.
+- **Enter** — Selecteert het momenteel gefocuste land/hoofdstad (zelfde als klikken). In de kaart-quiz = antwoord indienen; in de kwartet-quiz = optie selecteren.
+- Bij een **correct antwoord** worden de zoekvelden geleegd en de filters gereset, zodat je weer alle opties ziet.
 
 ---
 
@@ -68,7 +123,7 @@ Voortgang en statistieken worden **lokaal** opgeslagen (localStorage). Er is gee
 |-----------------|-------|
 | **Front-end**   | Vanilla HTML5, CSS3, JavaScript (ES6+), geen framework |
 | **Data**        | JSON (groepen, landen), GeoJSON (wereldkaart high-res) |
-| **Opslag**      | Browser `localStorage` (sessies, per-group stats, thema) |
+| **Opslag**      | Browser `localStorage` (sessies, stats, thema) + `sessionStorage` (custom quiz) |
 | **Kaarten**     | MapLibre GL JS v4 met NASA Blue Marble satelliet tiles + GeoJSON vector overlay |
 | **Vlaggen**     | SVG-bestanden (bijv. van [country-flags](https://github.com/hampusborgos/country-flags)) |
 | **Server**      | Geen; moet via een lokale HTTP-server worden geserveerd (geen `file://`) |
@@ -675,6 +730,18 @@ mapRow.addEventListener('mouseleave', () => {
    - Check: `smallCountryMarkers` array in debugger
    - Fix: Verify `clearSmallCountryMarkers()` niet te vaak wordt aangeroepen
 
+#### Zoekbalk of toetsenbord werkt niet
+
+**Symptoom:** F-toets doet niets, pijltjes typen in zoekveld, Tab werkt niet
+
+**Mogelijke oorzaken:**
+1. F-toets: werkt alleen als je **niet** al in een invoerveld zit. Druk Escape of klik ergens anders om focus te verliezen, probeer dan F.
+2. Ctrl+F / Cmd+F: die blijven de browser-zoekfunctie openen; dat is bewust.
+3. Pijltjes typen in zoekveld: de pijltjes gaan naar de lijst als je focus *buiten* het zoekveld hebt. Klik op een land in de lijst of druk Tab om uit het zoekveld te gaan.
+4. Tab bij kwartet: werkt alleen als beide zoekvelden (Land en Hoofdstad) zichtbaar zijn. Bij één kolom is er maar één veld.
+
+**Zoeken vindt land niet:** Zoeken is accentongevoelig (Bogota ≈ Bogotá). Als je land ontbreekt, controleer of het in de huidige groep/deel zit.
+
 #### Dateline Landen (Kiribati, Fiji)
 
 **Probleem:** Landen die over 180°/-180° lengtegraad liggen hebben incorrecte bounding box
@@ -887,15 +954,16 @@ SatelliteMap.highlightCountry(null)
 
 ### Homepagina (`index.html`)
 
-- **Delen / Weeksets** — Klik op een kaart (bijv. “Week 1 - Zuid-Amerika”) om naar het overzicht van dat deel te gaan.
-- **Per continent** — Sectie met 7 kaartjes: Zuid-Amerika, Noord-Amerika, Europa, Afrika, Azië, Oceanië, en Hele wereld. Elk kaartje toont het aantal landen en een progress bar; klik opent `pages/group.html?id=continent_<Continent>` of `id=world` met alle quiztypen (inclusief kwartet) voor dat bereik.
+- **Delen / Weeksets** — Klik op een kaart (bijv. “Week 1 - Zuid-Amerika”) om naar het overzicht van dat deel te gaan. Elke kaart heeft rechtsboven een **checkbox**: vink aan om het deel mee te nemen in de custom quiz.
+- **Per continent** — Sectie met 7 kaartjes: Zuid-Amerika, Noord-Amerika, Europa, Afrika, Azië, Oceanië, en Hele wereld. Elk kaartje toont het aantal landen en een progress bar; klik opent `pages/group.html?id=continent_<Continent>` of `id=world`. Ook deze kaarten hebben checkboxes voor de custom quiz.
+- **Custom quiz** — Vink één of meer kaarten aan (weeksets en/of continenten), klik rechtsboven in de header op **“Start custom quiz”**. Je komt op de groepspagina met de unie van alle geselecteerde landen (zonder dubbelen). Alle quiztypen werken; data staat in `sessionStorage` en verdwijnt bij sluiten van de tab.
 - **Statistieken** — Knop “Open statistieken” opent `pages/stats.html`.
-- **Header** — Donkere modus (toggle), “Clear stats” (wist alle sessies).
+- **Header** — Donkere modus (toggle), “Clear stats” (wist alle sessies), “Start custom quiz” (alleen zichtbaar als minstens één kaart is aangevinkt).
 
 ### Groepspagina (`pages/group.html`)
 
 - **Volgorde** — Eerst een sectie **Oefenen** (kaart + landenlijst), daaronder **Quiz-modi**.
-- **Oefenen** — Kop “▼ Oefenen” (klikbaar om in te klappen; pijl wordt ▶). Links een grote **wereldkaart** (standaard leeg: alle landen groen), rechts een sticky kolom **Landen in dit deel** met landen + hoofdsteden. Onder de titel en tussen elk land een lijn over de volle breedte van de card.
+- **Oefenen** — Kop “▼ Oefenen” (klikbaar om in te klappen; pijl wordt ▶). Links een grote **wereldkaart** (standaard leeg: alle landen groen), rechts een sticky kolom **Landen in dit deel** met een **zoekbalk** (filter op landnaam of hoofdstad; accentongevoelig) en de landenlijst. Onder de titel en tussen elk land een lijn over de volle breedte van de card. Toets **F** focust het zoekveld.
 - **Kaart** — Zonder hover: lege wereldkaart. **Hover** op een land: dat land wit, oranje pijl (+ ellips indien kleiner dan Nederland) en linksboven op de kaart de **vlag** van dat land. Bij mouseleave van het hele blok (kaart + lijst) weer lege kaart. Lege kaart en per-land preview worden gecached (geen hertekenen bij opnieuw hoveren).
 - **Quiz-modi** — Kies Hoofdstad, Vlaggen, Kaart-quiz, **Kwartet**, Mix of **Aangepaste mix**. **Kwartet** opent `quiz_kwartet.html?id=<groupId>`. **Mix oneindig** opent `quiz_mix.html?id=<groupId>&infinite=1`. Bij Aangepaste mix: vink precies 2 van de 3 opties aan (Hoofdstad, Vlaggen, Kaart); “Start aangepaste mix” linkt naar `quiz_mix.html?id=<groupId>&types=capital,flag` (of de gekozen combinatie). Overige knoppen linken naar de juiste quiz-URL met `id=` en eventueel `mode=...`.
 - Wereldkaart: `high_res_usa.json`; ingestorte staat Oefenen: `landjes_oefenen_collapsed` (per groep).
@@ -903,9 +971,10 @@ SatelliteMap.highlightCountry(null)
 ### Quizpagina’s (`pages/quiz_*.html`)
 
 - **Hoofdstad** (`quiz_capitals.html`) — Vraag toont land of hoofdstad; je geeft aan of je antwoord correct/fout was (zelfscore); toon antwoord met Spatiebalk. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar.
-- **Vlaggen** (`quiz_flags.html`) — Zelfde idee: vlag of landnaam, correct/incorrect, antwoord tonen. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar. **Onder** het quiz-gedeelte staat de inklapbare sectie “Land en vlag – overzicht” (alleen op de vlaggen-quiz): tabel met vlag + landnaam per land, 4 of 8 kolommen; ingeklapte staat per deel onthouden.
-- **Mix / Aangepaste mix** (`quiz_mix.html`) — Standaard: mix van hoofdstad, vlag en kaart. Via groepspagina “Aangepaste mix” kun je met `types=capital,flag` (of `capital,map`, `flag,map`) alleen twee van de drie typen door elkaar krijgen.
-- **Kaart** (`quiz_map.html`) — Eén land wit op de kaart; kies het juiste land in de lijst rechts. Bij **Per continent / Hele wereld** (`id=continent_*` of `id=world`): dezelfde wereldkaart als de oefen-preview (Greenwich gecentreerd), een aparte **typ-card** boven “Landen in dit deel” om de landnaam te typen (Enter of Controleer); antwoorden met Levenshtein-afstand ≤ 4 worden goed gerekend. De kaart-quizpagina kan scrollen.
+- **Vlaggen** (`quiz_flags.html`) — Zelfde idee: vlag of landnaam, correct/incorrect, antwoord tonen. Modus “Beide kanten” loopt oneindig door en telt niet mee voor de progress bar. **Onder** het quiz-gedeelte staat de inklapbare sectie “Land en vlag – overzicht” met een **zoekbalk** boven de tabel; tabel met vlag + landnaam per land, 4 of 8 kolommen; ingeklapte staat per deel onthouden. **F** focust het zoekveld.
+- **Mix / Aangepaste mix** (`quiz_mix.html`) — Standaard: mix van hoofdstad, vlag en kaart. Via groepspagina “Aangepaste mix” kun je met `types=capital,flag` (of `capital,map`, `flag,map`) alleen twee van de drie typen door elkaar krijgen. **Zoekbalk** boven de landenlijst; **F** focust.
+- **Kaart** (`quiz_map.html`) — Eén land wit op de kaart; kies het juiste land in de lijst rechts. **Zoekbalk** boven de lijst; **F** focust zoekveld; **↑/↓** navigeert door opties, **Enter** selecteert; bij correct antwoord wordt de zoekbalk geleegd. Bij **Per continent / Hele wereld** (`id=continent_*` of `id=world`): typ-card voor landnaam (Levenshtein ≤ 4); zelfde toetsenbordnavigatie. De kaart-quizpagina kan scrollen.
+- **Kwartet** (`quiz_kwartet.html`) — Match kaart, land, hoofdstad en vlag. **Twee zoekbalken** (Land en Hoofdstad); **Tab** wisselt ertussen, **F** focust eerste zichtbare veld; **↑/↓** navigeert, **Enter** selecteert; bij correct kwartet worden beide zoekbalken geleegd.
 - **Vraagvolgorde** — In alle quizzen komen eerst alle landen één keer voorbij (geen herhaling tot iedereen aan bod is geweest); daarna begint een nieuwe ronde.
 - **Sessie** — Loopt tot je stopt of (bij één-richting/mix/kaart) tot elk land min. 1× goed is. “Beide kanten” (hoofdstad/vlag) stopt niet automatisch. Bij afsluiten of verlaten wordt de sessie opgeslagen in `localStorage`.
 - **Download log** — Sla de huidige sessie (of history) als JSON op.
@@ -929,12 +998,32 @@ Er is **geen** configuratiebestand of environment variables. Alles wordt bepaald
   - `landjes_theme` — `"light"` of `"dark"`.
   - `landjes_oefenen_collapsed` — JSON-object met per groep-id of de Oefenen-sectie is ingeklapt (bijv. `{"week1_zuid-amerika": true}`).
   - `landjes_vlaggen_cheatsheet_collapsed` — JSON-object met per groep-id of het vlaggen-overzicht “Land en vlag” op de vlaggen-quizpagina is ingeklapt.
+- **sessionStorage**:
+  - `landjes_custom_group` — Bij custom quiz: JSON-object `{ id: "custom", title: "Mijn selectie", continent: "Custom", countries: ["ISO3", ...] }`. Gezet bij “Start custom quiz”; gelezen door `loadGroupById('custom')`. Verlopen bij sluiten van de tab.
 
 Je kunt de app aanpassen door:
 
 - `data/groups.json` — Weken/delen en bijbehorende landen (ISO3).
 - `data/countries.json` — Landnamen (NL), hoofdsteden, continent.
 - `assets/maps/high_res_usa.json` — Wereldkaart-GeoJSON (en eventueel andere map-bestanden als je de code aanpast).
+
+### URL-parameters
+
+| Pagina | Parameter | Beschrijving |
+|--------|-----------|--------------|
+| `group.html` | `id` | Groep-ID: `week1_zuid-amerika`, `continent_Europe`, `continent_South America`, `world`, of `custom` (custom quiz, vereist sessionStorage). |
+| `quiz_capitals.html` | `id`, `mode` | `id` = groep; `mode` = `land` (land→hoofdstad), `capital` (hoofdstad→land), `both` (beide kanten). |
+| `quiz_flags.html` | `id`, `mode` | `id` = groep; `mode` = `flag` (vlag→land), `land` (land→vlag), `both`. |
+| `quiz_map.html` | `id` | Groep-ID; bij continent/world wordt typ-card getoond. |
+| `quiz_mix.html` | `id`, `types`, `infinite` | `id` = groep; `types` = `capital,flag` of `capital,map` of `flag,map` (2 van 3); `infinite=1` voor oneindige mix. |
+| `quiz_kwartet.html` | `id` | Groep-ID. |
+| `stats.html` | — | Geen parameters; filters via UI. |
+
+**Voorbeelden:**
+- `pages/group.html?id=week1_zuid-amerika` — Week 1 Zuid-Amerika
+- `pages/quiz_map.html?id=continent_Europe` — Kaart-quiz Europa
+- `pages/quiz_mix.html?id=world&infinite=1` — Mix oneindig, hele wereld
+- `pages/quiz_mix.html?id=week2_noord-amerika&types=capital,flag` — Aangepaste mix: alleen hoofdstad + vlag
 
 ### Satellietkaart Configuratie
 
@@ -1680,13 +1769,35 @@ Er is dus geen vaste lijst “kleine landen”: het is puur geometrisch. Kleine 
 - **Oefenen-ingeklapt resetten** — In de console: `localStorage.removeItem('landjes_oefenen_collapsed')` (of het object aanpassen).
 - **History exporteren** — Op een quizpagina: “Download log (JSON)” of in de console: `App.downloadHistoryAsJSON()`.
 
+
+## Veelgestelde vragen (FAQ)
+
+**Kan ik de app offline gebruiken?**  
+De eerste keer moet je online zijn om de kaart, vlaggen en data te laden. Daarna werkt de app grotendeels offline; sommige satellietkaart-tiles worden echter per zoom/pan opnieuw opgehaald. Voor volledig offline gebruik is een service worker gepland (zie Roadmap).
+
+**Waar blijft mijn voortgang?**  
+In de browser: `localStorage` (sessies, sterren, thema) en bij custom quiz `sessionStorage` (de geselecteerde landen). Geen server, geen account. Bij wissen van browsercache gaan de stats verloren.
+
+**Hoe voeg ik nieuwe landen toe?**  
+Pas `data/countries.json` en `data/groups.json` aan. Voor vlaggen: zorg dat `assets/flags/<iso2>.svg` bestaat (gebruik `scripts/fetch-flags.sh` of voeg handmatig toe). Voor de kaart: het GeoJSON-bestand moet de landen bevatten; anders verschijnen ze niet op de kaart.
+
+**De zoekbalk filtert niet goed.**  
+Zoeken is accentongevoelig (NFD-normalisatie): "Bogota" vindt "Bogotá", "Istanbul" vindt "İstanbul". Als je land niet verschijnt, controleer of het in de huidige groep zit.
+
+**F-toets werkt niet.**  
+De F-toets focust het zoekveld alleen als je niet al in een invoerveld typt. Bij de kwartet-quiz: Tab wisselt tussen de twee zoekvelden.
+
+**Custom quiz verdwijnt na sluiten.**  
+De custom selectie zit in `sessionStorage` en is tab-specifiek. Sluit je de tab, dan is de selectie weg. De voortgang (aantal goed/fout) blijft wel in `localStorage` als je de quiz hebt gemaakt.
+
+
 ---
 
 ## 12. Roadmap (optioneel)
 
 - **Offline-first** — Service worker + caching van JSON/GeoJSON en vlaggen voor volledig offline gebruik.
 - **Meer kaartbestanden** — Optioneel kiezen tussen `high_res_usa` en een volledige wereldkaart voor landen die nu ontbreken.
-- **Toetsenbord-navigatie** — Consistente shortcuts op alle pagina’s (bijv. Escape om preview te sluiten).
+- **Extra toetsenbordnavigatie** — Escape om preview te sluiten; meer shortcuts voor hoofdstad/vlag-quiz (bijv. snel antwoord tonen).
 - **Toegankelijkheid** — ARIA-labels, focus management en screenreader-teksten verbeteren.
 - **Tests** — Unit tests voor `getGroupProgress`, `mergePerCountryStats`, `getIsoFromFeature` en datumfilters.
 
