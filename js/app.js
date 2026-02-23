@@ -613,15 +613,8 @@ window.App = (function () {
     return me ? me.rx * me.ry : Infinity;
   }
 
-  function buildArrowAndEllipseSvg(feature, scaleInfo, allFeatures, iso) {
-    const centroid = getFeatureCentroid(feature);
-    if (!centroid) return '';
-    const tip = centroidToSvg(centroid[0], centroid[1], scaleInfo);
+  function buildArrowAndEllipseSvg(feature, scaleInfo, allFeatures) {
     const arrowColor = '#f97316';
-    const arrowLen = 55;
-    const angle = Math.PI / 4;
-    const tail = { x: tip.x - arrowLen * Math.cos(angle), y: tip.y - arrowLen * Math.sin(angle) };
-
     const pts = getFeaturePointsSvg(feature, scaleInfo);
     const me = minimumEnclosingEllipse(pts);
     const nlFeature = allFeatures.find(f => getIsoFromFeature(f) === 'NLD');
@@ -633,11 +626,7 @@ window.App = (function () {
     if (me && (me.rx > 0 || me.ry > 0) && isSmallerThanNL) {
       s += '<ellipse cx="' + me.cx + '" cy="' + me.cy + '" rx="' + me.rx + '" ry="' + me.ry + '" fill="none" stroke="' + arrowColor + '" stroke-width="2"/>';
     }
-    s += '<line x1="' + tail.x + '" y1="' + tail.y + '" x2="' + tip.x + '" y2="' + tip.y + '" stroke="' + arrowColor + '" stroke-width="3" stroke-linecap="round"/>';
-    const headLen = 14, headAngle = 0.65;
-    const h1x = tip.x - headLen * Math.cos(angle - headAngle), h1y = tip.y - headLen * Math.sin(angle - headAngle);
-    const h2x = tip.x - headLen * Math.cos(angle + headAngle), h2y = tip.y - headLen * Math.sin(angle + headAngle);
-    s += '<path d="M ' + tip.x + ' ' + tip.y + ' L ' + h1x + ' ' + h1y + ' L ' + h2x + ' ' + h2y + ' Z" fill="' + arrowColor + '" stroke="' + arrowColor + '"/>';
+    // Pijl verwijderd: alleen oranje ellips is genoeg
     return s;
   }
 
@@ -696,7 +685,7 @@ window.App = (function () {
       paths.push('<path d="' + d + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="0.4"/>');
     });
 
-      const arrowSvg = buildArrowAndEllipseSvg(highlightFeature, scaleInfo, features, iso);
+      const arrowSvg = buildArrowAndEllipseSvg(highlightFeature, scaleInfo, features);
       return '<svg class="country-preview-map-svg country-preview-world-map" viewBox="0 0 ' + mapW + ' ' + mapH + '" preserveAspectRatio="xMidYMid meet">' +
         '<rect width="' + mapW + '" height="' + mapH + '" fill="#2563eb"/>' +
         paths.join('') +

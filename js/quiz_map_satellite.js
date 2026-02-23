@@ -32,7 +32,6 @@
   let currentHighlightedIso = null;
   let geoJsonData = null;
   let isoToFeatureId = new Map();
-  let smallCountryMarkers = []; // Array van markers voor kleine landen
   let netherlandsArea = null; // Oppervlakte van Nederland als referentie
   let smallCountriesSet = new Set(); // Set van ISO codes van kleine landen
 
@@ -383,90 +382,6 @@
   }
 
   /**
-   * Voeg een opvallende cirkel toe voor een klein land
-   */
-  function addSmallCountryMarker(iso) {
-    if (!map || !geoJsonData) return;
-
-    const featureId = isoToFeatureId.get(iso);
-    if (featureId === undefined) return;
-
-    const feature = geoJsonData.features[featureId];
-    if (!feature) return;
-
-    const area = getFeatureArea(feature);
-    let largestCentroid = getLargestPolygonCentroid(feature);
-    
-    // Fallback: als centroid berekening faalt, gebruik gewone centroid
-    if (!largestCentroid) {
-      largestCentroid = getFeatureCentroid(feature);
-    }
-    
-    if (!largestCentroid) return;
-
-    // Bereken Nederland's oppervlakte als referentie (eenmalig)
-    if (netherlandsArea === null) {
-      netherlandsArea = calculateNetherlandsArea();
-      if (netherlandsArea === null) {
-        console.warn('Kon Nederland niet vinden, gebruik fallback threshold');
-        netherlandsArea = 0.5; // Fallback
-      }
-    }
-    
-    // Threshold: landen kleiner dan Nederland krijgen een pijl
-    if (area < netherlandsArea) {
-      // Vaste pijl grootte (onafhankelijk van zoom)
-      const arrowLength = 70; // pixels - vaste grootte
-      
-      // Maak een container voor de pijl die altijd naar het centrum wijst
-      const arrowEl = document.createElement('div');
-      arrowEl.className = 'small-country-arrow';
-      
-      // SVG pijl die van links-boven naar rechts-onder wijst (naar centrum)
-      arrowEl.innerHTML = `
-        <svg width="${arrowLength}" height="${arrowLength}" viewBox="0 0 ${arrowLength} ${arrowLength}" style="overflow: visible;">
-          <defs>
-            <marker id="arrowhead-${iso}" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-              <polygon points="0 0, 10 3, 0 6" fill="#ff6600" />
-            </marker>
-          </defs>
-          <line x1="5" y1="5" x2="${arrowLength - 5}" y2="${arrowLength - 5}" 
-                stroke="#ff6600" 
-                stroke-width="4" 
-                marker-end="url(#arrowhead-${iso})"
-                stroke-linecap="round" />
-        </svg>
-      `;
-      arrowEl.style.cssText = `
-        width: ${arrowLength}px;
-        height: ${arrowLength}px;
-        pointer-events: none;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-      `;
-
-      // Positioneer pijl zo dat de punt naar het centrum wijst
-      // De pijl eindigt bij het centrum, dus we plaatsen de bottom-right hoek op het centrum
-      const arrowMarker = new maplibregl.Marker({
-        element: arrowEl,
-        anchor: 'bottom-right',
-        offset: [0, 0]
-      })
-        .setLngLat(largestCentroid)
-        .addTo(map);
-
-      smallCountryMarkers.push(arrowMarker);
-    }
-  }
-
-  /**
-   * Verwijder alle kleine land markers
-   */
-  function clearSmallCountryMarkers() {
-    smallCountryMarkers.forEach(marker => marker.remove());
-    smallCountryMarkers = [];
-  }
-
-  /**
    * Bereken bounding box voor lijst van ISO codes
    */
   function getBoundsForCountries(isoCodes) {
@@ -718,9 +633,6 @@
 
     const normalizedIso = normalizeIso(iso);
     
-    // Verwijder oude markers
-    clearSmallCountryMarkers();
-    
     // Reset vorige highlight
     if (currentHighlightedIso) {
       const prevFeatureId = isoToFeatureId.get(currentHighlightedIso);
@@ -741,9 +653,7 @@
           { active: true }
         );
         currentHighlightedIso = normalizedIso;
-        
-        // Voeg marker toe voor kleine landen
-        addSmallCountryMarker(normalizedIso);
+        // Geen pijl meer; oranje fill (countries-fill-small-active) is genoeg voor kleine landen
       } else {
         currentHighlightedIso = null;
       }
@@ -810,7 +720,6 @@
    * Cleanup
    */
   function destroy() {
-    clearSmallCountryMarkers();
     if (map) {
       map.remove();
       map = null;

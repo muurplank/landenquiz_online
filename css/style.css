@@ -1674,11 +1674,6 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   display: none; /* Verberg MapLibre attributie voor cleaner UI */
 }
 
-/* Pijl voor kleine landen - vaste grootte */
-.small-country-arrow {
-  /* Geen extra styling nodig, grootte wordt via inline style gezet */
-}
-
 /* Legacy SVG styles (voor backwards compatibility) */
 .map-wrapper svg {
   display: block;
