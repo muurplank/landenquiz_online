@@ -106,6 +106,7 @@
           <div class="btn-row">
             <a id="mix-quiz" class="btn primary">Start mix-sessie</a>
             <a id="mix-quiz-infinite" class="btn">Mix oneindig</a>
+            <a id="mix-quiz-mega" class="btn">Mega mix</a>
           </div>
         </article>
 
@@ -299,6 +300,8 @@
           `quiz_mix.html?${base}`;
         document.getElementById('mix-quiz-infinite').href =
           `quiz_mix.html?${base}&infinite=1`;
+        document.getElementById('mix-quiz-mega').href =
+          `quiz_mix.html?${base}&mega=1`;
 
         const customTypeCapital = document.getElementById('custom-type-capital');
         const customTypeFlag = document.getElementById('custom-type-flag');

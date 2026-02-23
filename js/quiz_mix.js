@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const typesParam = window.App.getQueryParam('types'); // bijv. "capital,flag" voor aangepaste mix (precies 2 van 3)
   const allowedTypes = parseCustomTypes(typesParam);
   const infiniteMode = window.App.getQueryParam('infinite') === '1';
+  const megaMix = window.App.getQueryParam('mega') === '1'; // Mega mix: alle combinaties (hoofdstad↔vlag↔kaart)
 
   function parseCustomTypes(param) {
     if (!param || typeof param !== 'string') return null;
@@ -12,6 +13,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const unique = [...new Set(allowed)];
     return unique.length === 2 ? unique.sort() : null; // precies 2 types
   }
+
+  // Mega mix: 12 combinaties van "gegeven → antwoord"
+  const MEGA_TYPES = [
+    { from: 'land', to: 'capital', label: 'Land → Hoofdstad' },
+    { from: 'capital', to: 'land', label: 'Hoofdstad → Land' },
+    { from: 'land', to: 'flag', label: 'Land → Vlag' },
+    { from: 'flag', to: 'land', label: 'Vlag → Land' },
+    { from: 'map', to: 'land', label: 'Kaart → Land' },
+    { from: 'capital', to: 'flag', label: 'Hoofdstad → Vlag' },
+    { from: 'capital', to: 'map', label: 'Hoofdstad → Land (kaart)' },
+    { from: 'flag', to: 'capital', label: 'Vlag → Hoofdstad' },
+    { from: 'flag', to: 'map', label: 'Vlag → Land (kaart)' },
+    { from: 'map', to: 'capital', label: 'Kaart → Hoofdstad' },
+    { from: 'map', to: 'flag', label: 'Kaart → Vlag' },
+  ];
 
   const flagContainerEl = document.getElementById('mix-flag-container');
   const questionEl = document.getElementById('mix-question');
@@ -51,6 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentCountry = null;
   let currentQuestionType = 'capital'; // 'capital' | 'flag' | 'map'
   let currentSubType = null;
+  let currentMegaType = null; // { from, to, label } bij mega mix
   let questionStartTime = null;
   let sessionEnded = false;
   const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
@@ -105,6 +122,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Oude SVG rendering functies verwijderd - vervangen door satelliet kaart
 
   function chooseQuestionType() {
+    if (megaMix) {
+      const idx = Math.floor(Math.random() * MEGA_TYPES.length);
+      return MEGA_TYPES[idx];
+    }
     const types = allowedTypes || ['capital', 'flag', 'map'];
     const idx = Math.floor(Math.random() * types.length);
     return types[idx];
@@ -184,6 +205,132 @@ document.addEventListener('DOMContentLoaded', async () => {
     sessionStatusEl.className = 'status-label';
   }
 
+  // Mega mix: hoofdstad → vlag
+  function prepareCapitalToFlag(c) {
+    flagContainerEl.innerHTML = '';
+    questionEl.textContent = `Hoe ziet de vlag eruit van het land met hoofdstad ${c.capitals_nl.join(', ')}?`;
+    answerEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
+    img.alt = `Vlag ${c.name_nl}`;
+    img.style.maxWidth = '240px';
+    img.style.border = '1px solid #cbd5e0';
+    img.style.borderRadius = '4px';
+    img.style.display = 'block';
+    img.style.backgroundColor = '#fff';
+    answerEl.appendChild(img);
+    questionTypeLabelEl.textContent = 'Hoofdstad → Vlag';
+    mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = 'none';
+    setControlsForCapFlagQuestion();
+  }
+
+  // Mega mix: hoofdstad → land (klik op kaart)
+  function prepareCapitalToMap(c) {
+    flagContainerEl.innerHTML = '';
+    questionEl.textContent = `Van welk land is de hoofdstad ${c.capitals_nl.join(', ')}? Klik op het land in de lijst.`;
+    answerEl.hidden = true;
+    questionTypeLabelEl.textContent = 'Hoofdstad → Land (kaart)';
+    mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = '';
+    sessionStatusEl.textContent = 'Klik op de juiste landnaam in de lijst.';
+    sessionStatusEl.className = 'status-label';
+    btnShow.disabled = true;
+    btnCorrect.disabled = true;
+    btnIncorrect.disabled = true;
+  }
+
+  // Mega mix: vlag → hoofdstad
+  function prepareFlagToCapital(c) {
+    flagContainerEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
+    img.alt = `Vlag ${c.name_nl}`;
+    img.style.maxWidth = '240px';
+    img.style.border = '1px solid #cbd5e0';
+    img.style.borderRadius = '4px';
+    img.style.display = 'block';
+    img.style.backgroundColor = '#fff';
+    flagContainerEl.appendChild(img);
+    questionEl.textContent = 'Wat is de hoofdstad van dit land?';
+    answerEl.textContent = c.capitals_nl.join(', ');
+    questionTypeLabelEl.textContent = 'Vlag → Hoofdstad';
+    mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = 'none';
+    setControlsForCapFlagQuestion();
+  }
+
+  // Mega mix: vlag → land (klik op kaart)
+  function prepareFlagToMap(c) {
+    flagContainerEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
+    img.alt = `Vlag`;
+    img.style.maxWidth = '240px';
+    img.style.border = '1px solid #cbd5e0';
+    img.style.borderRadius = '4px';
+    img.style.display = 'block';
+    img.style.backgroundColor = '#fff';
+    flagContainerEl.appendChild(img);
+    questionEl.textContent = 'Bij welke land hoort deze vlag? Klik op het land in de lijst.';
+    answerEl.hidden = true;
+    questionTypeLabelEl.textContent = 'Vlag → Land (kaart)';
+    mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = '';
+    sessionStatusEl.textContent = 'Klik op de juiste landnaam in de lijst.';
+    sessionStatusEl.className = 'status-label';
+    btnShow.disabled = true;
+    btnCorrect.disabled = true;
+    btnIncorrect.disabled = true;
+  }
+
+  // Mega mix: kaart → hoofdstad
+  function prepareMapToCapital(c) {
+    currentQuestionType = 'map';
+    currentSubType = 'map-to-capital';
+    questionTypeLabelEl.textContent = 'Kaart → Hoofdstad';
+    mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = '';
+    flagContainerEl.innerHTML = '';
+    questionEl.textContent = 'Wat is de hoofdstad van het wit gemarkeerde land?';
+    answerEl.textContent = c.capitals_nl.join(', ');
+    answerEl.hidden = true;
+    setTargetOnMap(c.iso);
+    sessionStatusEl.textContent = 'Kijk naar de kaart, bedenk het antwoord, dan Spatiebalk om te controleren.';
+    sessionStatusEl.className = 'status-label';
+    btnShow.disabled = false;
+    btnCorrect.disabled = true;
+    btnIncorrect.disabled = true;
+  }
+
+  // Mega mix: kaart → vlag
+  function prepareMapToFlag(c) {
+    currentQuestionType = 'map';
+    currentSubType = 'map-to-flag';
+    questionTypeLabelEl.textContent = 'Kaart → Vlag';
+    mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = '';
+    flagContainerEl.innerHTML = '';
+    questionEl.textContent = 'Hoe ziet de vlag eruit van het wit gemarkeerde land?';
+    answerEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
+    img.alt = `Vlag ${c.name_nl}`;
+    img.style.maxWidth = '240px';
+    img.style.border = '1px solid #cbd5e0';
+    img.style.borderRadius = '4px';
+    img.style.display = 'block';
+    img.style.backgroundColor = '#fff';
+    answerEl.appendChild(img);
+    answerEl.hidden = true;
+    setTargetOnMap(c.iso);
+    sessionStatusEl.textContent = 'Kijk naar de kaart, bedenk het antwoord, dan Spatiebalk om te controleren.';
+    sessionStatusEl.className = 'status-label';
+    btnShow.disabled = false;
+    btnCorrect.disabled = true;
+    btnIncorrect.disabled = true;
+  }
+
   function showNextQuestion() {
     if (sessionEnded) return;
     if (window.App.allMastered(countryStats)) {
@@ -194,16 +341,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     askedThisRound.add(currentCountry.iso);
     questionStartTime = performance.now();
 
-    currentQuestionType = chooseQuestionType();
+    const chosen = chooseQuestionType();
     const c = countriesMap[currentCountry.iso];
 
-    if (currentQuestionType === 'capital') {
-      prepareCapitalQuestion(c);
-    } else if (currentQuestionType === 'flag') {
-      prepareFlagQuestion(c);
+    if (megaMix && typeof chosen === 'object') {
+      currentMegaType = chosen;
+      currentQuestionType = chosen.from === 'map' ? 'map' : chosen.to === 'map' ? 'map' : chosen.from;
+      currentSubType = `mega-${chosen.from}-${chosen.to}`;
+
+      if (chosen.from === 'land' && chosen.to === 'capital') prepareCapitalQuestion(c);
+      else if (chosen.from === 'capital' && chosen.to === 'land') prepareCapitalQuestion(c);
+      else if (chosen.from === 'land' && chosen.to === 'flag') prepareFlagQuestion(c);
+      else if (chosen.from === 'flag' && chosen.to === 'land') prepareFlagQuestion(c);
+      else if (chosen.from === 'map' && chosen.to === 'land') { prepareMapQuestion(); setTargetOnMap(currentCountry.iso); }
+      else if (chosen.from === 'capital' && chosen.to === 'flag') prepareCapitalToFlag(c);
+      else if (chosen.from === 'capital' && chosen.to === 'map') prepareCapitalToMap(c);
+      else if (chosen.from === 'flag' && chosen.to === 'capital') prepareFlagToCapital(c);
+      else if (chosen.from === 'flag' && chosen.to === 'map') prepareFlagToMap(c);
+      else if (chosen.from === 'map' && chosen.to === 'capital') prepareMapToCapital(c);
+      else if (chosen.from === 'map' && chosen.to === 'flag') prepareMapToFlag(c);
     } else {
-      prepareMapQuestion();
-      setTargetOnMap(currentCountry.iso);
+      currentMegaType = null;
+      currentQuestionType = chosen;
+      if (currentQuestionType === 'capital') {
+        prepareCapitalQuestion(c);
+      } else if (currentQuestionType === 'flag') {
+        prepareFlagQuestion(c);
+      } else {
+        prepareMapQuestion();
+        setTargetOnMap(currentCountry.iso);
+      }
     }
 
     updateDeckStatus();
@@ -212,12 +379,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function handleSelfScoredAnswer(wasCorrect) {
     if (!currentCountry || sessionEnded) return;
     const dt = performance.now() - questionStartTime;
+    const quizTypeForRecord = megaMix ? 'mix' : currentQuestionType;
 
     window.App.recordQuestionResult({
       session,
       countryStats,
       iso: currentCountry.iso,
-      quizType: currentQuestionType,
+      quizType: quizTypeForRecord,
       subType: currentSubType,
       wasCorrect,
       responseTimeMs: dt
@@ -231,16 +399,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function handleMapGuess(isoGuess) {
     if (!currentCountry || sessionEnded) return;
-    if (currentQuestionType !== 'map') return;
+    // Map-achtige vragen: continent-only (standaard), capital→map, flag→map
+    const isMapClick = currentQuestionType === 'map' || currentSubType === 'mega-capital-map' || currentSubType === 'mega-flag-map';
+    if (!isMapClick) return;
     const dt = performance.now() - questionStartTime;
     const isCorrect = isoGuess === currentCountry.iso;
 
+    const subTypeForRecord = currentSubType || 'continent-only';
     window.App.recordQuestionResult({
       session,
       countryStats,
       iso: currentCountry.iso,
-      quizType: 'map',
-      subType: 'continent-only',
+      quizType: megaMix ? 'mix' : 'map',
+      subType: subTypeForRecord,
       wasCorrect: isCorrect,
       responseTimeMs: dt
     });
@@ -273,7 +444,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   btnShow.addEventListener('click', () => {
-    if (currentQuestionType === 'map') return;
+    // Bij map-vragen (kaart→land) geen Toon antwoord; bij map→hoofdstad/vlag wél
+    if (currentQuestionType === 'map' && currentSubType === 'continent-only') return;
     answerEl.hidden = false;
     btnShow.disabled = true;
     btnCorrect.disabled = false;
@@ -324,10 +496,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     countriesMap = await window.App.loadCountriesMap();
 
     const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
-    const titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
-    let subtitleText = allowedTypes
-      ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
-      : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
+    let titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
+    if (megaMix) titleBase = 'Mega mix';
+    let subtitleText = megaMix
+      ? 'Alle combinaties: hoofdstad↔vlag↔kaart. Bijv. vlag bij hoofdstad, land op kaart bij vlag.'
+      : allowedTypes
+        ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
+        : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
     if (infiniteMode) subtitleText += ' Oneindige modus: ga door zolang je wilt.';
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
@@ -337,7 +512,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     session = window.App.startSession({
       groupId,
       quizType: 'mix',
-      subMode: allowedTypes ? allowedTypes.join('+') : 'capital+flag+map'
+      subMode: megaMix ? 'mega' : (allowedTypes ? allowedTypes.join('+') : 'capital+flag+map')
     });
 
     // Initialiseer satelliet kaart
