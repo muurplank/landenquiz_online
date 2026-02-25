@@ -92,7 +92,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
   let satelliteMapInitialized = false;
 
-  // Oude SVG rendering functies verwijderd - vervangen door satelliet kaart
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
 
   function updateDeckStatus() {
     const all = Object.values(countryStats);
@@ -128,8 +132,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function setControlsForCapFlagQuestion() {
     answerEl.hidden = true;
     btnShow.disabled = false;
-    btnCorrect.disabled = true;
-    btnIncorrect.disabled = true;
+    btnCorrect.disabled = false;
+    btnIncorrect.disabled = false;
     sessionStatusEl.textContent = '';
   }
 
@@ -152,8 +156,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (mixMapAnswerOverlay) mixMapAnswerOverlay.hidden = true;
     if (mixMapAnswerOverlay) mixMapAnswerOverlay.innerHTML = '';
     if (btnMixShow) btnMixShow.disabled = false;
-    if (btnMixCorrect) btnMixCorrect.disabled = true;
-    if (btnMixIncorrect) btnMixIncorrect.disabled = true;
+    if (btnMixCorrect) btnMixCorrect.disabled = false;
+    if (btnMixIncorrect) btnMixIncorrect.disabled = false;
   }
 
   function setCountryListVisible(visible) {
@@ -200,12 +204,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     flagContainerEl.innerHTML = '';
     if (Math.random() < 0.5) {
       currentSubType = 'land-to-capital';
-      questionEl.textContent = `Wat is de hoofdstad van ${c.name_nl}?`;
+      questionEl.innerHTML = `Wat is de hoofdstad van<br><span class="quiz-question-given">${escapeHtml(c.name_nl)}</span>?`;
       answerEl.textContent = c.capitals_nl.join(', ');
       questionTypeLabelEl.textContent = 'Hoofdstad (land → hoofdstad)';
     } else {
       currentSubType = 'capital-to-land';
-      questionEl.textContent = `Van welk land is de hoofdstad: ${c.capitals_nl.join(', ')}?`;
+      questionEl.innerHTML = `Van welk land is de hoofdstad:<br><span class="quiz-question-given">${escapeHtml(c.capitals_nl.join(', '))}</span>?`;
       answerEl.textContent = c.name_nl;
       questionTypeLabelEl.textContent = 'Hoofdstad (hoofdstad → land)';
     }
@@ -284,7 +288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mega mix: hoofdstad → vlag
   function prepareCapitalToFlag(c) {
     flagContainerEl.innerHTML = '';
-    questionEl.textContent = `Hoe ziet de vlag eruit van het land met hoofdstad ${c.capitals_nl.join(', ')}?`;
+    questionEl.innerHTML = `Hoe ziet de vlag eruit van het land met hoofdstad<br><span class="quiz-question-given">${escapeHtml(c.capitals_nl.join(', '))}</span>?`;
     answerEl.innerHTML = '';
     const img = document.createElement('img');
     img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
@@ -307,7 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mega mix: hoofdstad → land (geen kaart nodig)
   function prepareCapitalToMap(c) {
     flagContainerEl.innerHTML = '';
-    questionEl.textContent = `Van welk land is de hoofdstad ${c.capitals_nl.join(', ')}?`;
+    questionEl.innerHTML = `Van welk land is de hoofdstad<br><span class="quiz-question-given">${escapeHtml(c.capitals_nl.join(', '))}</span>?`;
     answerEl.textContent = c.name_nl;
     answerEl.hidden = true;
     questionTypeLabelEl.textContent = 'Hoofdstad → Land';

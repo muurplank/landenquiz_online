@@ -36,6 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   let sessionEnded = false;
   const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
 
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
   function updateDeckStatus() {
     const all = Object.values(countryStats);
     const mastered = all.filter(c => c.is_mastered).length;
@@ -56,8 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function setControlsForQuestion() {
     answerEl.hidden = true;
     btnShow.disabled = false;
-    btnCorrect.disabled = true;
-    btnIncorrect.disabled = true;
+    btnCorrect.disabled = false;
+    btnIncorrect.disabled = false;
     sessionStatusEl.textContent = '';
   }
 
@@ -87,10 +93,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const c = countriesMap[currentCountry.iso];
     currentQuestionMode = (mode === 'both' && Math.random() < 0.5) ? 'capital-to-land' : (mode === 'both' ? 'land-to-capital' : mode);
     if (currentQuestionMode === 'land-to-capital') {
-      questionEl.textContent = `Wat is de hoofdstad van ${c.name_nl}?`;
+      questionEl.innerHTML = `Wat is de hoofdstad van<br><span class="quiz-question-given">${escapeHtml(c.name_nl)}</span>?`;
       answerEl.textContent = c.capitals_nl.join(', ');
     } else {
-      questionEl.textContent = `Van welk land is de hoofdstad: ${c.capitals_nl.join(', ')}?`;
+      questionEl.innerHTML = `Van welk land is de hoofdstad:<br><span class="quiz-question-given">${escapeHtml(c.capitals_nl.join(', '))}</span>?`;
       answerEl.textContent = c.name_nl;
     }
 

@@ -57,8 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function setControlsForQuestion() {
     answerEl.hidden = true;
     btnShow.disabled = false;
-    btnCorrect.disabled = true;
-    btnIncorrect.disabled = true;
+    btnCorrect.disabled = false;
+    btnIncorrect.disabled = false;
     sessionStatusEl.textContent = '';
   }
 

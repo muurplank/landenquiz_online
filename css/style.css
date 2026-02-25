@@ -874,6 +874,11 @@ h3 {
   line-height: 1.4;
 }
 
+.quiz-question-given {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
 .quiz-answer {
   font-size: 1.15rem;
   margin: 0.85rem 0;

@@ -86,22 +86,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
+    if (isSnelleMode) return; // Snelle quiz is oneindig
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
       sessionStatusEl.textContent = 'Sessie voltooid: alle landen minstens 1x correct!';
       sessionStatusEl.className = 'status-label ok';
-      if (isSnelleMode && mapQuizControlsEl) {
-        mapQuizControlsEl.style.display = 'none';
-      }
+      if (mapQuizControlsEl) mapQuizControlsEl.style.display = 'none';
     }
   }
 
   function setControlsForQuestionSnelle() {
     if (mapQuizAnswerEl) mapQuizAnswerEl.hidden = true;
     if (btnShowAnswer) btnShowAnswer.disabled = false;
-    if (btnCorrect) btnCorrect.disabled = true;
-    if (btnIncorrect) btnIncorrect.disabled = true;
+    if (btnCorrect) btnCorrect.disabled = false;
+    if (btnIncorrect) btnIncorrect.disabled = false;
     sessionStatusEl.textContent = '';
   }
 
@@ -135,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showNextQuestion() {
     if (sessionEnded) return;
-    if (window.App.allMastered(countryStats)) {
+    if (window.App.allMastered(countryStats) && !isSnelleMode) {
       maybeEndSessionIfMastered();
       return;
     }
@@ -281,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
     subtitleEl.textContent = isSnelleMode
-      ? 'Herken het land, toon antwoord en geef aan of je het goed of fout had.'
+      ? 'Herken het land, toon antwoord en geef aan of je het goed of fout had. Oneindige modus.'
       : 'Herken het wit gemarkeerde land op de satellietkaart.';
     continentLabelEl.textContent = group.continent;
 
