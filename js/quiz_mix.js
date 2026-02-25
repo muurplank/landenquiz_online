@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[DBG_MIX] Script started');
   const groupId = window.App.getQueryParam('id');
   const typesParam = window.App.getQueryParam('types'); // bijv. "capital,flag" voor aangepaste mix (precies 2 van 3)
   const customParam = window.App.getQueryParam('custom'); // bijv. "land-capital,flag-land" – specifieke vraagtypen uit modal
@@ -41,10 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const infiniteMode = window.App.getQueryParam('infinite') === '1';
   const megaMix = window.App.getQueryParam('mega') === '1'; // Mega mix: alle combinaties
   const useCustomMega = customMegaTypes && customMegaTypes.length > 0; // Custom mix uit modal
-
-  // #region agent log
-  (function(){const d={location:'quiz_mix.js:init',data:{groupId,customParam,useCustomMega,customMegaTypesLen:customMegaTypes?customMegaTypes.length:0,allowedTypes}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',...d,timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});})();
-  // #endregion
 
   const flagContainerEl = document.getElementById('mix-flag-container');
   const questionEl = document.getElementById('mix-question');
@@ -414,9 +409,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function showNextQuestion() {
-    // #region agent log
-    (function(){const d={location:'quiz_mix.js:showNextQuestion:entry',data:{sessionEnded,allMastered:window.App.allMastered(countryStats),countryStatsCount:countryStats?Object.keys(countryStats).length:0}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'showNextQuestion',...d,timestamp:Date.now(),hypothesisId:'B,C'})}).catch(()=>{});})();
-    // #endregion
     if (sessionEnded) return;
     if (window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
@@ -433,10 +425,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       showNextQuestion();
       return;
     }
-
-    // #region agent log
-    (function(){const d={location:'quiz_mix.js:showNextQuestion:chosen',data:{currentCountryIso:currentCountry?currentCountry.iso:null,cDefined:!!c,chosenType:typeof chosen==='object'?chosen?.key:chosen}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Chosen',...d,timestamp:Date.now(),hypothesisId:'C,D'})}).catch(()=>{});})();
-    // #endregion
 
     if ((useCustomMega || megaMix) && typeof chosen === 'object') {
       currentMegaType = chosen;
@@ -631,10 +619,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     group = await window.App.loadGroupById(groupId);
     countriesMap = await window.App.loadCountriesMap();
 
-    // #region agent log
-    (function(){const d={location:'quiz_mix.js:afterLoad',data:{countriesCount:group.countries?group.countries.length:0,countriesMapKeys:countriesMap?Object.keys(countriesMap).length:0}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Group loaded',...d,timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});})();
-    // #endregion
-
     const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
     let titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
     if (useCustomMega) titleBase = 'Custom mix';
@@ -699,15 +683,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // #region agent log
-    (function(){const d={location:'quiz_mix.js:beforeShowNext'};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'beforeShowNext',...d,timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});})();
-    // #endregion
     showNextQuestion();
     if (quizCard) quizCard.focus();
   } catch (err) {
-    // #region agent log
-    (function(){const d={location:'quiz_mix.js:catch',data:{errMessage:err?.message,errStack:err?.stack?.slice(0,300)}};console.error('[DBG_MIX] ERROR',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Error',...d,timestamp:Date.now(),hypothesisId:'B,D'})}).catch(()=>{});})();
-    // #endregion
     console.error(err);
     questionEl.textContent = 'Kon mix-quiz niet starten. Controleer of je via een webserver laadt.';
     btnShow.disabled = true;

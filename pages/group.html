@@ -378,11 +378,7 @@
             .map(cb => cb.dataset.custom);
           if (checked.length === 0) return;
           closeCustomMixModal();
-          const href = `quiz_mix.html?${base}&custom=${encodeURIComponent(checked.join(','))}`;
-          // #region agent log
-          (function(){const d={location:'group.html:redirect',data:{base,checked,href}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Redirect',...d,timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});})();
-          // #endregion
-          window.location.href = href;
+          window.location.href = `quiz_mix.html?${base}&custom=${encodeURIComponent(checked.join(','))}`;
         });
       } catch (err) {
         console.error(err);
