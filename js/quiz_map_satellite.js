@@ -425,8 +425,13 @@
 
   /**
    * Initialiseer de kaart
+   * @param {string} containerId
+   * @param {string} geojsonUrl
+   * @param {object} [options]
+   * @param {'orange'|'white'} [options.smallCountryColor='white'] - Kleur voor kleine landen bij highlight (snelle quiz gebruikt 'orange')
    */
-  async function initMap(containerId, geojsonUrl) {
+  async function initMap(containerId, geojsonUrl, options = {}) {
+    const smallColor = options.smallCountryColor === 'orange' ? '#ff6600' : '#ffffff';
     const container = document.getElementById(containerId);
     if (!container) {
       console.error(`Container #${containerId} niet gevonden`);
@@ -505,14 +510,14 @@
             type: 'fill',
             source: 'countries',
             paint: {
-              'fill-color': '#ff6600',
+              'fill-color': smallColor,
               'fill-opacity': [
                 'case',
                 ['all',
                   ['boolean', ['feature-state', 'active'], false],
                   ['boolean', ['feature-state', 'isSmall'], false]
                 ],
-                0.5, // Oranje fill voor actieve kleine landen
+                smallColor === '#ff6600' ? 0.5 : 0.9,
                 0
               ]
             }
@@ -563,7 +568,7 @@
             type: 'line',
             source: 'countries',
             paint: {
-              'line-color': '#ff6600',
+              'line-color': smallColor,
               'line-width': [
                 'interpolate',
                 ['linear'],
@@ -579,7 +584,7 @@
                   ['boolean', ['feature-state', 'active'], false],
                   ['boolean', ['feature-state', 'isSmall'], false]
                 ],
-                1.0, // Oranje rand voor actieve kleine landen
+                1.0,
                 0
               ]
             }
@@ -693,6 +698,34 @@
   }
 
   /**
+   * Zoom in rond het huidige centrum (land blijft in het midden)
+   */
+  function zoomIn(amount = 0.5, duration = 300) {
+    if (!map) return;
+    const center = map.getCenter();
+    const zoom = Math.min(map.getZoom() + amount, map.getMaxZoom());
+    map.easeTo({
+      center: [center.lng, center.lat],
+      zoom,
+      duration
+    });
+  }
+
+  /**
+   * Zoom uit rond het huidige centrum (land blijft in het midden)
+   */
+  function zoomOut(amount = 0.5, duration = 300) {
+    if (!map) return;
+    const center = map.getCenter();
+    const zoom = Math.max(map.getZoom() - amount, map.getMinZoom());
+    map.easeTo({
+      center: [center.lng, center.lat],
+      zoom,
+      duration
+    });
+  }
+
+  /**
    * Zet landen als "voltooid" (grijs op kaart, voor kwartet-quiz).
    * Gebruikt een aparte GeoJSON-bron zodat voltooide landen altijd zichtbaar grijs zijn.
    * @param {string[]} isoList - Lijst van ISO3 codes
@@ -736,6 +769,8 @@
     setCompletedCountries,
     fitToRegion,
     resetView,
+    zoomIn,
+    zoomOut,
     destroy,
     getMap: () => map,
     getIsoFromProperties

@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[DBG_MIX] Script started');
   const groupId = window.App.getQueryParam('id');
   const typesParam = window.App.getQueryParam('types'); // bijv. "capital,flag" voor aangepaste mix (precies 2 van 3)
-  const allowedTypes = parseCustomTypes(typesParam);
-  const infiniteMode = window.App.getQueryParam('infinite') === '1';
-  const megaMix = window.App.getQueryParam('mega') === '1'; // Mega mix: alle combinaties (hoofdstad↔vlag↔kaart)
+  const customParam = window.App.getQueryParam('custom'); // bijv. "land-capital,flag-land" – specifieke vraagtypen uit modal
 
   function parseCustomTypes(param) {
     if (!param || typeof param !== 'string') return null;
@@ -14,20 +13,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     return unique.length === 2 ? unique.sort() : null; // precies 2 types
   }
 
-  // Mega mix: 12 combinaties van "gegeven → antwoord"
+  // Mega mix: alle combinaties van "gegeven → antwoord" (moet voor parseCustomMegaTypes staan)
   const MEGA_TYPES = [
-    { from: 'land', to: 'capital', label: 'Land → Hoofdstad' },
-    { from: 'capital', to: 'land', label: 'Hoofdstad → Land' },
-    { from: 'land', to: 'flag', label: 'Land → Vlag' },
-    { from: 'flag', to: 'land', label: 'Vlag → Land' },
-    { from: 'map', to: 'land', label: 'Kaart → Land' },
-    { from: 'capital', to: 'flag', label: 'Hoofdstad → Vlag' },
-    { from: 'capital', to: 'map', label: 'Hoofdstad → Land (kaart)' },
-    { from: 'flag', to: 'capital', label: 'Vlag → Hoofdstad' },
-    { from: 'flag', to: 'map', label: 'Vlag → Land (kaart)' },
-    { from: 'map', to: 'capital', label: 'Kaart → Hoofdstad' },
-    { from: 'map', to: 'flag', label: 'Kaart → Vlag' },
+    { key: 'land-capital', from: 'land', to: 'capital', label: 'Land → Hoofdstad' },
+    { key: 'capital-land', from: 'capital', to: 'land', label: 'Hoofdstad → Land' },
+    { key: 'land-flag', from: 'land', to: 'flag', label: 'Land → Vlag' },
+    { key: 'flag-land', from: 'flag', to: 'land', label: 'Vlag → Land' },
+    { key: 'map-land', from: 'map', to: 'land', label: 'Kaart → Land' },
+    { key: 'capital-flag', from: 'capital', to: 'flag', label: 'Hoofdstad → Vlag' },
+    { key: 'capital-map', from: 'capital', to: 'map', label: 'Hoofdstad → Land (kaart)' },
+    { key: 'flag-capital', from: 'flag', to: 'capital', label: 'Vlag → Hoofdstad' },
+    { key: 'flag-map', from: 'flag', to: 'map', label: 'Vlag → Land (kaart)' },
+    { key: 'map-capital', from: 'map', to: 'capital', label: 'Kaart → Hoofdstad' },
+    { key: 'map-flag', from: 'map', to: 'flag', label: 'Kaart → Vlag' },
   ];
+
+  function parseCustomMegaTypes(param) {
+    if (!param || typeof param !== 'string') return null;
+    const selected = param.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const keySet = new Set(selected);
+    const filtered = MEGA_TYPES.filter(t => keySet.has(t.key));
+    return filtered.length > 0 ? filtered : null;
+  }
+
+  const allowedTypes = parseCustomTypes(typesParam);
+  const customMegaTypes = parseCustomMegaTypes(customParam);
+  const infiniteMode = window.App.getQueryParam('infinite') === '1';
+  const megaMix = window.App.getQueryParam('mega') === '1'; // Mega mix: alle combinaties
+  const useCustomMega = customMegaTypes && customMegaTypes.length > 0; // Custom mix uit modal
+
+  // #region agent log
+  (function(){const d={location:'quiz_mix.js:init',data:{groupId,customParam,useCustomMega,customMegaTypesLen:customMegaTypes?customMegaTypes.length:0,allowedTypes}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',...d,timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});})();
+  // #endregion
 
   const flagContainerEl = document.getElementById('mix-flag-container');
   const questionEl = document.getElementById('mix-question');
@@ -39,6 +56,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mapContainerEl = document.getElementById('mix-map-container');
   const mixCapFlagArea = document.getElementById('mix-capflag-area');
   const mixMapArea = document.getElementById('mix-map-area');
+  const mixMapAnswerOverlay = document.getElementById('mix-map-answer-overlay');
+  const mixMapControls = document.getElementById('mix-map-controls');
+  const mixMapPrompt = document.getElementById('mix-map-prompt');
+  const mixMapGivenWrap = document.getElementById('mix-map-given-wrap');
+  const btnMixShow = document.getElementById('btn-mix-show-answer');
+  const btnMixCorrect = document.getElementById('btn-mix-correct');
+  const btnMixIncorrect = document.getElementById('btn-mix-incorrect');
 
   const countryButtonsEl = document.getElementById('country-buttons');
   const deckStatusEl = document.getElementById('deck-status');
@@ -102,6 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnShow.disabled = true;
       btnCorrect.disabled = true;
       btnIncorrect.disabled = true;
+      if (mixMapControls) mixMapControls.style.display = 'none';
     }
   }
 
@@ -116,12 +141,57 @@ document.addEventListener('DOMContentLoaded', async () => {
   function setTargetOnMap(iso) {
     if (window.SatelliteMap && satelliteMapInitialized) {
       window.SatelliteMap.highlightCountry(iso);
+      window.SatelliteMap.fitToRegion([iso], {
+        padding: { top: 80, bottom: 80, left: 80, right: 80 },
+        maxZoom: 4,
+        duration: 500
+      });
     }
+  }
+
+  function isMapOverlayQuestion() {
+    return (currentQuestionType === 'map' && (currentSubType === 'continent-only' || currentSubType === 'map-to-capital' || currentSubType === 'map-to-flag'));
+  }
+
+  function setMixMapControlsForQuestion() {
+    if (mixMapAnswerOverlay) mixMapAnswerOverlay.hidden = true;
+    if (mixMapAnswerOverlay) mixMapAnswerOverlay.innerHTML = '';
+    if (btnMixShow) btnMixShow.disabled = false;
+    if (btnMixCorrect) btnMixCorrect.disabled = true;
+    if (btnMixIncorrect) btnMixIncorrect.disabled = true;
+  }
+
+  function setCountryListVisible(visible) {
+    const aside = countryButtonsEl && countryButtonsEl.closest('aside');
+    if (!aside) return;
+    const h2 = aside.querySelector('h2');
+    const listWrap = aside.querySelector('.list-search-wrap');
+    if (h2) h2.style.display = visible ? '' : 'none';
+    if (listWrap) listWrap.style.display = visible ? '' : 'none';
+    if (countryButtonsEl) countryButtonsEl.style.display = visible ? '' : 'none';
+  }
+
+  function showMixMapAnswer(content) {
+    if (!mixMapAnswerOverlay) return;
+    mixMapAnswerOverlay.innerHTML = '';
+    if (typeof content === 'string') {
+      mixMapAnswerOverlay.textContent = content;
+    } else if (content && content.nodeType === 1) {
+      mixMapAnswerOverlay.appendChild(content);
+    }
+    mixMapAnswerOverlay.hidden = false;
+    if (btnMixShow) btnMixShow.disabled = true;
+    if (btnMixCorrect) btnMixCorrect.disabled = false;
+    if (btnMixIncorrect) btnMixIncorrect.disabled = false;
   }
 
   // Oude SVG rendering functies verwijderd - vervangen door satelliet kaart
 
   function chooseQuestionType() {
+    if (useCustomMega) {
+      const idx = Math.floor(Math.random() * customMegaTypes.length);
+      return customMegaTypes[idx];
+    }
     if (megaMix) {
       const idx = Math.floor(Math.random() * MEGA_TYPES.length);
       return MEGA_TYPES[idx];
@@ -146,6 +216,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     mixCapFlagArea.style.display = '';
     mixMapArea.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    if (mixMapPrompt) mixMapPrompt.style.display = 'none';
+    setCountryListVisible(true);
     setControlsForCapFlagQuestion();
   }
 
@@ -192,6 +265,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     mixCapFlagArea.style.display = '';
     mixMapArea.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    if (mixMapPrompt) mixMapPrompt.style.display = 'none';
+    setCountryListVisible(true);
     setControlsForCapFlagQuestion();
   }
 
@@ -201,7 +277,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     questionTypeLabelEl.textContent = 'Kaart';
     mixCapFlagArea.style.display = 'none';
     mixMapArea.style.display = '';
-    sessionStatusEl.textContent = 'Klik op de juiste landnaam in de lijst.';
+    if (mixMapPrompt) { mixMapPrompt.textContent = 'Welk land is wit gemarkeerd?'; mixMapPrompt.style.display = ''; }
+    if (mixMapGivenWrap) mixMapGivenWrap.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'flex';
+    setCountryListVisible(false);
+    setMixMapControlsForQuestion();
+    sessionStatusEl.textContent = '';
     sessionStatusEl.className = 'status-label';
   }
 
@@ -222,22 +303,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     questionTypeLabelEl.textContent = 'Hoofdstad → Vlag';
     mixCapFlagArea.style.display = '';
     mixMapArea.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    if (mixMapPrompt) mixMapPrompt.style.display = 'none';
+    setCountryListVisible(true);
     setControlsForCapFlagQuestion();
   }
 
-  // Mega mix: hoofdstad → land (klik op kaart)
+  // Mega mix: hoofdstad → land (geen kaart nodig)
   function prepareCapitalToMap(c) {
     flagContainerEl.innerHTML = '';
-    questionEl.textContent = `Van welk land is de hoofdstad ${c.capitals_nl.join(', ')}? Klik op het land in de lijst.`;
+    questionEl.textContent = `Van welk land is de hoofdstad ${c.capitals_nl.join(', ')}?`;
+    answerEl.textContent = c.name_nl;
     answerEl.hidden = true;
-    questionTypeLabelEl.textContent = 'Hoofdstad → Land (kaart)';
+    questionTypeLabelEl.textContent = 'Hoofdstad → Land';
     mixCapFlagArea.style.display = '';
-    mixMapArea.style.display = '';
-    sessionStatusEl.textContent = 'Klik op de juiste landnaam in de lijst.';
+    mixMapArea.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    setCountryListVisible(false);
+    setControlsForCapFlagQuestion();
+    sessionStatusEl.textContent = '';
     sessionStatusEl.className = 'status-label';
-    btnShow.disabled = true;
-    btnCorrect.disabled = true;
-    btnIncorrect.disabled = true;
   }
 
   // Mega mix: vlag → hoofdstad
@@ -257,81 +342,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     questionTypeLabelEl.textContent = 'Vlag → Hoofdstad';
     mixCapFlagArea.style.display = '';
     mixMapArea.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    if (mixMapPrompt) mixMapPrompt.style.display = 'none';
+    setCountryListVisible(true);
     setControlsForCapFlagQuestion();
   }
 
-  // Mega mix: vlag → land (klik op kaart)
+  // Mega mix: vlag → land (geen kaart nodig)
   function prepareFlagToMap(c) {
     flagContainerEl.innerHTML = '';
     const img = document.createElement('img');
     img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
-    img.alt = `Vlag`;
+    img.alt = `Vlag van ${c.name_nl}`;
     img.style.maxWidth = '240px';
     img.style.border = '1px solid #cbd5e0';
     img.style.borderRadius = '4px';
     img.style.display = 'block';
     img.style.backgroundColor = '#fff';
     flagContainerEl.appendChild(img);
-    questionEl.textContent = 'Bij welke land hoort deze vlag? Klik op het land in de lijst.';
+    questionEl.textContent = 'Bij welk land hoort deze vlag?';
+    answerEl.textContent = c.name_nl;
     answerEl.hidden = true;
-    questionTypeLabelEl.textContent = 'Vlag → Land (kaart)';
+    questionTypeLabelEl.textContent = 'Vlag → Land';
     mixCapFlagArea.style.display = '';
+    mixMapArea.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    setCountryListVisible(false);
+    setControlsForCapFlagQuestion();
+    sessionStatusEl.textContent = '';
+    sessionStatusEl.className = 'status-label';
+  }
+
+  // Mega mix: kaart → hoofdstad (Snelle style: overlay)
+  function prepareMapToCapital(c) {
+    currentQuestionType = 'map';
+    currentSubType = 'map-to-capital';
+    questionTypeLabelEl.textContent = 'Kaart → Hoofdstad';
+    mixCapFlagArea.style.display = 'none';
     mixMapArea.style.display = '';
-    sessionStatusEl.textContent = 'Klik op de juiste landnaam in de lijst.';
+    if (mixMapPrompt) { mixMapPrompt.textContent = 'Wat is de hoofdstad van het wit gemarkeerde land?'; mixMapPrompt.style.display = ''; }
+    if (mixMapGivenWrap) mixMapGivenWrap.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'flex';
+    setTargetOnMap(c.iso);
+    setCountryListVisible(false);
+    setMixMapControlsForQuestion();
+    sessionStatusEl.textContent = '';
     sessionStatusEl.className = 'status-label';
     btnShow.disabled = true;
     btnCorrect.disabled = true;
     btnIncorrect.disabled = true;
   }
 
-  // Mega mix: kaart → hoofdstad
-  function prepareMapToCapital(c) {
-    currentQuestionType = 'map';
-    currentSubType = 'map-to-capital';
-    questionTypeLabelEl.textContent = 'Kaart → Hoofdstad';
-    mixCapFlagArea.style.display = '';
-    mixMapArea.style.display = '';
-    flagContainerEl.innerHTML = '';
-    questionEl.textContent = 'Wat is de hoofdstad van het wit gemarkeerde land?';
-    answerEl.textContent = c.capitals_nl.join(', ');
-    answerEl.hidden = true;
-    setTargetOnMap(c.iso);
-    sessionStatusEl.textContent = 'Kijk naar de kaart, bedenk het antwoord, dan Spatiebalk om te controleren.';
-    sessionStatusEl.className = 'status-label';
-    btnShow.disabled = false;
-    btnCorrect.disabled = true;
-    btnIncorrect.disabled = true;
-  }
-
-  // Mega mix: kaart → vlag
+  // Mega mix: kaart → vlag (Snelle style: overlay)
   function prepareMapToFlag(c) {
     currentQuestionType = 'map';
     currentSubType = 'map-to-flag';
     questionTypeLabelEl.textContent = 'Kaart → Vlag';
-    mixCapFlagArea.style.display = '';
+    mixCapFlagArea.style.display = 'none';
     mixMapArea.style.display = '';
-    flagContainerEl.innerHTML = '';
-    questionEl.textContent = 'Hoe ziet de vlag eruit van het wit gemarkeerde land?';
-    answerEl.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = `../assets/flags/${window.App.getFlagFilename(c.iso)}`;
-    img.alt = `Vlag ${c.name_nl}`;
-    img.style.maxWidth = '240px';
-    img.style.border = '1px solid #cbd5e0';
-    img.style.borderRadius = '4px';
-    img.style.display = 'block';
-    img.style.backgroundColor = '#fff';
-    answerEl.appendChild(img);
-    answerEl.hidden = true;
+    if (mixMapPrompt) { mixMapPrompt.textContent = 'Hoe ziet de vlag eruit van het wit gemarkeerde land?'; mixMapPrompt.style.display = ''; }
+    if (mixMapGivenWrap) mixMapGivenWrap.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'flex';
     setTargetOnMap(c.iso);
-    sessionStatusEl.textContent = 'Kijk naar de kaart, bedenk het antwoord, dan Spatiebalk om te controleren.';
+    setCountryListVisible(false);
+    setMixMapControlsForQuestion();
+    sessionStatusEl.textContent = '';
     sessionStatusEl.className = 'status-label';
-    btnShow.disabled = false;
+    btnShow.disabled = true;
     btnCorrect.disabled = true;
     btnIncorrect.disabled = true;
   }
 
   function showNextQuestion() {
+    // #region agent log
+    (function(){const d={location:'quiz_mix.js:showNextQuestion:entry',data:{sessionEnded,allMastered:window.App.allMastered(countryStats),countryStatsCount:countryStats?Object.keys(countryStats).length:0}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'showNextQuestion',...d,timestamp:Date.now(),hypothesisId:'B,C'})}).catch(()=>{});})();
+    // #endregion
     if (sessionEnded) return;
     if (window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
@@ -343,8 +428,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const chosen = chooseQuestionType();
     const c = countriesMap[currentCountry.iso];
+    if (!c) {
+      console.warn('Land niet gevonden in countriesMap:', currentCountry.iso);
+      showNextQuestion();
+      return;
+    }
 
-    if (megaMix && typeof chosen === 'object') {
+    // #region agent log
+    (function(){const d={location:'quiz_mix.js:showNextQuestion:chosen',data:{currentCountryIso:currentCountry?currentCountry.iso:null,cDefined:!!c,chosenType:typeof chosen==='object'?chosen?.key:chosen}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Chosen',...d,timestamp:Date.now(),hypothesisId:'C,D'})}).catch(()=>{});})();
+    // #endregion
+
+    if ((useCustomMega || megaMix) && typeof chosen === 'object') {
       currentMegaType = chosen;
       currentQuestionType = chosen.from === 'map' ? 'map' : chosen.to === 'map' ? 'map' : chosen.from;
       currentSubType = `mega-${chosen.from}-${chosen.to}`;
@@ -379,7 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function handleSelfScoredAnswer(wasCorrect) {
     if (!currentCountry || sessionEnded) return;
     const dt = performance.now() - questionStartTime;
-    const quizTypeForRecord = megaMix ? 'mix' : currentQuestionType;
+    const quizTypeForRecord = (megaMix || useCustomMega) ? 'mix' : currentQuestionType;
 
     window.App.recordQuestionResult({
       session,
@@ -399,7 +493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function handleMapGuess(isoGuess) {
     if (!currentCountry || sessionEnded) return;
-    // Map-achtige vragen: continent-only (standaard), capital→map, flag→map
+    if (isMapOverlayQuestion()) return; // Gebruik self-scoring via overlay
     const isMapClick = currentQuestionType === 'map' || currentSubType === 'mega-capital-map' || currentSubType === 'mega-flag-map';
     if (!isMapClick) return;
     const dt = performance.now() - questionStartTime;
@@ -410,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       session,
       countryStats,
       iso: currentCountry.iso,
-      quizType: megaMix ? 'mix' : 'map',
+      quizType: (megaMix || useCustomMega) ? 'mix' : 'map',
       subType: subTypeForRecord,
       wasCorrect: isCorrect,
       responseTimeMs: dt
@@ -444,8 +538,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   btnShow.addEventListener('click', () => {
-    // Bij map-vragen (kaart→land) geen Toon antwoord; bij map→hoofdstad/vlag wél
-    if (currentQuestionType === 'map' && currentSubType === 'continent-only') return;
+    // Bij map overlay-vragen wordt btnMixShow gebruikt
+    if (isMapOverlayQuestion()) return;
     answerEl.hidden = false;
     btnShow.disabled = true;
     btnCorrect.disabled = false;
@@ -455,19 +549,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnCorrect.addEventListener('click', () => handleSelfScoredAnswer(true));
   btnIncorrect.addEventListener('click', () => handleSelfScoredAnswer(false));
 
+  if (btnMixShow) {
+    btnMixShow.addEventListener('click', () => {
+      if (!currentCountry || !countriesMap) return;
+      const c = countriesMap[currentCountry.iso];
+      if (currentSubType === 'continent-only' || currentSubType === 'mega-capital-map' || currentSubType === 'mega-flag-map') {
+        showMixMapAnswer(c ? c.name_nl : currentCountry.iso);
+      } else if (currentSubType === 'map-to-capital') {
+        showMixMapAnswer(c ? c.capitals_nl.join(', ') : '');
+      } else if (currentSubType === 'map-to-flag') {
+        if (mixMapGivenWrap) {
+          mixMapGivenWrap.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = `../assets/flags/${window.App.getFlagFilename(currentCountry.iso)}`;
+          img.alt = c ? c.name_nl : '';
+          img.className = 'mix-map-given-flag';
+          mixMapGivenWrap.appendChild(img);
+          mixMapGivenWrap.style.display = 'block';
+        }
+        if (mixMapAnswerOverlay) mixMapAnswerOverlay.hidden = true;
+        if (btnMixShow) btnMixShow.disabled = true;
+        if (btnMixCorrect) btnMixCorrect.disabled = false;
+        if (btnMixIncorrect) btnMixIncorrect.disabled = false;
+      }
+    });
+  }
+  if (btnMixCorrect) btnMixCorrect.addEventListener('click', () => handleSelfScoredAnswer(true));
+  if (btnMixIncorrect) btnMixIncorrect.addEventListener('click', () => handleSelfScoredAnswer(false));
+
   function handleQuizKeydown(e) {
     const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
     if (tag === 'input' || tag === 'textarea' || tag === 'select' || (e.target && e.target.isContentEditable)) return;
+    if (window.SatelliteMap && satelliteMapInitialized) {
+      if ((e.key === '-' || e.key === 'q' || e.key === 'Q' || e.code === 'Minus' || e.code === 'KeyQ') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        window.SatelliteMap.zoomOut();
+        return;
+      }
+      if ((e.key === '=' || e.key === '+' || e.key === 'w' || e.key === 'W' || e.code === 'Equal' || e.code === 'KeyW') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        window.SatelliteMap.zoomIn();
+        return;
+      }
+    }
     const isSpace = e.key === ' ' || e.code === 'Space';
+    const useMixMapControls = isMapOverlayQuestion() && mixMapControls && mixMapControls.style.display !== 'none';
     if (isSpace) {
       e.preventDefault();
-      if (btnShow && !btnShow.disabled) btnShow.click();
-    } else if ((e.key === '1' || e.code === 'Digit1') && btnCorrect && !btnCorrect.disabled) {
-      e.preventDefault();
-      btnCorrect.click();
-    } else if ((e.key === '2' || e.code === 'Digit2') && btnIncorrect && !btnIncorrect.disabled) {
-      e.preventDefault();
-      btnIncorrect.click();
+      if (useMixMapControls && btnMixShow && !btnMixShow.disabled) btnMixShow.click();
+      else if (!useMixMapControls && btnShow && !btnShow.disabled) btnShow.click();
+    } else if ((e.key === '1' || e.code === 'Digit1')) {
+      if (useMixMapControls && btnMixCorrect && !btnMixCorrect.disabled) { e.preventDefault(); btnMixCorrect.click(); }
+      else if (!useMixMapControls && btnCorrect && !btnCorrect.disabled) { e.preventDefault(); btnCorrect.click(); }
+    } else if ((e.key === '2' || e.code === 'Digit2')) {
+      if (useMixMapControls && btnMixIncorrect && !btnMixIncorrect.disabled) { e.preventDefault(); btnMixIncorrect.click(); }
+      else if (!useMixMapControls && btnIncorrect && !btnIncorrect.disabled) { e.preventDefault(); btnIncorrect.click(); }
     }
   }
   window.addEventListener('keydown', handleQuizKeydown, true);
@@ -495,14 +631,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     group = await window.App.loadGroupById(groupId);
     countriesMap = await window.App.loadCountriesMap();
 
+    // #region agent log
+    (function(){const d={location:'quiz_mix.js:afterLoad',data:{countriesCount:group.countries?group.countries.length:0,countriesMapKeys:countriesMap?Object.keys(countriesMap).length:0}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Group loaded',...d,timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});})();
+    // #endregion
+
     const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
     let titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
+    if (useCustomMega) titleBase = 'Custom mix';
     if (megaMix) titleBase = 'Mega mix';
-    let subtitleText = megaMix
-      ? 'Alle combinaties: hoofdstad↔vlag↔kaart. Bijv. vlag bij hoofdstad, land op kaart bij vlag.'
-      : allowedTypes
-        ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
-        : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
+    let subtitleText = useCustomMega
+      ? `Geselecteerde vraagtypen: ${customMegaTypes.map(t => t.label).join(', ')}.`
+      : megaMix
+        ? 'Alle combinaties: hoofdstad↔vlag↔kaart. Bijv. vlag bij hoofdstad, land op kaart bij vlag.'
+        : allowedTypes
+          ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
+          : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
     if (infiniteMode) subtitleText += ' Oneindige modus: ga door zolang je wilt.';
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
@@ -512,29 +655,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     session = window.App.startSession({
       groupId,
       quizType: 'mix',
-      subMode: megaMix ? 'mega' : (allowedTypes ? allowedTypes.join('+') : 'capital+flag+map')
+      subMode: useCustomMega ? 'custom:' + customMegaTypes.map(t => t.key).join(',') : (megaMix ? 'mega' : (allowedTypes ? allowedTypes.join('+') : 'capital+flag+map'))
     });
 
-    // Initialiseer satelliet kaart
+    // Initialiseer satelliet kaart (niet blokkerend – quiz start direct, kaart laadt op de achtergrond)
     if (window.SatelliteMap) {
-      await window.SatelliteMap.init('mix-map-container', '../assets/maps/high_res_usa.json');
-      satelliteMapInitialized = true;
-      
-      // Zoom naar de landen in dit deel (geen animatie)
-      if (group.countries && group.countries.length > 0) {
-        // Speciale zoom voor Noord-Amerika deel 2 (zonder USA)
-        const zoomCountries = groupId === 'week3_noord-amerika_deel2'
-          ? group.countries.filter(iso => iso !== 'USA')
-          : group.countries;
-        
-        window.SatelliteMap.fitToRegion(zoomCountries.length ? zoomCountries : group.countries, {
-          padding: { top: 30, bottom: 30, left: 30, right: 30 },
-          maxZoom: 5,
-          duration: 0
-        });
-      }
-    } else {
-      throw new Error('SatelliteMap module niet geladen');
+      window.SatelliteMap.init('mix-map-container', '../assets/maps/high_res_usa.json').then(() => {
+        satelliteMapInitialized = true;
+        if (group.countries && group.countries.length > 0) {
+          const zoomCountries = groupId === 'week3_noord-amerika_deel2'
+            ? group.countries.filter(iso => iso !== 'USA')
+            : group.countries;
+          window.SatelliteMap.fitToRegion(zoomCountries.length ? zoomCountries : group.countries, {
+            padding: { top: 30, bottom: 30, left: 30, right: 30 },
+            maxZoom: 5,
+            duration: 0
+          });
+        }
+        if (currentCountry && currentQuestionType === 'map') setTargetOnMap(currentCountry.iso);
+      }).catch(err => console.warn('Kaart laden mislukt:', err));
     }
 
     // landknoppen
@@ -560,9 +699,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
+    // #region agent log
+    (function(){const d={location:'quiz_mix.js:beforeShowNext'};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'beforeShowNext',...d,timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});})();
+    // #endregion
     showNextQuestion();
     if (quizCard) quizCard.focus();
   } catch (err) {
+    // #region agent log
+    (function(){const d={location:'quiz_mix.js:catch',data:{errMessage:err?.message,errStack:err?.stack?.slice(0,300)}};console.error('[DBG_MIX] ERROR',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Error',...d,timestamp:Date.now(),hypothesisId:'B,D'})}).catch(()=>{});})();
+    // #endregion
     console.error(err);
     questionEl.textContent = 'Kon mix-quiz niet starten. Controleer of je via een webserver laadt.';
     btnShow.disabled = true;

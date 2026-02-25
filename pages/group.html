@@ -20,7 +20,7 @@
   </script>
 </head>
 <body>
-  <main class="container" style="padding-top: 1.5rem;">
+  <main class="container" style="padding-top: 0.5rem;">
     <!-- Navigation and Title Cards -->
     <div class="header-cards-row">
       <div class="header-card back-card">
@@ -86,9 +86,11 @@
 
         <article class="card">
           <h3>Kaart-quiz</h3>
-          <p>Herken het wit gemarkeerde land.</p>
+          <p>Herken landen op de kaart.</p>
           <div class="btn-row">
-            <a id="map-quiz" class="btn primary">Start kaart-quiz</a>
+            <a id="map-quiz-snelle" class="btn primary">Snelle quiz</a>
+            <a id="map-quiz" class="btn">Kaart-quiz (klik/typ)</a>
+            <a id="map-quiz-zoek" class="btn">Zoek op kaart</a>
           </div>
         </article>
 
@@ -112,19 +114,39 @@
 
         <article class="card" id="custom-mix-card">
           <h3>Aangepaste mix</h3>
-          <p>Kies 2 van de 3 quiztypen voor een mix van alleen die twee.</p>
-          <div class="custom-mix-options" role="group" aria-label="Selecteer twee quiztypen">
-            <label class="custom-mix-check"><input type="checkbox" id="custom-type-capital" value="capital"> Hoofdstad</label>
-            <label class="custom-mix-check"><input type="checkbox" id="custom-type-flag" value="flag"> Vlaggen</label>
-            <label class="custom-mix-check"><input type="checkbox" id="custom-type-map" value="map"> Kaart</label>
-          </div>
-          <div class="btn-row" style="margin-top: 0.75rem;">
-            <a id="custom-mix-quiz" class="btn" href="#">Start aangepaste mix</a>
+          <p>Kies welke vraagtypen je wilt oefenen. Open de modal en vink aan.</p>
+          <div class="btn-row">
+            <button type="button" id="custom-mix-open-modal" class="btn primary">Custom mix – kies opties</button>
           </div>
         </article>
       </div>
     </section>
   </main>
+
+  <!-- Custom mix modal -->
+  <div id="custom-mix-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="custom-mix-modal-title" aria-hidden="true" style="display: none;">
+    <div class="modal-content modal-custom-mix">
+      <h2 id="custom-mix-modal-title" class="modal-title">Kies vraagtypen</h2>
+      <p class="modal-desc">Vink de vraagtypen aan die je wilt oefenen. Je krijgt alleen deze vragen.</p>
+      <div class="custom-mix-modal-options" role="group" aria-label="Selecteer vraagtypen">
+        <label class="modal-check"><input type="checkbox" data-custom="land-capital"> Land → Hoofdstad</label>
+        <label class="modal-check"><input type="checkbox" data-custom="capital-land"> Hoofdstad → Land</label>
+        <label class="modal-check"><input type="checkbox" data-custom="land-flag"> Land → Vlag</label>
+        <label class="modal-check"><input type="checkbox" data-custom="flag-land"> Vlag → Land</label>
+        <label class="modal-check"><input type="checkbox" data-custom="map-land"> Kaart → Land</label>
+        <label class="modal-check"><input type="checkbox" data-custom="capital-flag"> Hoofdstad → Vlag</label>
+        <label class="modal-check"><input type="checkbox" data-custom="capital-map"> Hoofdstad → Land (kaart)</label>
+        <label class="modal-check"><input type="checkbox" data-custom="flag-capital"> Vlag → Hoofdstad</label>
+        <label class="modal-check"><input type="checkbox" data-custom="flag-map"> Vlag → Land (kaart)</label>
+        <label class="modal-check"><input type="checkbox" data-custom="map-capital"> Kaart → Hoofdstad</label>
+        <label class="modal-check"><input type="checkbox" data-custom="map-flag"> Kaart → Vlag</label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="custom-mix-modal-cancel" class="btn">Annuleren</button>
+        <button type="button" id="custom-mix-modal-start" class="btn primary" disabled>Start</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../js/app.js"></script>
   <script src="../js/quiz_map_satellite.js"></script>
@@ -290,8 +312,12 @@
         document.getElementById('flags-both').href =
           `quiz_flags.html?${base}&mode=both`;
 
+        document.getElementById('map-quiz-snelle').href =
+          `quiz_map.html?${base}&mode=snelle`;
         document.getElementById('map-quiz').href =
           `quiz_map.html?${base}`;
+        document.getElementById('map-quiz-zoek').href =
+          `quiz_map_zoek.html?${base}`;
 
         document.getElementById('kwartet-quiz').href =
           `quiz_kwartet.html?${base}`;
@@ -303,43 +329,61 @@
         document.getElementById('mix-quiz-mega').href =
           `quiz_mix.html?${base}&mega=1`;
 
-        const customTypeCapital = document.getElementById('custom-type-capital');
-        const customTypeFlag = document.getElementById('custom-type-flag');
-        const customTypeMap = document.getElementById('custom-type-map');
-        const customMixLink = document.getElementById('custom-mix-quiz');
-        const customCheckboxes = [customTypeCapital, customTypeFlag, customTypeMap];
+        // Custom mix modal
+        const customMixModal = document.getElementById('custom-mix-modal');
+        const customMixOpenBtn = document.getElementById('custom-mix-open-modal');
+        const customMixCancelBtn = document.getElementById('custom-mix-modal-cancel');
+        const customMixStartBtn = document.getElementById('custom-mix-modal-start');
+        const customMixCheckboxes = customMixModal ? customMixModal.querySelectorAll('.custom-mix-modal-options input[data-custom]') : [];
 
-        function updateCustomMixLink() {
-          const checked = customCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
-          if (checked.length === 2) {
-            const types = checked.sort().join(',');
-            customMixLink.href = `quiz_mix.html?${base}&types=${encodeURIComponent(types)}`;
-            customMixLink.classList.add('primary');
-            customMixLink.removeAttribute('aria-disabled');
-          } else {
-            customMixLink.href = '#';
-            customMixLink.classList.remove('primary');
-            customMixLink.setAttribute('aria-disabled', 'true');
-          }
+        if (customMixOpenBtn && customMixModal) customMixOpenBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          customMixModal.style.display = 'flex';
+          customMixModal.setAttribute('aria-hidden', 'false');
+          customMixModal.classList.add('modal-open');
+          document.body.classList.add('modal-open');
+          const firstCheck = customMixModal.querySelector('input[type="checkbox"]');
+          if (firstCheck) firstCheck.focus();
+        });
+
+        function closeCustomMixModal() {
+          customMixModal.style.display = 'none';
+          customMixModal.setAttribute('aria-hidden', 'true');
+          customMixModal.classList.remove('modal-open');
+          document.body.classList.remove('modal-open');
+          customMixOpenBtn.focus();
         }
 
-        customMixLink.addEventListener('click', (e) => {
-          if (customMixLink.getAttribute('aria-disabled') === 'true' || customMixLink.href === '#') {
-            e.preventDefault();
-          }
-        });
+        if (customMixCancelBtn) customMixCancelBtn.addEventListener('click', closeCustomMixModal);
 
-        customCheckboxes.forEach(cb => {
-          cb.addEventListener('change', () => {
-            const checked = customCheckboxes.filter(c => c.checked);
-            if (checked.length > 2) {
-              const toUncheck = checked.find(c => c !== cb);
-              if (toUncheck) toUncheck.checked = false;
-            }
-            updateCustomMixLink();
+        if (customMixModal) {
+          customMixModal.addEventListener('click', (e) => {
+            if (e.target === customMixModal) closeCustomMixModal();
           });
+          customMixModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCustomMixModal();
+          });
+        }
+
+        function updateCustomMixStartBtn() {
+          const checked = Array.from(customMixCheckboxes).filter(cb => cb.checked);
+          customMixStartBtn.disabled = checked.length === 0;
+        }
+
+        customMixCheckboxes.forEach(cb => cb.addEventListener('change', updateCustomMixStartBtn));
+
+        if (customMixStartBtn) customMixStartBtn.addEventListener('click', () => {
+          const checked = Array.from(customMixCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.dataset.custom);
+          if (checked.length === 0) return;
+          closeCustomMixModal();
+          const href = `quiz_mix.html?${base}&custom=${encodeURIComponent(checked.join(','))}`;
+          // #region agent log
+          (function(){const d={location:'group.html:redirect',data:{base,checked,href}};console.log('[DBG_MIX]',JSON.stringify(d));fetch('http://127.0.0.1:7847/ingest/fd68df95-e897-4752-acf6-98a8520bab25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3d4db9'},body:JSON.stringify({sessionId:'3d4db9',message:'Redirect',...d,timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});})();
+          // #endregion
+          window.location.href = href;
         });
-        updateCustomMixLink();
       } catch (err) {
         console.error(err);
         titleEl.textContent = 'Fout bij laden van deel';

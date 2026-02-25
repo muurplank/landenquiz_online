@@ -31,6 +31,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 20px 40px rgba(82, 82, 91, 0.12);
 
   --transition-fast: 150ms ease;
@@ -61,6 +62,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-card-hover: 0 20px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -103,12 +105,7 @@ body {
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.6;
-  background: linear-gradient(135deg,
-    #dbeafe 0%,    /* Licht pastel blauw */
-    #93c5fd 50%,   /* Medium pastel blauw */
-    #60a5fa 100%   /* Lichter donkerblauw */
-  );
-  background-attachment: fixed;
+  background: #e5e7eb;
   min-height: 100vh;
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
@@ -174,7 +171,7 @@ body {
 .header-cards-row {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   align-items: stretch;
 }
 
@@ -184,13 +181,13 @@ body {
   -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   border: 2px solid var(--color-border);
-  padding: 1rem 1.25rem;
-  box-shadow: var(--shadow-sm);
+  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
 }
 
 .header-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
 }
 
 .back-card {
@@ -222,14 +219,14 @@ body {
 .group-title-card {
   margin: 0;
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   letter-spacing: -0.02em;
   color: #000000;
 }
 
 .group-meta-card {
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
   color: #3f3f46;
 }
 
@@ -333,14 +330,9 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Dark mode gradient background - lichter blauw */
+/* Dark mode - grijze achtergrond */
 [data-theme="dark"] body {
-  background: linear-gradient(135deg,
-    #3b82f6 0%,    /* Lichter blauw */
-    #2563eb 50%,   /* Medium blauw */
-    #1e40af 100%   /* Donkerblauw */
-  );
-  background-attachment: fixed;
+  background: #374151;
 }
 
 /* Dark mode - doorzichtige cards */
@@ -486,7 +478,7 @@ body {
 /* ===== Layout ===== */
 .container {
   max-width: 1700px;
-  margin: 2rem auto 3.5rem;
+  margin: 0.5rem auto 3.5rem;
   padding: 0 1.25rem;
 }
 
@@ -536,13 +528,13 @@ h3 {
   -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   border: 1px solid var(--color-border-soft);
   transition: box-shadow var(--transition-normal), border-color var(--transition-normal), transform var(--transition-normal);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
   border-color: var(--color-border);
 }
 
@@ -855,14 +847,14 @@ h3 {
   -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   border: 1px solid var(--color-border-soft);
   min-height: 220px;
   transition: box-shadow var(--transition-normal);
 }
 
 .quiz-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Focusable voor toetsenbord (Safari); outline alleen bij tab-navigatie */
@@ -1145,12 +1137,12 @@ h3 {
 
 /* Group-pagina: Oefenen-sectie met collapsible kaart + landen */
 .group-oefenen-section {
-  margin-top: 1.5rem;
+  margin-top: 0.25rem;
   width: 100%;
 }
 
 .group-oefenen-header {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.05rem 0;
   font-size: 1.25rem;
 }
 
@@ -1362,7 +1354,7 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   grid-template-columns: 1.5fr 300px;
   gap: 1.25rem;
   align-items: start;
-  margin-top: 1.5rem;
+  margin-top: 0.25rem;
   width: 100%;
 }
 
@@ -1377,6 +1369,7 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   padding: 1rem;
   max-height: 75vh;
   overflow-y: auto;
+  box-shadow: var(--shadow-md);
 }
 
 .group-countries-aside h2,
@@ -1496,6 +1489,7 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   border: 4px solid var(--color-border);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1727,34 +1721,132 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
 .page-quiz-map .quiz-main {
   flex: 1;
   min-height: 0;
-  grid-template-columns: 1fr 280px;
-  gap: 0.75rem;
+  grid-template-columns: 1fr 260px;
+  gap: 0.5rem;
   align-items: stretch;
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
 }
 
-.page-quiz-map .quiz-main > .quiz-card:first-child {
-  min-width: 0;
+.page-quiz-map .map-quiz-card {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  min-width: 0;
+  width: fit-content;
+  max-width: 100%;
+  align-self: start;
+}
+
+.page-quiz-map .map-quiz-card .map-wrapper {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.map-quiz-answer-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.2s ease;
+}
+
+[data-theme="dark"] .map-quiz-answer-overlay {
+  background: rgba(30, 41, 59, 0.95);
+  color: var(--color-text);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.map-quiz-answer-overlay img {
+  display: block;
+  max-width: 200px;
+  height: auto;
+}
+
+.mix-map-given-wrap {
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.mix-map-given-flag {
+  max-width: 200px;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: #fff;
+  display: inline-block;
+}
+
+.page-quiz-map .map-quiz-text .small {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+}
+
+.page-quiz-map .map-quiz-text .small:last-of-type {
+  margin-bottom: 0;
+}
+
+.page-quiz-map .map-quiz-text .map-quiz-prompt {
+  margin: 0.12rem 0;
+}
+
+/* Alleen de landnaam wit/opvallend in de vraag, de rest blijft grijs */
+.page-quiz-map-zoek .map-quiz-land-name {
+  color: #111;
+  font-weight: 600;
+}
+[data-theme="dark"] .page-quiz-map-zoek .map-quiz-land-name {
+  color: #fff;
+}
+
+.page-quiz-map .map-quiz-text .status-label {
+  margin: 0.2rem 0 0;
+  font-size: 1.1rem;
 }
 
 .page-quiz-map .quiz-main > .quiz-aside {
-  min-width: 280px;
+  min-width: 260px;
+}
+
+.page-quiz-map .quiz-main > .quiz-aside .quiz-card {
+  padding: 0.75rem 1rem;
+}
+
+.page-quiz-map .quiz-main > .quiz-aside .quiz-card h2,
+.page-quiz-map .quiz-main > .quiz-aside .quiz-card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
 }
 
 .page-quiz-map .map-wrapper {
-  flex: 1;
-  min-height: 0;
-  max-height: none;
-  aspect-ratio: auto;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 637px;
+  max-height: 86vh;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.page-quiz-map.snelle-quiz-mode .map-wrapper {
+  width: 95%;
+  min-height: 605px; /* 95% van 637px */
+  max-height: 81.7vh; /* 95% van 86vh */
 }
 
 .page-quiz-map .country-list-buttons {
   flex: 1;
   min-height: 0;
-  max-height: none;
+  max-height: 32vh;
 }
 
 /* ===== Pill ===== */
@@ -1811,6 +1903,10 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
     flex: 0 0 auto;
   }
 
+  .page-quiz-map.snelle-quiz-mode .map-wrapper {
+    min-height: min(52.25vh, calc(100vw * 9 / 16 * 0.95)); /* 95% van mobile */
+  }
+
   .page-quiz-map .country-list-buttons {
     max-height: 35vh;
     flex: none;
@@ -1837,6 +1933,7 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   border-radius: var(--radius-lg);
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-md);
 }
 
 .kwartet-hint-label {
@@ -1916,6 +2013,7 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   padding: 0.75rem;
   border: 1px solid var(--color-border);
   min-height: 200px;
+  box-shadow: var(--shadow-md);
 }
 
 .kwartet-column-title {
@@ -2005,4 +2103,84 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
 
 .kwartet-actions .btn {
   min-width: 140px;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+}
+
+.modal-overlay.modal-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background: var(--color-surface-elevated);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+}
+
+.modal-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+}
+
+.modal-desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1rem 0;
+}
+
+.modal-custom-mix .custom-mix-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.modal-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0.35rem 0;
+}
+
+.modal-check:hover {
+  color: var(--color-primary);
+}
+
+.modal-check input {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+body.modal-open {
+  overflow: hidden;
 }

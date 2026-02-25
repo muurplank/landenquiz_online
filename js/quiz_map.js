@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
+  const mode = window.App.getQueryParam('mode') || '';
+  const isSnelleMode = mode === 'snelle';
 
   const mapContainerEl = document.getElementById('map-container');
   const countryButtonsEl = document.getElementById('country-buttons');
@@ -18,6 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mapQuizTypeWrap = document.getElementById('map-quiz-type-wrap');
   const mapQuizTypeInput = document.getElementById('map-quiz-type-input');
   const mapQuizTypeSubmit = document.getElementById('map-quiz-type-submit');
+  const mapQuizAnswerEl = document.getElementById('map-quiz-answer');
+  const mapQuizControlsEl = document.getElementById('map-quiz-controls');
+  const btnShowAnswer = document.getElementById('btn-show-answer');
+  const btnCorrect = document.getElementById('btn-correct');
+  const btnIncorrect = document.getElementById('btn-incorrect');
   let countryButtonsSearch = null;
 
   if (!groupId) {
@@ -84,6 +91,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.App.finalizeSession(session);
       sessionStatusEl.textContent = 'Sessie voltooid: alle landen minstens 1x correct!';
       sessionStatusEl.className = 'status-label ok';
+      if (isSnelleMode && mapQuizControlsEl) {
+        mapQuizControlsEl.style.display = 'none';
+      }
+    }
+  }
+
+  function setControlsForQuestionSnelle() {
+    if (mapQuizAnswerEl) mapQuizAnswerEl.hidden = true;
+    if (btnShowAnswer) btnShowAnswer.disabled = false;
+    if (btnCorrect) btnCorrect.disabled = true;
+    if (btnIncorrect) btnIncorrect.disabled = true;
+    sessionStatusEl.textContent = '';
+  }
+
+  function handleAnswerSnelle(wasCorrect) {
+    if (!currentCountry || sessionEnded) return;
+    const dt = performance.now() - questionStartTime;
+    window.App.recordQuestionResult({
+      session,
+      countryStats,
+      iso: currentCountry.iso,
+      quizType: 'map',
+      subType: 'snelle',
+      wasCorrect,
+      responseTimeMs: dt
+    });
+    updateSessionStatsUI();
+    maybeEndSessionIfMastered();
+    if (!sessionEnded) {
+      showNextQuestion();
     }
   }
 
@@ -106,10 +143,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     askedThisRound.add(currentCountry.iso);
     questionStartTime = performance.now();
     
-    // Gebruik satelliet kaart voor highlight
+    // Gebruik satelliet kaart voor highlight + zoom en centreer op dit land
     setTargetOnMap(currentCountry.iso);
+    if (window.SatelliteMap && satelliteMapInitialized) {
+      window.SatelliteMap.fitToRegion([currentCountry.iso], {
+        padding: { top: 80, bottom: 80, left: 80, right: 80 },
+        maxZoom: 4,
+        duration: 500
+      });
+    }
     
-    sessionStatusEl.textContent = useTypeBox ? 'Typ de landnaam hieronder.' : 'Klik op de landnaam rechts.';
+    if (isSnelleMode) {
+      setControlsForQuestionSnelle();
+      sessionStatusEl.textContent = '';
+    } else {
+      sessionStatusEl.textContent = useTypeBox ? 'Typ de landnaam hieronder.' : 'Klik op de landnaam rechts.';
+    }
     sessionStatusEl.className = 'status-label';
     updateDeckStatus();
     if (useTypeBox && mapQuizTypeInput) {
@@ -228,22 +277,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const isContinentOrWorld = groupId === 'world' || groupId.startsWith('continent_');
 
-    const titleBase = 'Kaart-quiz';
+    const titleBase = isSnelleMode ? 'Snelle quiz' : 'Kaart-quiz';
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
-    subtitleEl.textContent = 'Herken het wit gemarkeerde land op de satellietkaart.';
+    subtitleEl.textContent = isSnelleMode
+      ? 'Herken het land, toon antwoord en geef aan of je het goed of fout had.'
+      : 'Herken het wit gemarkeerde land op de satellietkaart.';
     continentLabelEl.textContent = group.continent;
 
     countryStats = window.App.createInitialCountryStats(group.countries);
     session = window.App.startSession({
       groupId,
       quizType: 'map',
-      subMode: 'satellite'
+      subMode: isSnelleMode ? 'snelle' : 'satellite'
     });
 
     // Initialiseer satelliet kaart
     if (window.SatelliteMap) {
-      await window.SatelliteMap.init('map-container', '../assets/maps/high_res_usa.json');
+      const mapOptions = isSnelleMode ? { smallCountryColor: 'orange' } : {};
+      await window.SatelliteMap.init('map-container', '../assets/maps/high_res_usa.json', mapOptions);
       satelliteMapInitialized = true;
       
       // Zoom naar regio als het een specifiek deel is (niet wereld/continent)
@@ -258,7 +310,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       throw new Error('SatelliteMap module niet geladen');
     }
 
-    useTypeBox = isContinentOrWorld;
+    useTypeBox = !isSnelleMode && isContinentOrWorld;
     if (useTypeBox && mapQuizTypeWrap && mapQuizTypeInput && mapQuizTypeSubmit) {
       mapQuizTypeWrap.style.display = 'block';
       mapQuizTypeSubmit.addEventListener('click', () => handleTypedAnswer());
@@ -270,20 +322,58 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // knoppen rechts
-    group.countries.forEach(iso => {
-      const c = countriesMap[iso];
-      if (!c) return;
-      const btn = document.createElement('button');
-      btn.textContent = c.name_nl;
-      btn.dataset.iso = iso;
-      btn.dataset.search = (c.name_nl || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-      btn.addEventListener('click', () => handleGuess(iso));
-      countryButtonsEl.appendChild(btn);
-    });
+    if (isSnelleMode) {
+      document.body.classList.add('snelle-quiz-mode');
+      mapQuizControlsEl.style.display = 'flex';
+      const countryListArticle = countryButtonsEl && countryButtonsEl.closest('article');
+      if (countryListArticle) {
+        const h2 = countryListArticle.querySelector('h2');
+        const listWrap = countryListArticle.querySelector('.list-search-wrap');
+        if (h2) h2.style.display = 'none';
+        if (listWrap) listWrap.style.display = 'none';
+        countryButtonsEl.style.display = 'none';
+      }
+      btnShowAnswer.addEventListener('click', () => {
+        if (!currentCountry) return;
+        const c = countriesMap[currentCountry.iso];
+        mapQuizAnswerEl.textContent = c ? c.name_nl : currentCountry.iso;
+        mapQuizAnswerEl.hidden = false;
+        btnShowAnswer.disabled = true;
+        btnCorrect.disabled = false;
+        btnIncorrect.disabled = false;
+      });
+      btnCorrect.addEventListener('click', () => handleAnswerSnelle(true));
+      btnIncorrect.addEventListener('click', () => handleAnswerSnelle(false));
+      function handleSnelleKeydown(e) {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea') return;
+        if (e.key === ' ' || e.code === 'Space') {
+          e.preventDefault();
+          if (btnShowAnswer && !btnShowAnswer.disabled) btnShowAnswer.click();
+        } else if ((e.key === '1' || e.code === 'Digit1') && btnCorrect && !btnCorrect.disabled) {
+          e.preventDefault();
+          btnCorrect.click();
+        } else if ((e.key === '2' || e.code === 'Digit2') && btnIncorrect && !btnIncorrect.disabled) {
+          e.preventDefault();
+          btnIncorrect.click();
+        }
+      }
+      window.addEventListener('keydown', handleSnelleKeydown, true);
+    } else {
+      group.countries.forEach(iso => {
+        const c = countriesMap[iso];
+        if (!c) return;
+        const btn = document.createElement('button');
+        btn.textContent = c.name_nl;
+        btn.dataset.iso = iso;
+        btn.dataset.search = (c.name_nl || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+        btn.addEventListener('click', () => handleGuess(iso));
+        countryButtonsEl.appendChild(btn);
+      });
+    }
 
     countryButtonsSearch = document.getElementById('country-buttons-search');
-    if (countryButtonsSearch) {
+    if (countryButtonsSearch && !isSnelleMode) {
       countryButtonsSearch.addEventListener('input', () => {
         const q = (countryButtonsSearch.value || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
         countryButtonsEl.querySelectorAll('button').forEach(btn => {
@@ -299,8 +389,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.addEventListener('keydown', (e) => {
-      if (!countryButtonsEl || sessionEnded) return;
-      if (useTypeBox && mapQuizTypeInput && document.activeElement === mapQuizTypeInput) return;
+      if (sessionEnded) return;
+
+      const inInput = useTypeBox && mapQuizTypeInput && document.activeElement === mapQuizTypeInput;
+      const inSearch = countryButtonsSearch && document.activeElement === countryButtonsSearch;
+      if (!inInput && !inSearch && window.SatelliteMap && satelliteMapInitialized) {
+        if ((e.key === '-' || e.key === 'q' || e.key === 'Q' || e.code === 'Minus' || e.code === 'KeyQ') && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          window.SatelliteMap.zoomOut();
+          return;
+        }
+        if ((e.key === '=' || e.key === '+' || e.key === 'w' || e.key === 'W' || e.code === 'Equal' || e.code === 'KeyW') && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          window.SatelliteMap.zoomIn();
+          return;
+        }
+      }
+
+      if (isSnelleMode || !countryButtonsEl) return;
+      if (inInput) return;
 
       const visible = getVisibleCountryButtons();
       if (!visible.length) return;

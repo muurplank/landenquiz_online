@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
 </head>
 <body class="page-quiz-map">
-  <main class="container" style="padding-top: 1.5rem;">
+  <main class="container" style="padding-top: 0.5rem;">
     <!-- Header Cards -->
     <div class="header-cards-row">
       <div class="header-card back-card">
@@ -26,13 +26,30 @@
 
   <main class="container" style="padding-top: 0;">
     <section class="quiz-main">
-      <article class="quiz-card">
-        <p class="small">Continent: <span id="continent-label"></span></p>
+      <article class="quiz-card map-quiz-card">
+        <div class="map-quiz-text">
+          <p class="small">Continent: <span id="continent-label"></span></p>
+          <p class="small map-quiz-prompt">Vraag: Welk land is wit gemarkeerd?</p>
+          <div id="map-quiz-controls" class="quiz-controls" style="display: none;">
+            <button id="btn-show-answer" class="btn primary">
+              <span class="btn-label">Toon antwoord</span>
+              <span class="btn-shortcut">(Spatiebalk)</span>
+            </button>
+            <button id="btn-correct" class="btn" disabled>
+              <span class="btn-label">Correct</span>
+              <span class="btn-shortcut">(1)</span>
+            </button>
+            <button id="btn-incorrect" class="btn" disabled>
+              <span class="btn-label">Incorrect</span>
+              <span class="btn-shortcut">(2)</span>
+            </button>
+          </div>
+          <p id="session-status" class="status-label"></p>
+        </div>
         <div class="map-wrapper">
           <div id="map-container"></div>
+          <div id="map-quiz-answer" class="map-quiz-answer-overlay" hidden>Antwoord</div>
         </div>
-        <p class="small">Vraag: Welk land is wit gemarkeerd?</p>
-        <p id="session-status" class="status-label"></p>
       </article>
 
       <aside class="quiz-aside">
