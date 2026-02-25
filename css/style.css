@@ -1416,6 +1416,36 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   margin-bottom: 1rem;
 }
 
+.group-quiz-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.group-quiz-header-row h2 {
+  margin-bottom: 0;
+}
+
+.group-infinite-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.group-infinite-toggle input {
+  margin: 0;
+}
+
+.group-infinite-toggle:has(input:checked) {
+  color: var(--color-text);
+}
+
 /* Custom quiz (index): keuze van delen */
 .custom-quiz-section h2 {
   margin-bottom: 0.5rem;

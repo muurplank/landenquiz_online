@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
   const mode = window.App.getQueryParam('mode') || '';
   const isSnelleMode = mode === 'snelle';
+  const infiniteMode = window.App.getQueryParam('infinite') === '1';
 
   const mapContainerEl = document.getElementById('map-container');
   const countryButtonsEl = document.getElementById('country-buttons');
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
-    if (isSnelleMode) return; // Snelle quiz is oneindig
+    if (isSnelleMode || infiniteMode) return; // Oneindig doorgaan
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showNextQuestion() {
     if (sessionEnded) return;
-    if (window.App.allMastered(countryStats) && !isSnelleMode) {
+    if (window.App.allMastered(countryStats) && !isSnelleMode && !infiniteMode) {
       maybeEndSessionIfMastered();
       return;
     }

@@ -4,6 +4,7 @@
  */
 document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
+  const infiniteMode = window.App.getQueryParam('infinite') === '1';
   const titleEl = document.getElementById('quiz-title');
   const subtitleEl = document.getElementById('quiz-subtitle');
   const deckStatusEl = document.getElementById('deck-status');
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let group;
   let countriesMap;
   let countryList = []; // { iso, name_nl, capitals_nl }
-  const completed = new Set(); // ISO codes die goed zijn gemaakt
+  let completed = new Set(); // ISO codes die goed zijn gemaakt
   let targetIso = null; // Huidig te vinden land
   let hintType = null; // 'capital' | 'land' | 'flag' — welk gegeven wordt getoond
   const selection = { map: null, land: null, capital: null, flag: null };
@@ -114,6 +115,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     colFlagEl.style.display = hintType === 'flag' ? 'none' : '';
   }
 
+  function clearCompletedVisuals() {
+    listLandEl.querySelectorAll('.kwartet-completed').forEach(el => {
+      el.classList.remove('kwartet-completed');
+      el.removeAttribute('aria-disabled');
+    });
+    listCapitalEl.querySelectorAll('.kwartet-completed').forEach(el => {
+      el.classList.remove('kwartet-completed');
+      el.removeAttribute('aria-disabled');
+    });
+    listFlagEls.forEach(list => {
+      if (list) list.querySelectorAll('.kwartet-completed').forEach(el => {
+        el.classList.remove('kwartet-completed');
+        el.removeAttribute('aria-disabled');
+      });
+    });
+    if (window.SatelliteMap && window.SatelliteMap.setCompletedCountries) {
+      window.SatelliteMap.setCompletedCountries([]);
+    }
+  }
+
   function markCompletedInLists(iso) {
     listLandEl.querySelectorAll(`[data-iso="${iso}"]`).forEach(el => {
       el.classList.add('kwartet-completed');
@@ -173,11 +194,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchCapitalEl.value = '';
         searchCapitalEl.dispatchEvent(new Event('input'));
       }
-      const next = pickNextTarget();
+      let next = pickNextTarget();
       if (next) {
         setTarget(next);
         statusEl.textContent = 'Goed! Volgende kwartet.';
         statusEl.className = 'status-label ok';
+      } else if (infiniteMode) {
+        completed = new Set();
+        clearCompletedVisuals();
+        next = pickNextTarget();
+        if (next) {
+          setTarget(next);
+          statusEl.textContent = 'Goed! Ronde klaar – nieuwe ronde.';
+          statusEl.className = 'status-label ok';
+        }
       } else {
         statusEl.textContent = 'Alles goed! Je hebt alle kwartetten gemaakt.';
         statusEl.className = 'status-label ok';

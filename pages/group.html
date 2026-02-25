@@ -62,7 +62,13 @@
 
     <!-- 2. Quiz-modi -->
     <section class="group-quiz-section">
-      <h2>Quiz-modi</h2>
+      <div class="group-quiz-header-row">
+        <h2>Quiz-modi</h2>
+        <label class="group-infinite-toggle">
+          <input type="checkbox" id="alles-oneindig" autocomplete="off">
+          <span>Alles oneindig</span>
+        </label>
+      </div>
       <div class="card-grid">
         <article class="card">
           <h3>Hoofdstad / Land</h3>
@@ -298,36 +304,69 @@
         }
 
         const base = `id=${encodeURIComponent(group.id)}`;
-        document.getElementById('capitals-land-to-capital').href =
-          `quiz_capitals.html?${base}&mode=land-to-capital`;
-        document.getElementById('capitals-capital-to-land').href =
-          `quiz_capitals.html?${base}&mode=capital-to-land`;
-        document.getElementById('capitals-both').href =
-          `quiz_capitals.html?${base}&mode=both`;
+        const ALLES_ONEINDIG_KEY = 'landjes_alles_oneindig';
 
-        document.getElementById('flags-flag-to-land').href =
-          `quiz_flags.html?${base}&mode=flag-to-land`;
-        document.getElementById('flags-land-to-flag').href =
-          `quiz_flags.html?${base}&mode=land-to-flag`;
-        document.getElementById('flags-both').href =
-          `quiz_flags.html?${base}&mode=both`;
+        function getAllesOneindig() {
+          try {
+            return localStorage.getItem(ALLES_ONEINDIG_KEY) === '1';
+          } catch (_) {
+            return false;
+          }
+        }
 
-        document.getElementById('map-quiz-snelle').href =
-          `quiz_map.html?${base}&mode=snelle`;
-        document.getElementById('map-quiz').href =
-          `quiz_map.html?${base}`;
-        document.getElementById('map-quiz-zoek').href =
-          `quiz_map_zoek.html?${base}`;
+        function setAllesOneindig(v) {
+          try {
+            localStorage.setItem(ALLES_ONEINDIG_KEY, v ? '1' : '0');
+          } catch (_) {}
+        }
 
-        document.getElementById('kwartet-quiz').href =
-          `quiz_kwartet.html?${base}`;
+        function suffix() {
+          return getAllesOneindig() ? '&infinite=1' : '';
+        }
 
-        document.getElementById('mix-quiz').href =
-          `quiz_mix.html?${base}`;
-        document.getElementById('mix-quiz-infinite').href =
-          `quiz_mix.html?${base}&infinite=1`;
-        document.getElementById('mix-quiz-mega').href =
-          `quiz_mix.html?${base}&mega=1`;
+        function updateQuizLinks() {
+          document.getElementById('capitals-land-to-capital').href =
+            `quiz_capitals.html?${base}&mode=land-to-capital${suffix()}`;
+          document.getElementById('capitals-capital-to-land').href =
+            `quiz_capitals.html?${base}&mode=capital-to-land${suffix()}`;
+          document.getElementById('capitals-both').href =
+            `quiz_capitals.html?${base}&mode=both`;
+
+          document.getElementById('flags-flag-to-land').href =
+            `quiz_flags.html?${base}&mode=flag-to-land${suffix()}`;
+          document.getElementById('flags-land-to-flag').href =
+            `quiz_flags.html?${base}&mode=land-to-flag${suffix()}`;
+          document.getElementById('flags-both').href =
+            `quiz_flags.html?${base}&mode=both`;
+
+          document.getElementById('map-quiz-snelle').href =
+            `quiz_map.html?${base}&mode=snelle`;
+          document.getElementById('map-quiz').href =
+            `quiz_map.html?${base}${suffix()}`;
+          document.getElementById('map-quiz-zoek').href =
+            `quiz_map_zoek.html?${base}${suffix()}`;
+
+          document.getElementById('kwartet-quiz').href =
+            `quiz_kwartet.html?${base}${suffix()}`;
+
+          document.getElementById('mix-quiz').href =
+            `quiz_mix.html?${base}${suffix()}`;
+          document.getElementById('mix-quiz-infinite').href =
+            `quiz_mix.html?${base}&infinite=1`;
+          document.getElementById('mix-quiz-mega').href =
+            `quiz_mix.html?${base}&mega=1${suffix()}`;
+        }
+
+        const allesOneindigCheck = document.getElementById('alles-oneindig');
+        if (allesOneindigCheck) {
+          allesOneindigCheck.checked = getAllesOneindig();
+          allesOneindigCheck.addEventListener('change', () => {
+            setAllesOneindig(allesOneindigCheck.checked);
+            updateQuizLinks();
+          });
+        }
+
+        updateQuizLinks();
 
         // Custom mix modal
         const customMixModal = document.getElementById('custom-mix-modal');
@@ -378,7 +417,7 @@
             .map(cb => cb.dataset.custom);
           if (checked.length === 0) return;
           closeCustomMixModal();
-          window.location.href = `quiz_mix.html?${base}&custom=${encodeURIComponent(checked.join(','))}`;
+          window.location.href = `quiz_mix.html?${base}&custom=${encodeURIComponent(checked.join(','))}${suffix()}`;
         });
       } catch (err) {
         console.error(err);

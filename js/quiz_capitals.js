@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
   const mode = window.App.getQueryParam('mode') || 'land-to-capital';
+  const infiniteMode = window.App.getQueryParam('infinite') === '1';
 
   const questionEl = document.getElementById('question');
   const answerEl = document.getElementById('answer');
@@ -68,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
-    if (mode === 'both') return; // Beide kanten: oneindig doorgaan
+    if (mode === 'both' || infiniteMode) return; // Oneindig doorgaan
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showNextQuestion() {
     if (sessionEnded) return;
-    if (mode !== 'both' && window.App.allMastered(countryStats)) {
+    if (mode !== 'both' && !infiniteMode && window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
       return;
     }

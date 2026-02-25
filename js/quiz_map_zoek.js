@@ -3,6 +3,7 @@
  */
 document.addEventListener('DOMContentLoaded', async () => {
   const groupId = window.App.getQueryParam('id');
+  const infiniteMode = window.App.getQueryParam('infinite') === '1';
 
   const mapContainerEl = document.getElementById('map-container');
   const deckStatusEl = document.getElementById('deck-status');
@@ -62,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
+    if (infiniteMode) return;
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
@@ -72,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showNextQuestion() {
     if (sessionEnded) return;
-    if (window.App.allMastered(countryStats)) {
+    if (!infiniteMode && window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
       return;
     }
