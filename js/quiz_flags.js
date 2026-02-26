@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let questionStartTime = null;
   let sessionEnded = false;
   const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
+  const roundState = {}; // deck voor gegarandeerd alle landen vóór herhaling
 
   function updateDeckStatus() {
     const all = Object.values(countryStats);
@@ -47,6 +48,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateSessionStatsUI() {
     const t = session.totals;
     statQuestionsEl.textContent = t.questions;
+    const statRoundsEl = document.getElementById('stat-rounds');
+    if (statRoundsEl) statRoundsEl.textContent = t.rounds ?? 0;
     const acc = t.questions ? Math.round((t.correct / t.questions) * 100) : 0;
     statAccuracyEl.textContent = `${acc}%`;
     statAvgTimeEl.textContent = t.avgResponseTimeMs
@@ -95,8 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       maybeEndSessionIfMastered();
       return;
     }
-    currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound);
+    currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound, roundState);
     askedThisRound.add(currentCountry.iso);
+    session.totals.rounds = roundState.roundsCompleted ?? 0;
     questionStartTime = performance.now();
 
     const c = countriesMap[currentCountry.iso];

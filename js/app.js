@@ -176,14 +176,41 @@ window.App = (function () {
     return list[idx];
   }
 
+  function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   /**
-   * Kiest het volgende land zo dat eerst alle landen één keer aan bod komen
-   * voordat er herhalingen zijn. askedThisRound is een Set van iso-codes
-   * die deze ronde al gevraagd zijn; wordt door de caller bijgehouden.
+   * Kiest het volgende land zo dat eerst álle landen één keer aan bod komen
+   * voordat er herhalingen zijn. Gebruikt een deck: na elke ronde wordt
+   * de volledige lijst geschud; landen worden één voor één uit het deck
+   * gepakt tot het leeg is, dan volgt een nieuwe ronde.
+   * @param {Object} countryStats - Object met iso als key
+   * @param {Set} askedThisRound - Set van iso-codes deze ronde (door caller bijgehouden)
+   * @param {Object} [roundState] - Optioneel: { deck: [] } voor deck-gebaseerde aanpak
    */
-  function pickNextCountryNoRepeat(countryStats, askedThisRound) {
+  function pickNextCountryNoRepeat(countryStats, askedThisRound, roundState) {
     const list = Object.values(countryStats);
     if (!list.length) return null;
+
+    if (roundState) {
+      if (!roundState.deck || roundState.deck.length === 0) {
+        const wasExhausted = !!(roundState.deck && roundState.deck.length === 0);
+        roundState.deck = shuffleArray(list);
+        askedThisRound.clear();
+        if (wasExhausted) {
+          roundState.roundsCompleted = (roundState.roundsCompleted || 0) + 1;
+        }
+      }
+      const picked = roundState.deck.pop();
+      return picked;
+    }
+
     const notYetAsked = list.filter(c => !askedThisRound.has(c.iso));
     const pool = notYetAsked.length > 0 ? notYetAsked : list;
     if (pool.length === list.length && askedThisRound.size === list.length) {
@@ -242,6 +269,7 @@ window.App = (function () {
         avgResponseTimeMs: null,
         streakBest: 0,
         streakEnd: 0,
+        rounds: 0,
         correctByType: {
           capital: 0,
           flag: 0,

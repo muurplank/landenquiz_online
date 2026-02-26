@@ -131,11 +131,13 @@
     });
     const totalResponseTimeMs = filteredSessions.reduce((s, x) => s + (x.totals?.totalResponseTimeMs || 0), 0);
     const avgResponseTimeMs = totalQuestions > 0 ? totalResponseTimeMs / totalQuestions : null;
+    const totalRounds = filteredSessions.reduce((s, x) => s + (x.totals?.rounds || 0), 0);
 
     const completed = filteredSessions.filter(s => s.endedAt);
     const kpis = [
       { label: 'Sessies', value: String(completed.length) },
       { label: 'Vragen', value: String(totalQuestions) },
+      { label: 'Rondes', value: String(totalRounds) },
       { label: 'Gem. nauwkeurigheid', value: totalQuestions ? `${Math.round(weightedAccuracy * 100)}%` : '—' },
       { label: 'Beste streak', value: String(bestStreak) },
       { label: 'Studietijd', value: formatDuration(totalStudyTimeMs) },
@@ -270,6 +272,7 @@
       const sessions = byGroup[gid];
       const totalQ = sessions.reduce((a, s) => a + (s.totals?.questions || 0), 0);
       const totalC = sessions.reduce((a, s) => a + (s.totals?.correct || 0), 0);
+      const totalR = sessions.reduce((a, s) => a + (s.totals?.rounds || 0), 0);
       const acc = totalQ ? totalC / totalQ : 0;
       const bestStreak = Math.max(0, ...sessions.map(s => s.totals?.streakBest || 0));
       const totalRt = sessions.reduce((a, s) => a + (s.totals?.totalResponseTimeMs || 0), 0);
@@ -284,6 +287,7 @@
           <dl class="stats-list compact">
             <dt>Sessies</dt><dd>${sessions.length}</dd>
             <dt>Vragen</dt><dd>${totalQ}</dd>
+            <dt>Rondes</dt><dd>${totalR}</dd>
             <dt>Nauwkeurigheid</dt><dd>${totalQ ? Math.round(acc * 100) + '%' : '—'}</dd>
             <dt>Beste streak</dt><dd>${bestStreak}</dd>
             <dt>Gem. responstijd</dt><dd>${avgRt != null ? Math.round(avgRt) + ' ms' : '—'}</dd>
