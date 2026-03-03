@@ -603,10 +603,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   window.addEventListener('keydown', handleQuizKeydown, true);
+  window.addEventListener('mousedown', (e) => {
+    if ((e.buttons & 16) && btnCorrect && !btnCorrect.disabled) {
+      e.preventDefault();
+      btnCorrect.click();
+    } else if ((e.buttons & 8) && btnIncorrect && !btnIncorrect.disabled) {
+      e.preventDefault();
+      btnIncorrect.click();
+    }
+  }, true);
   const quizCard = btnShow && btnShow.closest('.quiz-card');
   if (quizCard) {
     quizCard.setAttribute('tabindex', '0');
-    quizCard.addEventListener('keydown', handleQuizKeydown);
   }
 
   btnDownloadLog.addEventListener('click', () => {

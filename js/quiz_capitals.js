@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function maybeEndSessionIfMastered() {
-    if (mode === 'both' || infiniteMode) return; // Oneindig doorgaan
+    if (mode === 'both' || mode === 'thompson' || infiniteMode) return; // Oneindig doorgaan
     if (window.App.allMastered(countryStats)) {
       sessionEnded = true;
       window.App.finalizeSession(session);
@@ -86,17 +86,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showNextQuestion() {
     if (sessionEnded) return;
-    if (mode !== 'both' && !infiniteMode && window.App.allMastered(countryStats)) {
+    if (mode !== 'both' && mode !== 'thompson' && !infiniteMode && window.App.allMastered(countryStats)) {
       maybeEndSessionIfMastered();
       return;
     }
-    currentCountry = window.App.pickNextCountryNoRepeat(countryStats, askedThisRound, roundState);
-    askedThisRound.add(currentCountry.iso);
-    session.totals.rounds = roundState.roundsCompleted ?? 0;
+    currentCountry = mode === 'thompson'
+      ? window.App.pickNextCountryThompson(countryStats)
+      : window.App.pickNextCountryNoRepeat(countryStats, askedThisRound, roundState);
+    if (mode !== 'thompson') askedThisRound.add(currentCountry.iso);
+    session.totals.rounds = mode === 'thompson' ? 0 : (roundState.roundsCompleted ?? 0);
     questionStartTime = performance.now();
 
     const c = countriesMap[currentCountry.iso];
-    currentQuestionMode = (mode === 'both' && Math.random() < 0.5) ? 'capital-to-land' : (mode === 'both' ? 'land-to-capital' : mode);
+    currentQuestionMode = (mode === 'both' && Math.random() < 0.5) ? 'capital-to-land'
+      : (mode === 'both' ? 'land-to-capital'
+      : (mode === 'thompson' ? (Math.random() < 0.5 ? 'land-to-capital' : 'capital-to-land')
+      : mode));
     if (currentQuestionMode === 'land-to-capital') {
       questionEl.innerHTML = `Wat is de hoofdstad van<br><span class="quiz-question-given">${escapeHtml(c.name_nl)}</span>?`;
       answerEl.textContent = c.capitals_nl.join(', ');
@@ -154,10 +159,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   window.addEventListener('keydown', handleQuizKeydown, true);
+  window.addEventListener('mousedown', (e) => {
+    if ((e.buttons & 16) && btnCorrect && !btnCorrect.disabled) {
+      e.preventDefault();
+      btnCorrect.click();
+    } else if ((e.buttons & 8) && btnIncorrect && !btnIncorrect.disabled) {
+      e.preventDefault();
+      btnIncorrect.click();
+    }
+  }, true);
   const quizCard = btnShow && btnShow.closest('.quiz-card');
   if (quizCard) {
     quizCard.setAttribute('tabindex', '0');
-    quizCard.addEventListener('keydown', handleQuizKeydown);
   }
 
   if (btnDownloadLog) {
@@ -182,7 +195,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     subtitleEl.textContent = 'Flashcards: beoordeel zelf of je antwoord goed was.';
 
     modeLabelEl.textContent =
-      mode === 'both' ? 'Beide kanten' : (mode === 'land-to-capital' ? 'Land → Hoofdstad' : 'Hoofdstad → Land');
+      mode === 'both' ? 'Beide kanten' :
+      mode === 'thompson' ? 'Thompson Sampling' :
+      (mode === 'land-to-capital' ? 'Land → Hoofdstad' : 'Hoofdstad → Land');
 
     countryStats = window.App.createInitialCountryStats(group.countries);
     session = window.App.startSession({

@@ -220,6 +220,38 @@ window.App = (function () {
     return pool[idx];
   }
 
+  function sampleBeta(alpha, beta) {
+    function sampleGamma(shape) {
+      if (shape < 1) return sampleGamma(1 + shape) * Math.pow(Math.random(), 1 / shape);
+      const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+      while (true) {
+        let x, v;
+        do {
+          x = Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random());
+          v = 1 + c * x;
+        } while (v <= 0);
+        v = v * v * v;
+        const u = Math.random();
+        if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+        if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+      }
+    }
+    const x = sampleGamma(alpha);
+    const y = sampleGamma(beta);
+    return x / (x + y);
+  }
+
+  function pickNextCountryThompson(countryStats) {
+    const list = Object.values(countryStats);
+    if (!list.length) return null;
+    let best = null, bestScore = Infinity;
+    for (const stats of list) {
+      const score = sampleBeta(stats.correct_count + 1, stats.incorrect_count + 1);
+      if (score < bestScore) { bestScore = score; best = stats; }
+    }
+    return best;
+  }
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -742,6 +774,7 @@ window.App = (function () {
     allMastered,
     pickRandomCountry,
     pickNextCountryNoRepeat,
+    pickNextCountryThompson,
     startSession,
     finalizeSession,
     recordQuestionResult,

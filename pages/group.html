@@ -77,6 +77,7 @@
             <a id="capitals-land-to-capital" class="btn primary">Land → Hoofdstad</a>
             <a id="capitals-capital-to-land" class="btn">Hoofdstad → Land</a>
             <a id="capitals-both" class="btn">Beide kanten</a>
+            <a id="capitals-thompson" class="btn">Thompson Sampling</a>
           </div>
         </article>
 
@@ -87,6 +88,7 @@
             <a id="flags-flag-to-land" class="btn primary">Vlag → Land</a>
             <a id="flags-land-to-flag" class="btn">Land → Vlag</a>
             <a id="flags-both" class="btn">Beide kanten</a>
+            <a id="flags-thompson" class="btn">Thompson Sampling</a>
           </div>
         </article>
 
@@ -331,6 +333,8 @@
             `quiz_capitals.html?${base}&mode=capital-to-land${suffix()}`;
           document.getElementById('capitals-both').href =
             `quiz_capitals.html?${base}&mode=both`;
+          document.getElementById('capitals-thompson').href =
+            `quiz_capitals.html?${base}&mode=thompson`;
 
           document.getElementById('flags-flag-to-land').href =
             `quiz_flags.html?${base}&mode=flag-to-land${suffix()}`;
@@ -338,6 +342,8 @@
             `quiz_flags.html?${base}&mode=land-to-flag${suffix()}`;
           document.getElementById('flags-both').href =
             `quiz_flags.html?${base}&mode=both`;
+          document.getElementById('flags-thompson').href =
+            `quiz_flags.html?${base}&mode=thompson`;
 
           document.getElementById('map-quiz-snelle').href =
             `quiz_map.html?${base}&mode=snelle`;
