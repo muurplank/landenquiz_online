@@ -604,7 +604,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   window.addEventListener('keydown', handleQuizKeydown, true);
   window.addEventListener('mousedown', (e) => {
-    if ((e.buttons & 16) && btnCorrect && !btnCorrect.disabled) {
+    const useMixMapControls = typeof isMapOverlayQuestion === 'function' && isMapOverlayQuestion() && mixMapControls && mixMapControls.style.display !== 'none';
+    if ((e.buttons & 4)) {
+      if (useMixMapControls && btnMixShow && !btnMixShow.disabled) { e.preventDefault(); btnMixShow.click(); }
+      else if (!useMixMapControls && btnShow && !btnShow.disabled) { e.preventDefault(); btnShow.click(); }
+    } else if ((e.buttons & 16) && btnCorrect && !btnCorrect.disabled) {
       e.preventDefault();
       btnCorrect.click();
     } else if ((e.buttons & 8) && btnIncorrect && !btnIncorrect.disabled) {

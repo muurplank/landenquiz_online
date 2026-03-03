@@ -160,7 +160,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   window.addEventListener('keydown', handleQuizKeydown, true);
   window.addEventListener('mousedown', (e) => {
-    if ((e.buttons & 16) && btnCorrect && !btnCorrect.disabled) {
+    if ((e.buttons & 4) && btnShow && !btnShow.disabled) {
+      e.preventDefault();
+      btnShow.click();
+    } else if ((e.buttons & 16) && btnCorrect && !btnCorrect.disabled) {
       e.preventDefault();
       btnCorrect.click();
     } else if ((e.buttons & 8) && btnIncorrect && !btnIncorrect.disabled) {
