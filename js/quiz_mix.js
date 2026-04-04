@@ -1,19 +1,44 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  function oceaniaFocusForGroup(group, countriesMap) {
+    if (window.App && typeof window.App.isOceaniaFocusGroup === 'function') {
+      return window.App.isOceaniaFocusGroup(group, countriesMap);
+    }
+    if (!group || !group.countries || !group.countries.length) return false;
+    if (group.continent === 'Oceania') return true;
+    if (group.id === 'custom' && countriesMap) {
+      return group.countries.every(iso => {
+        const c = countriesMap[iso];
+        return c && c.continent === 'Oceania';
+      });
+    }
+    return false;
+  }
+
   const groupId = window.App.getQueryParam('id');
   const typesParam = window.App.getQueryParam('types'); // bijv. "capital,flag" voor aangepaste mix (precies 2 van 3)
   const customParam = window.App.getQueryParam('custom'); // bijv. "land-capital,flag-land" – specifieke vraagtypen uit modal
 
-  function parseCustomTypes(param) {
+  function parseCustomTypesFull(param) {
     if (!param || typeof param !== 'string') return null;
     const valid = ['capital', 'flag', 'map'];
     const parts = param.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const allowed = parts.filter(p => valid.includes(p));
     const unique = [...new Set(allowed)];
-    return unique.length === 2 ? unique.sort() : null; // precies 2 types
+    return unique.length === 2 ? unique.sort() : null;
   }
 
-  // Mega mix: alle combinaties van "gegeven → antwoord" (moet voor parseCustomMegaTypes staan)
-  const MEGA_TYPES = [
+  function parseCustomTypesOceania(param) {
+    if (!param || typeof param !== 'string') return null;
+    const valid = ['capital', 'flag', 'map'];
+    const parts = param.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const allowed = [...new Set(parts.filter(p => valid.includes(p)))];
+    const noMap = allowed.filter(t => t !== 'map');
+    if (noMap.length === 2) return noMap.sort();
+    if (noMap.length === 1 && allowed.includes('map')) return ['capital', 'flag'].sort();
+    return null;
+  }
+
+  const MEGA_TYPES_FULL = [
     { key: 'land-capital', from: 'land', to: 'capital', label: 'Land → Hoofdstad' },
     { key: 'capital-land', from: 'capital', to: 'land', label: 'Hoofdstad → Land' },
     { key: 'land-flag', from: 'land', to: 'flag', label: 'Land → Vlag' },
@@ -27,19 +52,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     { key: 'map-flag', from: 'map', to: 'flag', label: 'Kaart → Vlag' },
   ];
 
-  function parseCustomMegaTypes(param) {
-    if (!param || typeof param !== 'string') return null;
+  const MEGA_TYPES_OCEANIA = [
+    { key: 'land-capital', from: 'land', to: 'capital', label: 'Land → Hoofdstad' },
+    { key: 'capital-land', from: 'capital', to: 'land', label: 'Hoofdstad → Land' },
+    { key: 'land-flag', from: 'land', to: 'flag', label: 'Land → Vlag' },
+    { key: 'flag-land', from: 'flag', to: 'land', label: 'Vlag → Land' },
+    { key: 'capital-flag', from: 'capital', to: 'flag', label: 'Hoofdstad → Vlag' },
+    { key: 'capital-map', from: 'capital', to: 'map', label: 'Hoofdstad → Land' },
+    { key: 'flag-capital', from: 'flag', to: 'capital', label: 'Vlag → Hoofdstad' },
+    { key: 'flag-map', from: 'flag', to: 'map', label: 'Vlag → Land' },
+  ];
+
+  function parseCustomMegaTypes(param, megaTypesList) {
+    if (!param || typeof param !== 'string' || !megaTypesList || !megaTypesList.length) return null;
     const selected = param.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const keySet = new Set(selected);
-    const filtered = MEGA_TYPES.filter(t => keySet.has(t.key));
+    const filtered = megaTypesList.filter(t => keySet.has(t.key));
     return filtered.length > 0 ? filtered : null;
   }
 
-  const allowedTypes = parseCustomTypes(typesParam);
-  const customMegaTypes = parseCustomMegaTypes(customParam);
+  let activeMegaTypes = MEGA_TYPES_FULL;
+  let allowedTypes;
+  let customMegaTypes;
+  let useCustomMega = false;
+  let oceaniaFocus = false;
+
   const infiniteMode = window.App.getQueryParam('infinite') === '1';
-  const megaMix = window.App.getQueryParam('mega') === '1'; // Mega mix: alle combinaties
-  const useCustomMega = customMegaTypes && customMegaTypes.length > 0; // Custom mix uit modal
+  const megaMix = window.App.getQueryParam('mega') === '1';
 
   const flagContainerEl = document.getElementById('mix-flag-container');
   const questionEl = document.getElementById('mix-question');
@@ -92,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const askedThisRound = new Set(); // eerst alle landen één keer, daarna ronde opnieuw
   const roundState = {}; // deck voor gegarandeerd alle landen vóór herhaling
   let satelliteMapInitialized = false;
+  let mixWorldGeoJson = null;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -141,17 +181,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setTargetOnMap(iso) {
-    if (window.SatelliteMap && satelliteMapInitialized) {
-      window.SatelliteMap.highlightCountry(iso);
-      window.SatelliteMap.fitToRegion([iso], {
-        padding: { top: 80, bottom: 80, left: 80, right: 80 },
-        maxZoom: 4,
-        duration: 500
-      });
+    if (oceaniaFocus || !window.SatelliteMap || !satelliteMapInitialized) return;
+    window.SatelliteMap.highlightCountry(iso);
+    window.SatelliteMap.fitToRegion([iso], {
+      padding: { top: 80, bottom: 80, left: 80, right: 80 },
+      maxZoom: 4,
+      duration: 500
+    });
+  }
+
+  function stripMixMapRevealMode() {
+    if (mixMapArea) mixMapArea.classList.remove('mix-map-area--reveal-only');
+    if (mixMapGivenWrap) {
+      mixMapGivenWrap.innerHTML = '';
+      mixMapGivenWrap.style.display = 'none';
     }
   }
 
+  function canUseMixSatelliteReveal() {
+    return !oceaniaFocus && satelliteMapInitialized && window.SatelliteMap
+      && typeof window.SatelliteMap.getMap === 'function' && window.SatelliteMap.getMap();
+  }
+
+  function scheduleMixMapResizeAndFocus(iso) {
+    const run = () => {
+      if (window.SatelliteMap && typeof window.SatelliteMap.resize === 'function') {
+        window.SatelliteMap.resize();
+      }
+      setTargetOnMap(iso);
+    };
+    requestAnimationFrame(() => requestAnimationFrame(run));
+  }
+
+  /** Satellietkaart (Blue Marble) i.p.v. SVG-preview; alleen als kaart geïnitialiseerd is. */
+  function showSatelliteMapForMixReveal(iso) {
+    if (!canUseMixSatelliteReveal() || !mixMapArea) return;
+    if (mixMapAnswerOverlay) {
+      mixMapAnswerOverlay.hidden = true;
+      mixMapAnswerOverlay.innerHTML = '';
+    }
+    if (mixMapPrompt) mixMapPrompt.style.display = 'none';
+    if (mixMapControls) mixMapControls.style.display = 'none';
+    stripMixMapRevealMode();
+    mixMapArea.classList.add('mix-map-area--reveal-only');
+    mixMapArea.style.display = '';
+    if (mixMapGivenWrap) {
+      mixMapGivenWrap.innerHTML = mixFlagImgHtml(iso);
+      mixMapGivenWrap.style.display = 'block';
+    }
+    scheduleMixMapResizeAndFocus(iso);
+  }
+
   function isMapOverlayQuestion() {
+    if (oceaniaFocus) return false;
     return (currentQuestionType === 'map' && (currentSubType === 'continent-only' || currentSubType === 'map-to-capital' || currentSubType === 'map-to-flag'));
   }
 
@@ -173,11 +255,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (countryButtonsEl) countryButtonsEl.style.display = visible ? '' : 'none';
   }
 
-  function showMixMapAnswer(content) {
+  function showMixMapAnswer(content, opts) {
+    opts = opts || {};
     if (!mixMapAnswerOverlay) return;
     mixMapAnswerOverlay.innerHTML = '';
     if (typeof content === 'string') {
-      mixMapAnswerOverlay.textContent = content;
+      if (opts.asHtml) {
+        mixMapAnswerOverlay.innerHTML = content;
+      } else {
+        mixMapAnswerOverlay.textContent = content;
+      }
     } else if (content && content.nodeType === 1) {
       mixMapAnswerOverlay.appendChild(content);
     }
@@ -185,6 +272,128 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnMixShow) btnMixShow.disabled = true;
     if (btnMixCorrect) btnMixCorrect.disabled = false;
     if (btnMixIncorrect) btnMixIncorrect.disabled = false;
+  }
+
+  function mixCapitalLineHtml(c) {
+    return `<p class="mix-answer-line mix-answer-line--muted"><strong>Hoofdstad:</strong> ${escapeHtml(c.capitals_nl.join(', '))}</p>`;
+  }
+
+  function mixLandLineHtml(c) {
+    return `<p class="mix-answer-line mix-answer-line--muted"><strong>Land:</strong> ${escapeHtml(c.name_nl)}</p>`;
+  }
+
+  function mixFlagImgHtml(iso) {
+    const c = countriesMap[iso];
+    const alt = c ? escapeHtml(c.name_nl) : '';
+    return `<div class="mix-answer-flag-lg"><img src="../assets/flags/${window.App.getFlagFilename(iso)}" alt="${alt}"></div>`;
+  }
+
+  function mixPreviewBlockHtml(iso, hideFlagInPreview) {
+    if (!mixWorldGeoJson || !window.App.buildCountryPreviewHtml) return '';
+    const raw = window.App.buildCountryPreviewHtml(iso, mixWorldGeoJson, group.countries);
+    if (!raw) return '';
+    const cls = hideFlagInPreview ? ' mix-answer-preview-wrap--no-flag' : '';
+    return `<div class="mix-answer-preview-wrap${cls}">${raw}</div>`;
+  }
+
+  function buildMixMapOverlayRevealHtml(iso) {
+    const c = countriesMap[iso];
+    if (!c) return '';
+    const parts = [];
+    if (currentSubType === 'continent-only') {
+      parts.push(`<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`);
+      parts.push(mixCapitalLineHtml(c));
+    } else if (currentSubType === 'map-to-capital') {
+      parts.push(`<p class="mix-answer-primary">${escapeHtml(c.capitals_nl.join(', '))}</p>`);
+      parts.push(mixLandLineHtml(c));
+    } else if (currentSubType === 'map-to-flag') {
+      parts.push(`<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`);
+      parts.push(mixCapitalLineHtml(c));
+    } else {
+      parts.push(`<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`);
+      parts.push(mixCapitalLineHtml(c));
+      parts.push(mixFlagImgHtml(iso));
+    }
+    return `<div class="mix-map-overlay-text mix-answer-reveal">${parts.join('')}</div>`;
+  }
+
+  function renderMixCapFlagAnswerReveal() {
+    if (!currentCountry || !group || !countriesMap) return;
+    const iso = currentCountry.iso;
+    const c = countriesMap[iso];
+    if (!c) return;
+
+    const richSubTypes = new Set([
+      'land-to-capital',
+      'capital-to-land',
+      'flag-to-land',
+      'land-to-flag',
+      'mega-capital-flag',
+      'mega-capital-map',
+      'mega-flag-capital',
+      'mega-flag-map'
+    ]);
+
+    if (!richSubTypes.has(currentSubType)) {
+      answerEl.hidden = false;
+      return;
+    }
+
+    let inner = '';
+    switch (currentSubType) {
+      case 'land-to-capital':
+        inner = `<p class="mix-answer-primary">${escapeHtml(c.capitals_nl.join(', '))}</p>`
+          + mixFlagImgHtml(iso);
+        break;
+      case 'capital-to-land':
+        inner = `<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`
+          + mixCapitalLineHtml(c)
+          + mixFlagImgHtml(iso);
+        break;
+      case 'flag-to-land':
+        inner = `<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`
+          + mixCapitalLineHtml(c)
+          + mixFlagImgHtml(iso);
+        break;
+      case 'land-to-flag':
+        inner = `<div class="mix-answer-primary">${mixFlagImgHtml(iso)}</div>`
+          + mixCapitalLineHtml(c);
+        break;
+      case 'mega-capital-flag':
+        inner = `<div class="mix-answer-primary">${mixFlagImgHtml(iso)}</div>`
+          + mixLandLineHtml(c)
+          + mixCapitalLineHtml(c);
+        break;
+      case 'mega-capital-map':
+        inner = `<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`
+          + mixCapitalLineHtml(c)
+          + mixFlagImgHtml(iso);
+        break;
+      case 'mega-flag-capital':
+        inner = `<p class="mix-answer-primary">${escapeHtml(c.capitals_nl.join(', '))}</p>`
+          + mixLandLineHtml(c)
+          + mixFlagImgHtml(iso);
+        break;
+      case 'mega-flag-map':
+        inner = `<p class="mix-answer-primary">${escapeHtml(c.name_nl)}</p>`
+          + mixCapitalLineHtml(c)
+          + mixFlagImgHtml(iso);
+        break;
+      default:
+        answerEl.hidden = false;
+        return;
+    }
+
+    answerEl.innerHTML = `<div class="mix-answer-reveal">${inner}</div>`;
+    answerEl.hidden = false;
+
+    if (canUseMixSatelliteReveal()) {
+      showSatelliteMapForMixReveal(iso);
+    } else {
+      const wrap = answerEl.querySelector('.mix-answer-reveal');
+      const extra = mixPreviewBlockHtml(iso, false);
+      if (wrap && extra) wrap.insertAdjacentHTML('beforeend', extra);
+    }
   }
 
   // Oude SVG rendering functies verwijderd - vervangen door satelliet kaart
@@ -195,10 +404,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return customMegaTypes[idx];
     }
     if (megaMix) {
-      const idx = Math.floor(Math.random() * MEGA_TYPES.length);
-      return MEGA_TYPES[idx];
+      const idx = Math.floor(Math.random() * activeMegaTypes.length);
+      return activeMegaTypes[idx];
     }
-    const types = allowedTypes || ['capital', 'flag', 'map'];
+    const types = allowedTypes || (oceaniaFocus ? ['capital', 'flag'] : ['capital', 'flag', 'map']);
     const idx = Math.floor(Math.random() * types.length);
     return types[idx];
   }
@@ -217,6 +426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       questionTypeLabelEl.textContent = 'Hoofdstad (hoofdstad → land)';
     }
     mixCapFlagArea.style.display = '';
+    stripMixMapRevealMode();
     mixMapArea.style.display = 'none';
     if (mixMapControls) mixMapControls.style.display = 'none';
     if (mixMapPrompt) mixMapPrompt.style.display = 'none';
@@ -266,6 +476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       questionTypeLabelEl.textContent = 'Vlag (land → vlag)';
     }
     mixCapFlagArea.style.display = '';
+    stripMixMapRevealMode();
     mixMapArea.style.display = 'none';
     if (mixMapControls) mixMapControls.style.display = 'none';
     if (mixMapPrompt) mixMapPrompt.style.display = 'none';
@@ -278,6 +489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSubType = 'continent-only';
     questionTypeLabelEl.textContent = 'Kaart';
     mixCapFlagArea.style.display = 'none';
+    stripMixMapRevealMode();
     mixMapArea.style.display = '';
     if (mixMapPrompt) { mixMapPrompt.textContent = 'Welk land is wit gemarkeerd?'; mixMapPrompt.style.display = ''; }
     if (mixMapGivenWrap) mixMapGivenWrap.style.display = 'none';
@@ -304,6 +516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     answerEl.appendChild(img);
     questionTypeLabelEl.textContent = 'Hoofdstad → Vlag';
     mixCapFlagArea.style.display = '';
+    stripMixMapRevealMode();
     mixMapArea.style.display = 'none';
     if (mixMapControls) mixMapControls.style.display = 'none';
     if (mixMapPrompt) mixMapPrompt.style.display = 'none';
@@ -319,6 +532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     answerEl.hidden = true;
     questionTypeLabelEl.textContent = 'Hoofdstad → Land';
     mixCapFlagArea.style.display = '';
+    stripMixMapRevealMode();
     mixMapArea.style.display = 'none';
     if (mixMapControls) mixMapControls.style.display = 'none';
     setCountryListVisible(false);
@@ -343,6 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     answerEl.textContent = c.capitals_nl.join(', ');
     questionTypeLabelEl.textContent = 'Vlag → Hoofdstad';
     mixCapFlagArea.style.display = '';
+    stripMixMapRevealMode();
     mixMapArea.style.display = 'none';
     if (mixMapControls) mixMapControls.style.display = 'none';
     if (mixMapPrompt) mixMapPrompt.style.display = 'none';
@@ -367,6 +582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     answerEl.hidden = true;
     questionTypeLabelEl.textContent = 'Vlag → Land';
     mixCapFlagArea.style.display = '';
+    stripMixMapRevealMode();
     mixMapArea.style.display = 'none';
     if (mixMapControls) mixMapControls.style.display = 'none';
     setCountryListVisible(false);
@@ -381,6 +597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSubType = 'map-to-capital';
     questionTypeLabelEl.textContent = 'Kaart → Hoofdstad';
     mixCapFlagArea.style.display = 'none';
+    stripMixMapRevealMode();
     mixMapArea.style.display = '';
     if (mixMapPrompt) { mixMapPrompt.textContent = 'Wat is de hoofdstad van het wit gemarkeerde land?'; mixMapPrompt.style.display = ''; }
     if (mixMapGivenWrap) mixMapGivenWrap.style.display = 'none';
@@ -401,6 +618,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSubType = 'map-to-flag';
     questionTypeLabelEl.textContent = 'Kaart → Vlag';
     mixCapFlagArea.style.display = 'none';
+    stripMixMapRevealMode();
     mixMapArea.style.display = '';
     if (mixMapPrompt) { mixMapPrompt.textContent = 'Hoe ziet de vlag eruit van het wit gemarkeerde land?'; mixMapPrompt.style.display = ''; }
     if (mixMapGivenWrap) mixMapGivenWrap.style.display = 'none';
@@ -534,9 +752,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   btnShow.addEventListener('click', () => {
-    // Bij map overlay-vragen wordt btnMixShow gebruikt
     if (isMapOverlayQuestion()) return;
-    answerEl.hidden = false;
+    renderMixCapFlagAnswerReveal();
     btnShow.disabled = true;
     btnCorrect.disabled = false;
     btnIncorrect.disabled = false;
@@ -548,25 +765,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnMixShow) {
     btnMixShow.addEventListener('click', () => {
       if (!currentCountry || !countriesMap) return;
-      const c = countriesMap[currentCountry.iso];
-      if (currentSubType === 'continent-only' || currentSubType === 'mega-capital-map' || currentSubType === 'mega-flag-map') {
-        showMixMapAnswer(c ? c.name_nl : currentCountry.iso);
-      } else if (currentSubType === 'map-to-capital') {
-        showMixMapAnswer(c ? c.capitals_nl.join(', ') : '');
-      } else if (currentSubType === 'map-to-flag') {
-        if (mixMapGivenWrap) {
-          mixMapGivenWrap.innerHTML = '';
-          const img = document.createElement('img');
-          img.src = `../assets/flags/${window.App.getFlagFilename(currentCountry.iso)}`;
-          img.alt = c ? c.name_nl : '';
-          img.className = 'mix-map-given-flag';
-          mixMapGivenWrap.appendChild(img);
-          mixMapGivenWrap.style.display = 'block';
-        }
-        if (mixMapAnswerOverlay) mixMapAnswerOverlay.hidden = true;
-        if (btnMixShow) btnMixShow.disabled = true;
-        if (btnMixCorrect) btnMixCorrect.disabled = false;
-        if (btnMixIncorrect) btnMixIncorrect.disabled = false;
+      showMixMapAnswer(buildMixMapOverlayRevealHtml(currentCountry.iso), { asHtml: true });
+      if (mixMapGivenWrap) {
+        mixMapGivenWrap.innerHTML = mixFlagImgHtml(currentCountry.iso);
+        mixMapGivenWrap.style.display = 'block';
+      }
+      if (canUseMixSatelliteReveal()) {
+        scheduleMixMapResizeAndFocus(currentCountry.iso);
       }
     });
   }
@@ -629,8 +834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!sessionEnded && session) {
       window.App.finalizeSession(session);
     }
-    // Cleanup satelliet kaart
-    if (window.SatelliteMap) {
+    if (!oceaniaFocus && window.SatelliteMap) {
       window.SatelliteMap.destroy();
     }
   });
@@ -639,6 +843,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     group = await window.App.loadGroupById(groupId);
     countriesMap = await window.App.loadCountriesMap();
 
+    oceaniaFocus = oceaniaFocusForGroup(group, countriesMap);
+    activeMegaTypes = oceaniaFocus ? MEGA_TYPES_OCEANIA : MEGA_TYPES_FULL;
+    allowedTypes = oceaniaFocus ? parseCustomTypesOceania(typesParam) : parseCustomTypesFull(typesParam);
+    customMegaTypes = parseCustomMegaTypes(customParam, activeMegaTypes);
+    useCustomMega = !!(customMegaTypes && customMegaTypes.length > 0);
+
     const typeLabels = { capital: 'Hoofdstad', flag: 'Vlaggen', map: 'Kaart' };
     let titleBase = allowedTypes ? 'Aangepaste mix' : 'Mix-quiz';
     if (useCustomMega) titleBase = 'Custom mix';
@@ -646,24 +856,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     let subtitleText = useCustomMega
       ? `Geselecteerde vraagtypen: ${customMegaTypes.map(t => t.label).join(', ')}.`
       : megaMix
-        ? 'Alle combinaties: hoofdstad↔vlag↔kaart. Bijv. vlag bij hoofdstad, land op kaart bij vlag.'
+        ? (oceaniaFocus
+          ? 'Combinaties hoofdstad/vlag (geen kaartvragen — Oceanië).'
+          : 'Alle combinaties: hoofdstad↔vlag↔kaart. Bijv. vlag bij hoofdstad, land op kaart bij vlag.')
         : allowedTypes
           ? `Mix van ${allowedTypes.map(t => typeLabels[t]).join(' + ')}. Mastery telt per land.`
-          : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.';
+          : (oceaniaFocus
+            ? 'Hoofdstad en vlag (geen kaart — handig voor Oceanië). Mastery telt per land.'
+            : 'Combinatie van hoofdsteden, vlaggen en kaartvragen. Mastery telt per land.');
     if (infiniteMode) subtitleText += ' Oneindige modus: ga door zolang je wilt.';
     document.title = `${titleBase} – ${group.title}`;
     titleEl.textContent = `${titleBase} – ${group.title}`;
     subtitleEl.textContent = subtitleText;
 
     countryStats = window.App.createInitialCountryStats(group.countries);
+    const defaultSubMode = oceaniaFocus ? 'capital+flag' : 'capital+flag+map';
     session = window.App.startSession({
       groupId,
       quizType: 'mix',
-      subMode: useCustomMega ? 'custom:' + customMegaTypes.map(t => t.key).join(',') : (megaMix ? 'mega' : (allowedTypes ? allowedTypes.join('+') : 'capital+flag+map'))
+      subMode: useCustomMega ? 'custom:' + customMegaTypes.map(t => t.key).join(',') : (megaMix ? 'mega' : (allowedTypes ? allowedTypes.join('+') : defaultSubMode))
     });
 
-    // Initialiseer satelliet kaart (niet blokkerend – quiz start direct, kaart laadt op de achtergrond)
-    if (window.SatelliteMap) {
+    try {
+      mixWorldGeoJson = await window.App.loadWorldGeoJSON();
+    } catch (e) {
+      console.warn('Mix: GeoJSON voor antwoord-preview niet geladen', e);
+      mixWorldGeoJson = null;
+    }
+
+    // Initialiseer satelliet kaart (niet bij Oceanië-focus)
+    if (!oceaniaFocus && window.SatelliteMap) {
       window.SatelliteMap.init('mix-map-container', '../assets/maps/high_res_usa.json').then(() => {
         satelliteMapInitialized = true;
         if (group.countries && group.countries.length > 0) {

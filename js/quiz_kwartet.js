@@ -1,17 +1,34 @@
 /**
- * Kwartet-quiz: match kaart, landnaam, hoofdstad en vlag voor één land.
- * Quiz kiest een random land; gebruiker selecteert in elke kolom de bijbehorende optie en klikt Opslaan.
+ * Kwartet-quiz: match kaart, landnaam, hoofdstad en vlag — behalve bij Oceanië-focus
+ * (dan zonder kaartkolom: alleen land, hoofdstad, vlag).
  */
 document.addEventListener('DOMContentLoaded', async () => {
+  function oceaniaFocusForGroup(group, countriesMap) {
+    if (window.App && typeof window.App.isOceaniaFocusGroup === 'function') {
+      return window.App.isOceaniaFocusGroup(group, countriesMap);
+    }
+    if (!group || !group.countries || !group.countries.length) return false;
+    if (group.continent === 'Oceania') return true;
+    if (group.id === 'custom' && countriesMap) {
+      return group.countries.every(iso => {
+        const c = countriesMap[iso];
+        return c && c.continent === 'Oceania';
+      });
+    }
+    return false;
+  }
+
   const groupId = window.App.getQueryParam('id');
   const infiniteMode = window.App.getQueryParam('infinite') === '1';
   const titleEl = document.getElementById('quiz-title');
   const subtitleEl = document.getElementById('quiz-subtitle');
   const deckStatusEl = document.getElementById('deck-status');
   const hintContentEl = document.getElementById('kwartet-hint-content');
+  const colMapEl = document.getElementById('kwartet-col-map');
   const colLandEl = document.getElementById('kwartet-col-land');
   const colCapitalEl = document.getElementById('kwartet-col-capital');
   const colFlagEl = document.getElementById('kwartet-col-flag');
+  const kwartetSectionEl = document.querySelector('.kwartet-section');
   const listLandEl = document.getElementById('kwartet-list-land');
   const listCapitalEl = document.getElementById('kwartet-list-capital');
   const listFlagEls = [
@@ -30,11 +47,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let group;
   let countriesMap;
-  let countryList = []; // { iso, name_nl, capitals_nl }
-  let completed = new Set(); // ISO codes die goed zijn gemaakt
-  let targetIso = null; // Huidig te vinden land
-  let hintType = null; // 'capital' | 'land' | 'flag' — welk gegeven wordt getoond
+  let countryList = [];
+  let completed = new Set();
+  let targetIso = null;
+  let hintType = null;
   const selection = { map: null, land: null, capital: null, flag: null };
+  let useMapColumn = true;
   let satelliteMapInitialized = false;
   let searchLandEl = null;
   let searchCapitalEl = null;
@@ -74,13 +92,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     selection.capital = null;
     selection.flag = null;
     document.querySelectorAll('.kwartet-option.selected').forEach(el => el.classList.remove('selected'));
-    if (window.SatelliteMap) window.SatelliteMap.highlightCountry(null);
+    if (useMapColumn && window.SatelliteMap) window.SatelliteMap.highlightCountry(null);
     updateOpslaanButton();
   }
 
   function getRequiredSelections() {
     if (!hintType) return [];
-    const all = ['map', 'land', 'capital', 'flag'];
+    const all = useMapColumn ? ['map', 'land', 'capital', 'flag'] : ['land', 'capital', 'flag'];
     return all.filter(col => col !== hintType);
   }
 
@@ -100,7 +118,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     hintType = HINT_TYPES[Math.floor(Math.random() * HINT_TYPES.length)];
     clearSelection();
 
-    // Toon het gegeven (random: hoofdstad, landnaam of vlag)
     if (hintType === 'capital') {
       hintContentEl.innerHTML = `<strong>${c.capitals_nl.join(', ')}</strong> <span class="kwartet-hint-type">(hoofdstad)</span>`;
     } else if (hintType === 'land') {
@@ -109,7 +126,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       hintContentEl.innerHTML = `<img src="../assets/flags/${window.App.getFlagFilename(c.iso)}" alt="" class="kwartet-hint-flag"> <span class="kwartet-hint-type">(vlag)</span>`;
     }
 
-    // Toon alleen de 3 kolommen waar de speler uit kiest (verberg de gegeven kolom)
     colLandEl.style.display = hintType === 'land' ? 'none' : '';
     colCapitalEl.style.display = hintType === 'capital' ? 'none' : '';
     colFlagEl.style.display = hintType === 'flag' ? 'none' : '';
@@ -130,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         el.removeAttribute('aria-disabled');
       });
     });
-    if (window.SatelliteMap && window.SatelliteMap.setCompletedCountries) {
+    if (useMapColumn && window.SatelliteMap && window.SatelliteMap.setCompletedCountries) {
       window.SatelliteMap.setCompletedCountries([]);
     }
   }
@@ -164,7 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     els.filter(Boolean).forEach(el => el.classList.add('kwartet-flash'));
     const mapEl = document.querySelector('.kwartet-map-wrapper');
-    if (mapEl && selection.map) mapEl.classList.add('kwartet-flash');
+    if (useMapColumn && mapEl && selection.map) mapEl.classList.add('kwartet-flash');
     setTimeout(() => {
       els.filter(Boolean).forEach(el => el.classList.remove('kwartet-flash'));
       if (mapEl) mapEl.classList.remove('kwartet-flash');
@@ -182,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (correct) {
       completed.add(targetIso);
       markCompletedInLists(targetIso);
-      if (window.SatelliteMap && window.SatelliteMap.setCompletedCountries) {
+      if (useMapColumn && window.SatelliteMap && window.SatelliteMap.setCompletedCountries) {
         window.SatelliteMap.setCompletedCountries(Array.from(completed));
       }
       updateDeckStatus();
@@ -301,6 +317,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     group = await window.App.loadGroupById(groupId);
     countriesMap = await window.App.loadCountriesMap();
+    const oceaniaFocus = oceaniaFocusForGroup(group, countriesMap);
+    useMapColumn = !oceaniaFocus;
+
+    if (!useMapColumn) {
+      if (colMapEl) colMapEl.style.display = 'none';
+      if (kwartetSectionEl) kwartetSectionEl.classList.add('kwartet-no-map');
+    }
+
     countryList = group.countries.map(iso => {
       const c = countriesMap[iso];
       return c ? { iso: c.iso, name_nl: c.name_nl, capitals_nl: c.capitals_nl || [] } : { iso, name_nl: iso, capitals_nl: [] };
@@ -308,7 +332,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.title = `Kwartet – ${group.title}`;
     titleEl.textContent = `Kwartet – ${group.title}`;
-    subtitleEl.textContent = `${group.title} · Match kaart, land, hoofdstad en vlag.`;
+    subtitleEl.textContent = useMapColumn
+      ? `${group.title} · Match kaart, land, hoofdstad en vlag.`
+      : `${group.title} · Match land, hoofdstad en vlag (zonder kaart — Oceanië).`;
 
     renderLists();
 
@@ -395,7 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('keydown', handleKwartetArrowKeys, true);
 
-    if (window.SatelliteMap) {
+    if (useMapColumn && window.SatelliteMap) {
       await window.SatelliteMap.init('kwartet-map-container', '../assets/maps/high_res_usa.json');
       satelliteMapInitialized = true;
       if (window.SatelliteMap.setCompletedCountries) {
@@ -435,6 +461,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   window.addEventListener('beforeunload', () => {
-    if (window.SatelliteMap) window.SatelliteMap.destroy();
+    if (useMapColumn && window.SatelliteMap) window.SatelliteMap.destroy();
   });
 });

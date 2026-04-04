@@ -697,6 +697,13 @@
     });
   }
 
+  /** Na tonen/vergroten van de container (bijv. display:none → zichtbaar). */
+  function resize() {
+    if (map && typeof map.resize === 'function') {
+      map.resize();
+    }
+  }
+
   /**
    * Zoom in rond het huidige centrum (land blijft in het midden)
    */
@@ -769,6 +776,7 @@
     setCompletedCountries,
     fitToRegion,
     resetView,
+    resize,
     zoomIn,
     zoomOut,
     destroy,

@@ -889,6 +889,62 @@ h3 {
   border-left: 3px solid var(--color-primary);
 }
 
+.mix-answer-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.mix-answer-primary {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.mix-answer-line {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.mix-answer-line--muted {
+  color: var(--color-text-muted);
+}
+
+.mix-answer-flag-lg img {
+  display: block;
+  max-width: 200px;
+  height: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: #fff;
+}
+
+.mix-answer-preview-wrap {
+  margin-top: 0.15rem;
+}
+
+.mix-answer-preview-wrap--no-flag .country-hover-preview-flag-wrap {
+  display: none;
+}
+
+.mix-map-overlay-text.mix-answer-reveal {
+  font-size: 1rem;
+  font-weight: 400;
+  max-width: min(100%, 22rem);
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
+  padding: 0.65rem 0.85rem;
+  pointer-events: auto;
+}
+
+.mix-map-overlay-text .mix-answer-primary {
+  font-size: 1.1rem;
+}
+
 .quiz-controls {
   display: flex;
   flex-wrap: wrap;
@@ -1666,11 +1722,25 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   pointer-events: none;
 }
 
-.map-wrapper #map-container {
+.map-wrapper #map-container,
+.map-wrapper #mix-map-container {
   position: relative;
   width: 100%;
   height: 100%;
   min-height: 200px;
+}
+
+/* Mix-quiz: satellietkaart onder het antwoord (na “Toon antwoord”) */
+.mix-map-area--reveal-only {
+  margin-top: 0.75rem;
+}
+
+.mix-map-area--reveal-only .mix-map-controls {
+  display: none !important;
+}
+
+.mix-map-area--reveal-only .mix-map-prompt {
+  display: none !important;
 }
 
 /* MapLibre specifieke styles */
@@ -2000,12 +2070,22 @@ html.hoofdsteden-cheatsheet-collapsed-init .vlaggen-cheatsheet-arrow::after,
   align-items: start;
 }
 
+.kwartet-section.kwartet-no-map .kwartet-three-col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 1rem;
+}
+
 .kwartet-three-col .kwartet-column:nth-child(2) {
   margin-left: 0;
 }
 
 .kwartet-three-col .kwartet-column:nth-child(3) {
   margin-left: 1rem;
+}
+
+.kwartet-section.kwartet-no-map .kwartet-three-col .kwartet-column:nth-child(2),
+.kwartet-section.kwartet-no-map .kwartet-three-col .kwartet-column:nth-child(3) {
+  margin-left: 0;
 }
 
 @media (max-width: 900px) {

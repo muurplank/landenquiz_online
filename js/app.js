@@ -459,6 +459,22 @@ window.App = (function () {
     return '★'.repeat(n) + '☆'.repeat(5 - n);
   }
 
+  /**
+   * Waarheid voor kwartet/mix zonder kaart: week Oceanië, continent Oceanië,
+   * of custom selectie waarbij álle landen continent Oceania hebben.
+   */
+  function isOceaniaFocusGroup(group, countriesMap) {
+    if (!group || !group.countries || !group.countries.length) return false;
+    if (group.continent === 'Oceania') return true;
+    if (group.id === 'custom' && countriesMap) {
+      return group.countries.every(iso => {
+        const c = countriesMap[iso];
+        return c && c.continent === 'Oceania';
+      });
+    }
+    return false;
+  }
+
   // Hover-preview (vlag + mini-kaart) voor overzichtspagina group.html
   function isValidIsoCode(v) {
     if (v == null || v === '' || v === '-99' || String(v) === '-99') return false;
@@ -786,6 +802,7 @@ window.App = (function () {
     clearHistory,
     getGroupProgress,
     formatProgressStars,
+    isOceaniaFocusGroup,
     buildCountryPreviewHtml,
     buildWorldMapPreview,
     buildWorldMapEmpty
