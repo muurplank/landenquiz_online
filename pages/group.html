@@ -79,6 +79,10 @@
             <a id="capitals-both" class="btn">Beide kanten</a>
             <a id="capitals-thompson" class="btn">Thompson Sampling</a>
           </div>
+          <p class="small" style="margin-top: 0.75rem;">Typ-quiz: typ je antwoord, Enter om te controleren.</p>
+          <div class="btn-row">
+            <a id="typing-both-capitals" class="btn">Beide kanten (typ)</a>
+          </div>
         </article>
 
         <article class="card">
@@ -89,6 +93,10 @@
             <a id="flags-land-to-flag" class="btn">Land → Vlag</a>
             <a id="flags-both" class="btn">Beide kanten</a>
             <a id="flags-thompson" class="btn">Thompson Sampling</a>
+          </div>
+          <p class="small" style="margin-top: 0.75rem;">Typ-quiz</p>
+          <div class="btn-row">
+            <a id="typing-flag-to-land" class="btn">Vlag → Land (typ)</a>
           </div>
         </article>
 
@@ -344,6 +352,11 @@
             `quiz_flags.html?${base}&mode=both`;
           document.getElementById('flags-thompson').href =
             `quiz_flags.html?${base}&mode=thompson`;
+
+          document.getElementById('typing-both-capitals').href =
+            `quiz_typing.html?${base}&mode=both${suffix()}`;
+          document.getElementById('typing-flag-to-land').href =
+            `quiz_typing.html?${base}&mode=flag-to-land${suffix()}`;
 
           document.getElementById('map-quiz-snelle').href =
             `quiz_map.html?${base}&mode=snelle`;

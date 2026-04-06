@@ -889,6 +889,19 @@ h3 {
   border-left: 3px solid var(--color-primary);
 }
 
+.quiz-typing-wrap {
+  margin-top: 1rem;
+}
+
+.quiz-typing-input {
+  max-width: min(100%, 28rem);
+}
+
+.quiz-typing-input--blocked {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
 .mix-answer-reveal {
   display: flex;
   flex-direction: column;
