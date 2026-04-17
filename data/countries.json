@@ -64,6 +64,7 @@
   {"iso": "NLD", "name_nl": "Nederland", "capitals_nl": ["Amsterdam"], "continent": "Europe"},
   {"iso": "MKD", "name_nl": "Noord-Macedonië", "capitals_nl": ["Skopje"], "continent": "Europe"},
   {"iso": "NOR", "name_nl": "Noorwegen", "capitals_nl": ["Oslo"], "continent": "Europe"},
+  {"iso": "SWE", "name_nl": "Zweden", "capitals_nl": ["Stockholm"], "continent": "Europe"},
   {"iso": "UKR", "name_nl": "Oekraïne", "capitals_nl": ["Kyiv"], "continent": "Europe"},
   {"iso": "AUT", "name_nl": "Oostenrijk", "capitals_nl": ["Wenen"], "continent": "Europe"},
   {"iso": "POL", "name_nl": "Polen", "capitals_nl": ["Warschau"], "continent": "Europe"},
