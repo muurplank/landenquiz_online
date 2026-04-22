@@ -238,7 +238,13 @@
           }
         }
 
-        group.countries.forEach(iso3 => {
+        const sortedCountryIsos = [...group.countries].sort((a, b) => {
+          const nameA = countriesMap[a]?.name_nl || a;
+          const nameB = countriesMap[b]?.name_nl || b;
+          return nameA.localeCompare(nameB, 'nl', { sensitivity: 'base' });
+        });
+
+        sortedCountryIsos.forEach(iso3 => {
           const c = countriesMap[iso3];
           if (!c) return;
           const li = document.createElement('li');

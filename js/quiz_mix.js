@@ -903,7 +903,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // landknoppen
-    group.countries.forEach(iso => {
+    const sortedCountryIsos = [...group.countries].sort((a, b) => {
+      const nameA = countriesMap[a]?.name_nl || a;
+      const nameB = countriesMap[b]?.name_nl || b;
+      return nameA.localeCompare(nameB, 'nl', { sensitivity: 'base' });
+    });
+
+    sortedCountryIsos.forEach(iso => {
       const c = countriesMap[iso];
       if (!c) return;
       const btn = document.createElement('button');
