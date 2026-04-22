@@ -234,7 +234,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const wrap = cheatsheetTableWrap || document.querySelector('#hoofdsteden-cheatsheet-table-wrap');
     if (wrap) {
       const table = document.createElement('table');
-      const countries = (group.countries || []).filter(iso => iso && countriesMap[iso]);
+      const countries = (group.countries || [])
+        .filter(iso => iso && countriesMap[iso])
+        .sort((a, b) => {
+          const nameA = countriesMap[a]?.name_nl || a;
+          const nameB = countriesMap[b]?.name_nl || b;
+          return nameA.localeCompare(nameB, 'nl', { sensitivity: 'base' });
+        });
       const COLUMNS = countries.length > 16 ? 8 : 4;
       table.className = 'flags-cheatsheet-table hoofdsteden-cheatsheet-table';
       table.setAttribute('role', 'table');
