@@ -34,8 +34,8 @@
       <ul id="groups-list" class="card-list"></ul>
     </section>
     <section style="margin-top: 2rem;">
-      <h2>Per continent</h2>
-      <p>Oefen alle landen per continent of de hele wereld. Vink kaarten aan voor een custom quiz.</p>
+      <h2>Per continent (Presets)</h2>
+      <p>Klik op een continent of de hele wereld om automatisch alle bijbehorende delen te selecteren voor een custom quiz.</p>
       <ul id="continents-list" class="card-list"></ul>
     </section>
     <section style="margin-top: 2rem;">
@@ -68,6 +68,28 @@
 
       const allGroupsForCustom = [...groups, ...continentGroups];
 
+      function updatePresetCheckboxes() {
+        document.querySelectorAll('.preset-select-check').forEach(presetCb => {
+          const presetId = decodeURIComponent(presetCb.dataset.presetId);
+          const gPreset = continentGroups.find(x => x.id === presetId);
+          if (!gPreset) return;
+          
+          let allChecked = true;
+          let anyFound = false;
+          
+          document.querySelectorAll('.custom-select-check').forEach(cb => {
+            const cbId = decodeURIComponent(cb.dataset.groupId);
+            const g = groups.find(x => x.id === cbId);
+            if (g && (presetId === 'world' || g.continent === gPreset.continent)) {
+              anyFound = true;
+              if (!cb.checked) allChecked = false;
+            }
+          });
+          
+          presetCb.checked = anyFound && allChecked;
+        });
+      }
+
       function addCardWithCustomCheck(container, group, progress, linkContent) {
         const li = document.createElement('li');
         li.className = 'card';
@@ -75,6 +97,10 @@
         checkLabel.className = 'card-custom-check';
         checkLabel.title = 'Meenemen in custom quiz';
         checkLabel.innerHTML = `<input type="checkbox" class="custom-select-check" data-group-id="${encodeURIComponent(group.id)}" aria-label="Meenemen in custom quiz">`;
+        
+        // Zorg dat de preset checkboxes in sync blijven als je handmatig een los deel aanvinkt
+        checkLabel.querySelector('input').addEventListener('change', updatePresetCheckboxes);
+
         const link = document.createElement('a');
         link.href = `pages/group.html?id=${encodeURIComponent(group.id)}`;
         link.className = 'card-link';
@@ -105,7 +131,21 @@
         const progress = window.App.getGroupProgress(group.id, group.countries, history);
         const pct = Math.min(100, (progress.stars / 5) * 100);
         const meta = group.id === 'world' ? `${group.countries.length} landen` : `${group.continent} · ${group.countries.length} landen`;
-        const linkContent = `
+        
+        const li = document.createElement('li');
+        li.className = 'card';
+        
+        const checkLabel = document.createElement('label');
+        checkLabel.className = 'card-custom-check';
+        checkLabel.title = 'Preset meenemen in custom quiz';
+        checkLabel.innerHTML = `<input type="checkbox" class="preset-select-check" data-preset-id="${encodeURIComponent(group.id)}" aria-label="Preset meenemen in custom quiz">`;
+        // Voorkom standaard werking zodat we het klik-event op de 'li' kunnen afhandelen
+        checkLabel.addEventListener('click', (e) => e.preventDefault()); 
+
+        const link = document.createElement('div');
+        link.className = 'card-link';
+        link.style.cursor = 'pointer';
+        link.innerHTML = `
           <h3>${group.title}</h3>
           <p>${meta}</p>
           <p class="group-progress" title="Hoofdstad, vlag en kaart tellen elk voor 33%">
@@ -113,7 +153,34 @@
             <span class="progress-detail">${Math.round(pct)}%</span>
           </p>
         `;
-        addCardWithCustomCheck(continentsListEl, group, progress, linkContent);
+        
+        li.appendChild(checkLabel);
+        li.appendChild(link);
+        
+        li.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          // Vind alle checkboxes die bij dit continent/preset horen
+          const relatedCheckboxes = [];
+          document.querySelectorAll('.custom-select-check').forEach(cb => {
+            const cbId = decodeURIComponent(cb.dataset.groupId);
+            const g = groups.find(x => x.id === cbId);
+            if (g && (group.id === 'world' || g.continent === group.continent)) {
+              relatedCheckboxes.push(cb);
+            }
+          });
+          
+          // Controleer of ze momenteel allemaal al zijn aangevinkt
+          const allChecked = relatedCheckboxes.length > 0 && relatedCheckboxes.every(cb => cb.checked);
+          
+          // Toggle de status: zet alles uit als alles al aan was, anders alles aan
+          relatedCheckboxes.forEach(cb => cb.checked = !allChecked);
+          
+          // Werk de zichtbaarheid van de preset-vinkjes bij
+          updatePresetCheckboxes();
+        });
+        
+        continentsListEl.appendChild(li);
       });
 
       document.getElementById('start-custom-quiz-btn').addEventListener('click', (e) => {
