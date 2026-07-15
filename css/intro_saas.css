@@ -1,0 +1,471 @@
+/* ============================================================
+   Intro "SaaS-launch" — light-mode intro-overlay (js/intro_saas.js)
+   Volledig standalone: alle regels leven onder #intro-saas.
+   Animaties zijn gekoppeld aan .playing zodat een replay ze
+   opnieuw laat afspelen na een class-reset.
+   ============================================================ */
+
+#intro-saas {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  overflow: hidden auto;
+  background:
+    radial-gradient(1100px 620px at 50% -8%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, #eaf2ff 0%, #dce8f8 100%);
+  color: #0f172a;
+  font-family: 'Inter', system-ui, sans-serif;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+#intro-saas[hidden] { display: none; }
+#intro-saas.playing { opacity: 1; }
+#intro-saas.leaving { opacity: 0; pointer-events: none; }
+
+#intro-saas.leaving .saas-hero {
+  transform: scale(0.97);
+  opacity: 0.4;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+/* ---------- Achtergrond ---------- */
+
+.saas-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.saas-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(75% 70% at 50% 42%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(75% 70% at 50% 42%, #000 55%, transparent 100%);
+}
+
+.saas-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.6;
+}
+
+.saas-blob.blob-a { width: 46vmin; height: 46vmin; top: -10%; left: 4%;  background: #bcd7ff; animation: saas-blob 11s ease-in-out infinite alternate; }
+.saas-blob.blob-b { width: 40vmin; height: 40vmin; bottom: -8%; right: 6%; background: #c2f2e4; animation: saas-blob 13s ease-in-out infinite alternate-reverse; }
+.saas-blob.blob-c { width: 32vmin; height: 32vmin; top: 32%; right: -8%; background: #ffe3cd; animation: saas-blob 9s ease-in-out 1s infinite alternate; }
+
+@keyframes saas-blob {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(4vmin, -3vmin) scale(1.12); }
+}
+
+/* ---------- Topbar ---------- */
+
+.saas-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+}
+
+#intro-saas.playing .saas-top { animation: saas-fade 0.6s ease 0.1s both; }
+
+.saas-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.saas-logo-mark { font-size: 1.3rem; }
+
+.saas-logo-tag {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #2563eb;
+  background: #e4edff;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+}
+
+.saas-skip {
+  border: 1px solid #dbe3ef;
+  background: rgba(255, 255, 255, 0.85);
+  color: #64748b;
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  font: 500 0.8rem 'Inter', sans-serif;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.saas-skip:hover { color: #0f172a; border-color: #b6c3d9; }
+
+/* ---------- Hero ---------- */
+
+.saas-hero {
+  position: relative;
+  z-index: 2;
+  margin: auto;
+  max-width: 780px;
+  padding: 5.2rem 1.4rem 6.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.saas-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem 0.4rem 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 30px -12px rgba(37, 99, 235, 0.25);
+  margin-bottom: 1.3rem;
+}
+
+#intro-saas.playing .saas-pill { animation: saas-drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) 0.15s both; }
+
+.saas-pill-badge {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+}
+
+.saas-pill-arrow { color: #94a3b8; font-weight: 600; }
+
+@keyframes saas-drop {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.saas-title {
+  margin: 0 0 1rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.3rem, 6.4vw, 4.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+}
+
+.saas-title-line { display: block; }
+
+.saas-word { display: inline-block; }
+
+#intro-saas.playing .saas-word { animation: saas-rise 0.65s cubic-bezier(0.18, 0.8, 0.26, 1) both; }
+
+.saas-title-accent .saas-word {
+  background: linear-gradient(92deg, #2563eb 10%, #06b6d4 55%, #10b981 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes saas-rise {
+  from { opacity: 0; transform: translateY(26px); filter: blur(5px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes saas-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.saas-sub {
+  max-width: 36rem;
+  margin: 0 0 2.1rem;
+  color: #526077;
+  font-size: clamp(0.95rem, 2.2vw, 1.08rem);
+  line-height: 1.55;
+}
+
+#intro-saas.playing .saas-sub { animation: saas-rise 0.65s cubic-bezier(0.18, 0.8, 0.26, 1) 1.2s both; }
+
+/* ---------- Globe-podium ---------- */
+
+.saas-stage-wrap {
+  position: relative;
+  margin-bottom: 2.3rem;
+}
+
+.saas-stage {
+  --size: clamp(150px, 23vmin, 205px);
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  margin: 0 auto;
+}
+
+#intro-saas.playing .saas-stage { animation: saas-fade 0.6s ease 1.4s both; }
+
+.saas-orbit {
+  position: absolute;
+  inset: -16%;
+  border: 1.5px dashed rgba(37, 99, 235, 0.32);
+  border-radius: 50%;
+}
+
+#intro-saas.playing .saas-orbit { animation: saas-spin 36s linear infinite; }
+
+.saas-orbit2 {
+  position: absolute;
+  inset: -30%;
+  border: 1px solid rgba(6, 182, 212, 0.16);
+  border-radius: 50%;
+}
+
+#intro-saas.playing .saas-orbit2 { animation: saas-spin 15s linear infinite reverse; }
+
+.saas-sat {
+  position: absolute;
+  top: -0.75em;
+  left: 50%;
+  margin-left: -0.55em;
+  font-size: 1.35rem;
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.25));
+}
+
+@keyframes saas-spin {
+  to { transform: rotate(360deg); }
+}
+
+.saas-globe {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #1d4ed8, #0b2a63 62%, #061a3f);
+  box-shadow:
+    0 34px 70px -22px rgba(37, 99, 235, 0.5),
+    0 10px 26px rgba(15, 23, 42, 0.18);
+}
+
+#intro-saas.playing .saas-globe {
+  animation:
+    saas-globe-pop 0.85s cubic-bezier(0.2, 0.9, 0.3, 1.35) 1.5s both,
+    saas-bob 4.5s ease-in-out 2.6s infinite;
+}
+
+/* Zelfde bol-shading als de klassieke intro, met lichte atmosfeerrand */
+.saas-globe::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1) 28%, rgba(255, 255, 255, 0) 44%),
+    radial-gradient(circle at 34% 30%, rgba(0, 0, 0, 0) 36%, rgba(5, 13, 32, 0.24) 62%, rgba(3, 9, 24, 0.55) 82%, rgba(1, 4, 12, 0.88) 100%);
+  box-shadow:
+    inset 0 0 12px rgba(150, 215, 255, 0.35),
+    inset 0 0 3px rgba(190, 235, 255, 0.5);
+}
+
+.saas-globe .globe-fallback { font-size: clamp(4.6rem, 15vmin, 6.6rem); }
+
+@keyframes saas-globe-pop {
+  from { opacity: 0; transform: scale(0.3) translateY(36px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes saas-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+/* ---------- Feature-chips ---------- */
+
+.saas-chips {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-size: 0.86rem;
+}
+
+.saas-chip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fff;
+  border: 1px solid #e4e9f2;
+  border-radius: 999px;
+  padding: 0.48rem 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06), 0 14px 30px -14px rgba(15, 23, 42, 0.25);
+}
+
+.saas-chip b { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+#intro-saas.playing .saas-chip {
+  animation:
+    saas-chip-pop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.45) var(--d, 2s) both,
+    saas-float 5.5s ease-in-out calc(var(--d, 2s) + 1.2s) infinite;
+}
+
+.saas-chip.chip-1 { right: calc(100% + 1.6rem); top: 4%; }
+.saas-chip.chip-2 { left: calc(100% + 2rem); top: 20%; }
+.saas-chip.chip-3 { right: calc(100% + 2.2rem); bottom: 18%; }
+.saas-chip.chip-4 { left: calc(100% + 1.4rem); bottom: 0; }
+
+@keyframes saas-chip-pop {
+  from { opacity: 0; transform: scale(0.4) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes saas-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* ---------- CTA ---------- */
+
+.saas-cta-wrap { margin-bottom: 1.9rem; }
+
+#intro-saas.playing .saas-cta-wrap { animation: saas-rise 0.7s cubic-bezier(0.18, 0.8, 0.26, 1) 2.55s both; }
+
+.saas-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 0;
+  cursor: pointer;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  padding: 1rem 2.3rem;
+  border-radius: 15px;
+  box-shadow: 0 14px 34px -10px rgba(37, 99, 235, 0.6), 0 3px 10px rgba(37, 99, 235, 0.3);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.saas-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -10px rgba(37, 99, 235, 0.65), 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.saas-cta:active { transform: translateY(0) scale(0.98); }
+
+.saas-cta-arrow { transition: transform 0.16s ease; }
+.saas-cta:hover .saas-cta-arrow { transform: translateX(4px); }
+
+#intro-saas.playing .saas-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: saas-pulse 2.2s ease-out 3.4s infinite;
+}
+
+@keyframes saas-pulse {
+  0%        { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); }
+  70%, 100% { box-shadow: 0 0 0 18px rgba(37, 99, 235, 0); }
+}
+
+/* ---------- Vlaggen-logowall ---------- */
+
+.saas-marquee {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 1rem 0 1.25rem;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+#intro-saas.playing .saas-marquee { animation: saas-fade 0.8s ease 3.1s both; }
+
+.saas-marquee-inner {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: saas-marquee 55s linear infinite;
+}
+
+.saas-marquee-inner img {
+  height: 20px;
+  width: auto;
+  border-radius: 3px;
+  margin-right: 2.3rem;
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+@keyframes saas-marquee {
+  to { transform: translateX(-50%); }
+}
+
+/* ---------- Confetti (CTA-klik) ---------- */
+
+.saas-confetti {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.saas-confetti i {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 760px) {
+  .saas-top { padding: 0.9rem 1rem; }
+  .saas-logo-tag { display: none; }
+  .saas-hero { padding-bottom: 3.4rem; }
+  .saas-marquee { display: none; }
+
+  .saas-chips {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2.6rem;
+  }
+
+  .saas-chip { position: static; }
+}
+
+@media (max-height: 740px) {
+  .saas-hero { padding-top: 4.2rem; padding-bottom: 5.4rem; }
+  .saas-stage { --size: clamp(120px, 19vmin, 165px); }
+  .saas-sub { margin-bottom: 1.5rem; }
+  .saas-stage-wrap { margin-bottom: 1.7rem; }
+  .saas-cta-wrap { margin-bottom: 1.3rem; }
+}

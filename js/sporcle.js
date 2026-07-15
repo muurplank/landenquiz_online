@@ -338,7 +338,7 @@
     try {
       countries = await window.App.loadCountriesFromRoot();
     } catch (e) {
-      document.body.innerHTML = '<p style="color:#fff;padding:2rem;font-family:sans-serif">Kon data niet laden. Start een lokale webserver (bijv. <code>python3 -m http.server</code>) en open deze pagina opnieuw.</p>';
+      document.body.innerHTML = '<p style="color:#0f172a;padding:2rem;font-family:sans-serif">Kon data niet laden. Start een lokale webserver (bijv. <code>python3 -m http.server</code>) en open deze pagina opnieuw.</p>';
       console.error(e);
       return;
     }

@@ -626,6 +626,25 @@
       if (overlay) overlay.hidden = true;
       onDone();
     } else {
+      playIntroAny(onDone);
+    }
+  }
+
+  /**
+   * Speelt de nieuwe SaaS-stijl intro (js/intro_saas.js); valt terug op de
+   * klassieke intro wanneer dat bestand niet geladen is.
+   */
+  function playIntroAny(onDone) {
+    if (window.LandIntroSaas) {
+      window.LandIntroSaas.play({
+        onDone,
+        initGlobe,
+        countries,
+        total: examTotal(),
+        flagSrc: iso => 'assets/flags/' + window.App.getFlagFilename(iso),
+        markSeen: () => { try { localStorage.setItem(INTRO_KEY, '1'); } catch (_) {} }
+      });
+    } else {
       playIntro(onDone);
     }
   }
@@ -1223,7 +1242,7 @@
 
     $('btn-replay-intro').addEventListener('click', e => {
       e.preventDefault();
-      playIntro(() => showStartScreen());
+      playIntroAny(() => showStartScreen());
     });
 
     window.addEventListener('beforeunload', () => {
@@ -1238,7 +1257,7 @@
     try {
       countries = await window.App.loadCountriesFromRoot();
     } catch (e) {
-      document.body.innerHTML = '<p style="color:#fff;padding:2rem;font-family:sans-serif">Kon data niet laden. Start een lokale webserver (bijv. <code>python3 -m http.server</code>) en open deze pagina opnieuw.</p>';
+      document.body.innerHTML = '<p style="color:#0f172a;padding:2rem;font-family:sans-serif">Kon data niet laden. Start een lokale webserver (bijv. <code>python3 -m http.server</code>) en open deze pagina opnieuw.</p>';
       console.error(e);
       return;
     }

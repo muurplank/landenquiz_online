@@ -546,21 +546,51 @@
             }
           },
           {
-            id: 'countries-borders',
+            // Zachte buitenrand: brede, geblurde semi-transparante donkere
+            // lijn die naar transparant uitvloeit — het satellietbeeld
+            // eronder wordt donkerder i.p.v. bedekt door een harde zwarte
+            // grens (transparante gradient).
+            id: 'countries-borders-halo',
             type: 'line',
             source: 'countries',
             paint: {
-              'line-color': '#000000',
+              'line-color': 'rgba(12, 18, 24, 0.3)',
               'line-width': [
                 'interpolate',
                 ['linear'],
                 ['zoom'],
-                0, 1,
-                3, 1.5,
-                5, 2,
-                10, 3
+                0, 3,
+                3, 4.5,
+                5, 6,
+                10, 9
               ],
-              'line-opacity': 0.9
+              'line-blur': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 2.5,
+                3, 3,
+                5, 4,
+                10, 6
+              ]
+            }
+          },
+          {
+            id: 'countries-borders',
+            type: 'line',
+            source: 'countries',
+            paint: {
+              'line-color': 'rgba(10, 16, 22, 0.72)',
+              'line-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 1.25,
+                3, 2,
+                5, 2.5,
+                10, 3.5
+              ],
+              'line-blur': 0.8
             }
           },
           {
