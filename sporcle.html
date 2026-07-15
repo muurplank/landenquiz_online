@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Typ ze allemaal — Land Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="css/exam.css">
+  <link rel="stylesheet" href="css/sporcle.css">
+</head>
+<body>
+
+  <!-- Sterrenveld achter alle schermen -->
+  <div class="page-stars" id="page-stars" aria-hidden="true"></div>
+
+  <div class="exam-shell">
+
+    <!-- Moduskeuze -->
+    <section id="screen-modes">
+      <p class="sporcle-nav"><a class="back-home" href="index.html">&larr; Terug naar Land Trainer</a> · <a class="back-home" href="exam.html">🎓 Het Grote Eindexamen</a></p>
+      <div class="start-hero">
+        <p class="start-kicker">⌨️ Sporcle-stijl</p>
+        <h1 class="start-title">Typ ze <em>allemaal</em></h1>
+        <p class="start-sub">Geen hints, geen multiple choice — hoeveel ken je er echt uit je hoofd? Typ een antwoord en hij wordt meteen afgevinkt.</p>
+      </div>
+      <div class="mode-grid">
+        <button type="button" class="glass-panel mode-card" data-mode="landen">
+          <span class="mode-emoji">🌍</span>
+          <h2>Alle landen</h2>
+          <p>Typ alle <strong class="mode-count">196</strong> landnamen</p>
+        </button>
+        <button type="button" class="glass-panel mode-card" data-mode="hoofdsteden">
+          <span class="mode-emoji">🏛️</span>
+          <h2>Alle hoofdsteden</h2>
+          <p>Typ van elk land een hoofdstad</p>
+        </button>
+        <button type="button" class="glass-panel mode-card" data-mode="vlaggen">
+          <span class="mode-emoji">🚩</span>
+          <h2>Alle vlaggen</h2>
+          <p>Zie alle vlaggen, typ de landen</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section id="screen-quiz" hidden>
+      <header class="sporcle-bar glass-panel">
+        <button type="button" id="btn-back-modes" class="btn-ghost">&larr; Modi</button>
+        <span id="sporcle-title" class="exam-brand"></span>
+        <span id="sporcle-timer" class="sporcle-timer">0:00</span>
+        <span id="sporcle-score" class="sporcle-score">0/196</span>
+        <input type="text" id="sporcle-input" placeholder="Typ hier…" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Antwoord">
+        <button type="button" id="btn-giveup" class="btn-ghost">Geef op</button>
+      </header>
+
+      <div id="sporcle-result" class="glass-panel sporcle-result" hidden>
+        <p id="sporcle-result-text"></p>
+        <button type="button" id="btn-again" class="btn-glow">Opnieuw</button>
+      </div>
+
+      <div class="sporcle-map glass-panel" id="sporcle-map-wrap" hidden>
+        <div id="sporcle-map-container"></div>
+      </div>
+
+      <div id="sporcle-board"></div>
+    </section>
+
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/quiz_map_satellite.js"></script>
+  <script src="js/sporcle.js"></script>
+</body>
+</html>

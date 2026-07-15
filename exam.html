@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Het Grote Eindexamen — Land Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="css/exam.css">
+</head>
+<body>
+
+  <!-- Sterrenveld achter alle schermen -->
+  <div class="page-stars" id="page-stars" aria-hidden="true"></div>
+
+  <!-- RGB-disco easter egg (Sri Lanka) -->
+  <div id="disco" hidden aria-hidden="true"></div>
+
+  <!-- Intro-overlay (alleen eerste bezoek) -->
+  <div id="intro" hidden>
+    <div class="intro-backdrop"></div>
+    <div class="intro-stars" aria-hidden="true"></div>
+    <div class="intro-marquee row-a" aria-hidden="true"></div>
+    <div class="intro-marquee row-b" aria-hidden="true"></div>
+    <div class="intro-center">
+      <div class="intro-globe" id="intro-globe" aria-hidden="true"><span class="globe-fallback">🌍</span><span class="globe-tex"></span></div>
+      <p class="intro-kicker">Land Trainer presenteert</p>
+      <h1 class="intro-title" id="intro-title" aria-label="Het Grote Eindexamen"><span class="intro-line" data-text="HET GROTE"></span><span class="intro-line" data-text="EINDEXAMEN"></span></h1>
+      <p class="intro-sub">196 landen · 3 vragen per land</p>
+      <p class="intro-counter"><span id="intro-count">0</span> vragen</p>
+    </div>
+    <button type="button" id="intro-skip">Overslaan (Esc)</button>
+  </div>
+
+  <div class="exam-shell">
+
+    <!-- Startscherm -->
+    <section id="screen-start" hidden>
+      <a class="back-home" href="index.html">&larr; Terug naar Land Trainer</a>
+      <div class="start-hero">
+        <p class="start-kicker">🎓 De ultieme test</p>
+        <h1 class="start-title">Het Grote<br><em>Eindexamen</em></h1>
+        <p class="start-sub"><strong id="start-total">588</strong> vragen over <strong id="start-countries">196</strong> landen — hoofdsteden typen, vlaggen kiezen en landen herkennen op de satellietkaart. Je voortgang wordt automatisch opgeslagen.</p>
+      </div>
+
+      <div id="resume-panel" class="glass-panel resume-panel" hidden>
+        <div>
+          <h2>Examen hervatten</h2>
+          <p id="resume-info" class="muted"></p>
+        </div>
+        <div class="resume-actions">
+          <button type="button" id="btn-resume" class="btn-glow">Ga verder ▶</button>
+          <button type="button" id="btn-discard" class="btn-ghost">Wissen</button>
+        </div>
+      </div>
+
+      <div class="glass-panel seed-panel">
+        <h2>Examen-seed</h2>
+        <p class="muted">Dezelfde seed geeft altijd exact hetzelfde examen — deel de link en speel tegen elkaar.</p>
+        <div class="seed-row">
+          <input type="text" id="seed-input" maxlength="24" spellcheck="false" autocomplete="off" aria-label="Seed">
+          <button type="button" id="btn-dice" class="btn-ghost" title="Nieuwe random seed">🎲</button>
+          <button type="button" id="btn-copy-link" class="btn-ghost" title="Deelbare link kopiëren">🔗 Kopieer link</button>
+        </div>
+        <p id="copy-feedback" class="copy-feedback" aria-live="polite"></p>
+        <button type="button" id="btn-start" class="btn-glow btn-start">Start het examen</button>
+        <p class="start-footnote"><a href="#" id="btn-replay-intro">Intro opnieuw afspelen</a></p>
+      </div>
+
+      <div class="glass-panel sporcle-panel">
+        <h2>⌨️ Typ-examens <span class="sporcle-panel-sub">Sporcle-stijl</span></h2>
+        <p class="muted">Geen vragen maar pure parate kennis: typ alles wat je weet, zonder hints.</p>
+        <div class="sporcle-links">
+          <a class="btn-ghost" href="sporcle.html?mode=landen">🌍 Alle landen</a>
+          <a class="btn-ghost" href="sporcle.html?mode=hoofdsteden">🏛️ Alle hoofdsteden</a>
+          <a class="btn-ghost" href="sporcle.html?mode=vlaggen">🚩 Alle vlaggen</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Examenscherm -->
+    <section id="screen-exam" hidden>
+      <header class="exam-header glass-panel">
+        <div class="exam-header-top">
+          <div class="exam-globe" id="exam-globe" aria-hidden="true"><span class="globe-fallback">🌍</span><span class="globe-tex"></span></div>
+          <span class="exam-brand">Eindexamen</span>
+          <span class="exam-counter">Vraag <strong id="exam-qnum">1</strong> / <span id="exam-total">588</span></span>
+          <span class="exam-score" id="exam-score">—</span>
+          <span class="exam-streak" id="exam-streak"></span>
+          <span class="seed-badge" title="Examen-seed">seed <strong id="exam-seed"></strong></span>
+          <button type="button" id="btn-feedback-toggle" class="btn-ghost" title="Toon of verberg of je antwoord goed of fout was">👁 Goed/fout: aan</button>
+          <button type="button" id="btn-pause" class="btn-ghost">⏸ Opslaan en stoppen</button>
+        </div>
+        <div class="exam-progress"><div class="exam-progress-fill" id="exam-progress-fill"></div></div>
+      </header>
+
+      <div class="question-card glass-panel">
+        <span class="q-type-badge" id="q-type-badge">Hoofdstad</span>
+        <h2 class="q-prompt" id="q-prompt"></h2>
+
+        <div class="map-wrap" id="map-wrap" hidden>
+          <div id="exam-map-container"></div>
+          <div id="map-fallback" hidden></div>
+          <div id="map-loading" class="map-loading" hidden><span class="spinner"></span> Satellietkaart laden…</div>
+        </div>
+
+        <div class="q-flag-grid" id="q-flag-grid" hidden></div>
+
+        <div class="q-input-wrap" id="q-input-wrap" hidden>
+          <input type="text" id="q-input" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="Antwoord">
+          <button type="button" id="btn-submit" class="btn-glow">Controleer</button>
+        </div>
+
+        <div class="q-feedback" id="q-feedback" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Resultaatscherm -->
+    <section id="screen-result" hidden>
+      <div id="confetti" aria-hidden="true"></div>
+      <div class="result-hero glass-panel">
+        <p class="result-kicker">Jouw eindcijfer</p>
+        <p class="result-grade" id="result-grade">–</p>
+        <p class="result-grade-label" id="result-grade-label"></p>
+        <div class="result-kpis">
+          <div class="kpi"><span class="kpi-value" id="result-correct">–</span><span class="kpi-label">goed</span></div>
+          <div class="kpi"><span class="kpi-value" id="result-accuracy">–</span><span class="kpi-label">accuracy</span></div>
+          <div class="kpi"><span class="kpi-value" id="result-time">–</span><span class="kpi-label">totale tijd</span></div>
+          <div class="kpi"><span class="kpi-value kpi-seed" id="result-seed">–</span><span class="kpi-label">seed</span></div>
+        </div>
+        <div class="result-actions">
+          <button type="button" id="btn-share-result" class="btn-ghost">🔗 Deel dit examen</button>
+          <button type="button" id="btn-new-exam" class="btn-glow">Nieuw examen</button>
+        </div>
+        <p id="share-feedback" class="copy-feedback" aria-live="polite"></p>
+      </div>
+
+      <div class="result-grid">
+        <div class="glass-panel">
+          <h2>Per vraagtype</h2>
+          <div id="result-type-breakdown"></div>
+        </div>
+        <div class="glass-panel">
+          <h2>Per continent</h2>
+          <div id="result-continent-breakdown"></div>
+        </div>
+      </div>
+
+      <div class="glass-panel" id="result-wrong-wrap" hidden>
+        <h2>Meest gemiste landen</h2>
+        <ul class="wrong-list" id="result-wrong-list"></ul>
+      </div>
+
+      <p class="result-footer"><a class="back-home" href="index.html">&larr; Terug naar Land Trainer</a> · <a class="back-home" href="pages/stats.html">Bekijk statistieken</a></p>
+    </section>
+
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/quiz_map_satellite.js"></script>
+  <script src="js/exam.js"></script>
+</body>
+</html>

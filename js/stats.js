@@ -180,7 +180,7 @@
       }
     });
     const total = Object.values(byType).reduce((a, b) => a + b, 0);
-    const labels = { capital: 'Hoofdstad', flag: 'Vlag', map: 'Kaart', mix: 'Mix' };
+    const labels = { capital: 'Hoofdstad', flag: 'Vlag', map: 'Kaart', mix: 'Mix', exam: 'Eindexamen' };
     const el = document.getElementById('chart-quiz-type');
     if (!el) return;
     if (total === 0) { el.innerHTML = '<p class="small">Geen data</p>'; return; }
