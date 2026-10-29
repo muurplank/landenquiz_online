@@ -58,8 +58,11 @@ export function renderTopbar(el, { current = 'oefenen', dataset = 'world' } = {}
       <a class="opt-hide" href="${siteUrl('exam.html')}">Eindexamen</a>
       <a href="${siteUrl('stats.html')}"${cur('stats')}>Statistieken</a>
     </nav>
+    <div class="account-slot" data-account></div>
     <button class="icon-btn" type="button" data-theme-toggle aria-label="Wissel licht en donker">${isDark() ? I.sun : I.moon}</button>`;
   el.querySelector('[data-theme-toggle]').addEventListener('click', toggleTheme);
+  // Accounts load separately so the page never waits for (or breaks on) Firebase.
+  import('./account.js').then(m => m.mountAccount(el.querySelector('[data-account]'))).catch(e => console.warn('Account niet geladen', e));
 }
 
 /** localStorage helpers that never throw (private mode, blocked storage). */
