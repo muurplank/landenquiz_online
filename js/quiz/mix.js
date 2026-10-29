@@ -41,7 +41,7 @@ export function createMode({ ds, group, params }) {
   }
   function actions() {
     return revealed
-      ? `<button class="btn lg bad" data-act="wrong">Fout <span class="kbd">2</span></button><button class="btn lg ok" data-act="right">Goed <span class="kbd">1</span></button>`
+      ? `<button class="btn lg ok" data-act="right">Goed <span class="kbd">1</span></button><button class="btn lg bad" data-act="wrong">Fout <span class="kbd">2</span></button>`
       : `<button class="btn lg primary full" data-act="reveal">Toon antwoord <span class="kbd">Spatie</span></button>`;
   }
 
