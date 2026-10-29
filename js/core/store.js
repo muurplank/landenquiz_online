@@ -32,7 +32,8 @@ export function saveHistory(history) {
   }
 }
 
-export function clearHistory() { saveHistory(empty()); }
+// clearedAt keeps the reset on every device when progress is synced (see js/core/merge.js).
+export function clearHistory() { saveHistory({ ...empty(), clearedAt: new Date().toISOString() }); }
 
 export function startSession({ groupId, quizType, subMode, dataset = 'world' }) {
   return {

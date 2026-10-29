@@ -43,7 +43,7 @@ const emit = () => listeners.forEach(cb => cb(current));
 async function describe(user) {
   if (!user) return null;
   const google = user.providerData.some(p => p.providerId === 'google.com');
-  let name = null;
+  let name;   // undefined = unknown (offline), null = no name chosen yet
   try { const snap = await getDoc(doc(db, 'users', user.uid)); name = snap.exists() ? snap.data().name : null; } catch (_) { /* offline */ }
   return { uid: user.uid, name, provider: google ? 'google' : 'password' };
 }
@@ -54,7 +54,9 @@ onAuthStateChanged(auth, async user => {
   if (d && current && current.uid === d.uid && current.name && !d.name) return;
   current = d; ready = true; emit();
 });
-getRedirectResult(auth).catch(() => { /* surfaced on the next sign-in attempt */ });
+getRedirectResult(auth).catch(e => {
+  window.dispatchEvent(new CustomEvent('landjes:autherror', { detail: { message: dutch(e).message } }));
+});
 
 /** Calls cb with the signed-in player ({uid, name, provider}) or null, now and on every change. */
 export function onUser(cb) {

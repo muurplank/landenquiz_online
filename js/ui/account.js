@@ -1,6 +1,6 @@
 // Account button in the top bar and the sign-in dialog (Google or username + password, then a name).
 import { onUser, signInGoogle, signUpPassword, signInPassword, claimName, signOut } from '../core/account.js';
-import { flush } from '../core/sync.js';
+import { flush, markSignedIn } from '../core/sync.js';
 import { escapeHtml as esc } from '../core/text.js';
 
 const GOOGLE = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1-3.7 1-2.8 0-5.2-1.9-6.1-4.5H2.2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.9 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.2a11 11 0 0 0 0 9.8l3.7-2.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2.2 7.1l3.7 2.8C6.8 7.3 9.2 5.4 12 5.4z"/></svg>';
@@ -64,7 +64,7 @@ function openDialog(step, user) {
   d.querySelector('[data-close]').addEventListener('click', () => d.close());
   d.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => openDialog(b.dataset.step)));
   const g = d.querySelector('[data-google]');
-  if (g) g.addEventListener('click', async () => { if (await run(signInGoogle)) d.close(); });
+  if (g) g.addEventListener('click', async () => { if (await run(signInGoogle)) { markSignedIn(); d.close(); } });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const name = form.querySelector('[name=name]').value;
@@ -72,7 +72,7 @@ function openDialog(step, user) {
     signingUp = step === 'signup';
     const ok = await run(() => naming ? claimName(name) : signingUp ? signUpPassword(name, pw.value) : signInPassword(name, pw.value));
     signingUp = false;
-    if (ok) d.close();
+    if (ok) { if (!naming || !(user && user.name)) markSignedIn(); d.close(); }
   });
   if (!d.open) d.showModal();
   const first = form.querySelector('input'); if (first) first.focus();
@@ -81,9 +81,11 @@ function openDialog(step, user) {
 function menu(slot, user) {
   const m = document.createElement('div');
   m.className = 'account-menu card';
-  m.innerHTML = `<button type="button" data-rename>Naam wijzigen</button><button type="button" data-out>Uitloggen</button>`;
+  // Username accounts log in with their name, so only Google accounts can rename.
+  m.innerHTML = `${user.provider === 'google' ? '<button type="button" data-rename>Naam wijzigen</button>' : ''}<button type="button" data-out>Uitloggen</button>`;
   const close = e => { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('click', close, true); } };
-  m.querySelector('[data-rename]').addEventListener('click', () => { m.remove(); openDialog('name', user); });
+  const rename = m.querySelector('[data-rename]');
+  if (rename) rename.addEventListener('click', () => { m.remove(); openDialog('name', user); });
   m.querySelector('[data-out]').addEventListener('click', async () => { m.remove(); await flush(); await signOut(); });
   slot.appendChild(m);
   setTimeout(() => document.addEventListener('click', close, true));
@@ -99,15 +101,19 @@ export function mountAccount(slot) {
       slot.querySelector('[data-login]').addEventListener('click', () => openDialog('login'));
       return;
     }
-    const label = user.name || 'Kies je naam';
+    const label = user.name || (user.name === null ? 'Kies je naam' : '…');
     slot.innerHTML = `<button class="btn account-btn" type="button" data-me aria-haspopup="menu">${USER}<span class="account-name">${esc(label)}</span><i class="sync-dot ${state}" title="${state === 'error' ? 'Synchroniseren mislukt' : state === 'offline' ? 'Offline' : state === 'syncing' ? 'Bezig met synchroniseren' : 'Gesynchroniseerd'}"></i></button>`;
-    slot.querySelector('[data-me]').addEventListener('click', () => user.name ? menu(slot, user) : openDialog('name', user));
+    slot.querySelector('[data-me]').addEventListener('click', () => user.name === null ? openDialog('name', user) : menu(slot, user));
   };
+  window.addEventListener('landjes:autherror', e => {
+    openDialog('login');
+    const err = dialog.querySelector('.account-error'); if (err) err.textContent = e.detail.message;
+  });
   window.addEventListener('landjes:sync', e => { state = e.detail.state; if (user) paint(); });
   onUser(u => {
     user = u;
     paint();
-    if (u && !u.name && !askedName && !signingUp) { askedName = true; openDialog('name', u); }
+    if (u && u.name === null && !askedName && !signingUp) { askedName = true; openDialog('name', u); }
   });
   paint();
 }

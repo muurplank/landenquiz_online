@@ -24,13 +24,17 @@ export function recomputePerGroup(sessions) {
 }
 
 function mergeHistory(a, b) {
+  // A reset ("Wis statistieken") sets clearedAt; sessions from before it stay gone on every device.
+  const clearedAt = [a.clearedAt, b.clearedAt].filter(Boolean).sort().pop();
   const byId = new Map();
   for (const s of [...(a.sessions || []), ...(b.sessions || [])]) {
     const prev = byId.get(s.id);
     if (!prev || (!hasEvents(prev) && hasEvents(s))) byId.set(s.id, s);
   }
-  const sessions = [...byId.values()].sort((x, y) => String(x.startedAt).localeCompare(String(y.startedAt)));
-  return { ...b, ...a, version: a.version || b.version || 1, sessions, perGroup: recomputePerGroup(sessions) };
+  const sessions = [...byId.values()].filter(s => !clearedAt || String(s.startedAt) >= clearedAt).sort((x, y) => String(x.startedAt).localeCompare(String(y.startedAt)));
+  const out = { ...b, ...a, version: a.version || b.version || 1, sessions, perGroup: recomputePerGroup(sessions) };
+  if (clearedAt) out.clearedAt = clearedAt;
+  return out;
 }
 
 const finished = g => !!(g && (g.done || g.endedAt));

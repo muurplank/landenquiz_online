@@ -8,6 +8,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn();
       allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['name', 'nameKey', 'createdAt'])
         && request.resource.data.name is string
         && request.resource.data.name.matches('^[A-Za-z0-9_-]{3,20}$')
         && request.resource.data.nameKey == request.resource.data.name.lower()
@@ -21,13 +22,18 @@ service cloud.firestore {
       }
     }
 
-    // Name registry: one document per lower-case name, claimed once.
+    // Name registry: one document per lower-case name, claimed once. A player holds exactly the
+    // name in their profile: claiming and releasing happen in the same write as the profile change.
+    function profileAfter() { return getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     match /names/{key} {
       allow read: if signedIn();
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == request.auth.uid
-        && key.matches('^[a-z0-9_-]{3,20}$');
-      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+        && key.matches('^[a-z0-9_-]{3,20}$')
+        && profileAfter().nameKey == key;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid
+        && profileAfter().nameKey != key;
       allow update: if false;
     }
   }
