@@ -780,3 +780,43 @@ a.world-card { color: #fff; }
 .guesses.slots li.empty { border: 1px dashed var(--border); }
 .guesses.slots li.empty i { background: transparent; }
 .guesses.slots li.empty .nm { font-size: 12.5px; }
+
+/* Geo trivia */
+.gt-start { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.gt-mode { gap: 12px; }
+.gt-mode h2 { font-size: 22px; }
+.gt-mode .btn { justify-self: start; }
+.gt-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.gt-tiles { max-width: 460px; }
+.gt-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; max-width: 760px; width: 100%; margin: 0 auto; }
+.gt-progress { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.gt-progress .meter { height: 8px; }
+.gt-score { display: grid; justify-items: end; }
+.gt-score b { font-family: var(--font-display); font-size: 26px; line-height: 1; }
+.gt-card { max-width: 760px; width: 100%; margin: 0 auto; padding: 26px; display: grid; gap: 16px; justify-items: start; border-radius: 24px; }
+.gt-q { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; }
+.gt-timer { width: 100%; height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.gt-timer i { display: block; height: 100%; width: 100%; background: var(--gradient); transition: width .1s linear; }
+.gt-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.gt-opt {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--border);
+  background: var(--surface); text-align: left; font-size: 15.5px; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.gt-opt:hover:not(:disabled) { border-color: var(--accent); }
+.gt-opt span:last-child { display: grid; min-width: 0; }
+.gt-opt small { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.gt-opt .kbd { background: var(--surface-2); border-color: var(--border); color: var(--muted); }
+.gt-opt.ok { border-color: var(--success); background: var(--success-soft); }
+.gt-opt.bad { border-color: var(--danger); background: var(--danger-soft); }
+.gt-opt:disabled { cursor: default; }
+.gt-explain { font-size: 14px; color: var(--muted); min-height: 20px; }
+.gt-explain b.ok { color: var(--success); }
+.gt-explain b.bad { color: var(--danger); }
+.gt-next:empty { display: none; }
+.gt-end { justify-items: center; text-align: center; }
+.gt-end h2 { font-size: 34px; }
+.gt-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: 100%; text-align: left; }
+.gt-log li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 14px; }
+.gt-log li.ok svg { color: var(--success); }
+.gt-log li.bad span { color: var(--danger); font-weight: 700; text-align: center; }
+@media (max-width: 720px) { .gt-start, .gt-options { grid-template-columns: minmax(0, 1fr); } }

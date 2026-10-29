@@ -20,7 +20,7 @@ const GAMES = [
   { live: true, href: 'grensroute.html', icon: I.map, t: 'Grensroute', d: 'Reis van het ene land naar het andere, steeds naar een buurland, in zo min mogelijk stappen.' },
   { live: true, href: 'warmkoud.html', icon: ICONS.target, t: 'Warm of koud', d: 'Raad het land van de dag. Elke gok kleurt de kaart warmer naarmate je dichterbij zit.' },
   { live: true, href: 'silhouet.html', icon: ICONS.shape, t: 'Silhouet', d: 'Raad het land aan zijn vorm. Na elke foute gok zie je meer: buurlanden, continent, hoofdstad.' },
-  { icon: ICONS.question, t: 'Geo trivia', d: 'Hoogste berg, langste rivier, grootste stad: snelle meerkeuzevragen.', pill: 'Idee' }
+  { live: true, href: 'geotrivia.html', icon: ICONS.question, t: 'Geo trivia', d: 'Tien snelle vragen over buurlanden, oppervlakte, inwoners en ligging. Elke dag een nieuwe ronde.' }
 ];
 
 (async () => {
