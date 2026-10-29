@@ -50,10 +50,10 @@ export function renderTopbar(el, { current = 'oefenen', dataset = 'world' } = {}
     : `<a class="ctx" href="${siteUrl('wereld.html')}">${I.globe} Wereld</a>`);
   el.className = 'topbar';
   el.innerHTML = `
-    <a class="brand" href="${siteUrl('start.html')}" aria-label="Naar de hoofdpagina"><span class="globe"></span><span class="brand-name">Land Trainer</span></a>
+    <a class="brand" href="${siteUrl('index.html')}" aria-label="Naar de hoofdpagina"><span class="globe"></span><span class="brand-name">Land Trainer</span></a>
     ${ctx}
     <nav class="nav" aria-label="Hoofdmenu">
-      <a href="${siteUrl('start.html')}"${cur('hub')}>Spellen</a>
+      <a href="${siteUrl('index.html')}"${cur('hub')}>Spellen</a>
       <a href="${siteUrl('wereld.html' + (dataset === 'us' ? '?dataset=us' : ''))}"${cur('oefenen')}>Oefenen</a>
       <a class="opt-hide" href="${siteUrl('exam.html')}">Eindexamen</a>
       <a href="${siteUrl('pages/stats.html')}"${cur('stats')}>Statistieken</a>

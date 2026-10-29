@@ -78,7 +78,7 @@ function render(ds, group) {
   page.innerHTML = `
     <div class="set-head">
       <div>
-        <nav class="crumbs" aria-label="Kruimelpad"><a href="${siteUrl('start.html')}">Spellen</a><span>/</span><a href="${siteUrl('wereld.html')}">${esc(ds.title)}</a><span>/</span><span>${esc(crumb)}</span></nav>
+        <nav class="crumbs" aria-label="Kruimelpad"><a href="${siteUrl('index.html')}">Spellen</a><span>/</span><a href="${siteUrl('wereld.html')}">${esc(ds.title)}</a><span>/</span><span>${esc(crumb)}</span></nav>
         <h1>${esc(title)}</h1>
         <p class="sub">${esc(sub)}</p>
       </div>
