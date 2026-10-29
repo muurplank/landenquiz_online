@@ -892,3 +892,10 @@ a.world-card { color: #fff; }
 @media (max-width: 560px) { .hist-opts { grid-template-columns: minmax(0, 1fr); } .hist-q { font-size: 18px; } }
 .cheat-grid:has(.hist-cheat) { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .cheat-grid > .hist-cheat { align-content: start !important; align-self: start; }
+
+/* Vervaagd antwoord: wordt scherp bij "Toon antwoord" */
+.censored { filter: blur(9px); opacity: .6; user-select: none; pointer-events: none; }
+.censored img { filter: grayscale(1); }
+.unveil { animation: unveil .35s ease-out; }
+@keyframes unveil { from { filter: blur(9px); opacity: .6; } to { filter: blur(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .unveil { animation: none; } }

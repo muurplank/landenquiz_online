@@ -1,5 +1,5 @@
 // Flashcards for capitals and flags: rate yourself (space, 1, 2) or type the answer.
-import { isCloseEnough, escapeHtml as esc } from '../core/text.js';
+import { isCloseEnough, escapeHtml as esc, veil, unveil } from '../core/text.js';
 
 const WRONG_FEEDBACK_MS = 2200;
 
@@ -59,7 +59,7 @@ export function createMode({ ds, params }) {
     card.innerHTML = `
       <div class="qmeta"><span class="pill">Vraag ${n}</span><span class="pill">${esc(dirLabel[qdir])}</span></div>
       ${questionHtml(item, qdir)}
-      <div class="answer" id="answer">${revealed ? revealHtml(item, qdir) : '<div class="placeholder"></div>'}</div>
+      <div class="answer" id="answer">${(revealed ? unveil : veil)(revealHtml(item, qdir))}</div>
       ${typing ? `
         <form class="type-row" id="type-form" autocomplete="off">
           <label class="visually-hidden" for="type-input">Jouw antwoord</label>
@@ -90,7 +90,7 @@ export function createMode({ ds, params }) {
     if (locked) return;
     if (a === 'reveal' && !revealed) {
       revealed = true;
-      api.card.querySelector('#answer').innerHTML = revealHtml(item, qdir);
+      api.card.querySelector('#answer').innerHTML = unveil(revealHtml(item, qdir));
       api.card.querySelector('#actions').innerHTML = actionsHtml();
     } else if ((a === 'right' || a === 'wrong') && revealed) {
       api.answered(a === 'right', { subType: qdir });
@@ -108,7 +108,7 @@ export function createMode({ ds, params }) {
     locked = true;
     api.answered(false, { subType: qdir });
     const card = api.card;
-    card.querySelector('#answer').innerHTML = revealHtml(item, qdir);
+    card.querySelector('#answer').innerHTML = unveil(revealHtml(item, qdir));
     card.querySelector('#type-input').disabled = true;
     card.querySelector('#type-feedback').textContent = 'Fout. Dit is het juiste antwoord.';
     setTimeout(() => { locked = false; api.next(); }, WRONG_FEEDBACK_MS);

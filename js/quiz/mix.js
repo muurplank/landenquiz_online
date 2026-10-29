@@ -1,7 +1,7 @@
 // Mix: capital, flag and map questions mixed, always self-rated (space, 1, 2).
 //  mix=std  -> land→hoofdstad, vlag→land, kaart→land (counts per type for progress)
 //  mix=mega -> all 11 cross types, mix=own -> the chosen subset (counts as 'mix')
-import { escapeHtml as esc } from '../core/text.js';
+import { escapeHtml as esc, veil, unveil } from '../core/text.js';
 
 const ALL_TYPES = ['land-capital', 'capital-land', 'land-flag', 'flag-land', 'map-land', 'capital-flag', 'capital-map', 'flag-capital', 'flag-map', 'map-capital', 'map-flag'];
 const STD_TYPES = ['land-capital', 'flag-land', 'map-land'];
@@ -52,7 +52,7 @@ export function createMode({ ds, group, params }) {
     $('#qtype').textContent = typeLabel(type);
     $('#given').innerHTML = given(item, from);
     $('#prompt').textContent = prompt(from, to);
-    $('#answer').innerHTML = revealed ? answerHtml(item, to) : '<div class="placeholder"></div>';
+    $('#answer').innerHTML = (revealed ? unveil : veil)(answerHtml(item, to));
     $('#actions').innerHTML = actions();
     if (map) {
       $('#mix-map').hidden = !showMap;

@@ -24,3 +24,7 @@ export function isCloseEnough(input, accepted, max = 3) {
 }
 
 export const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/** Answer shown blurred ("gecensureerd") until it is revealed; unveil() animates it sharp. */
+export const veil = html => `<div class="censored" aria-hidden="true">${html}</div>`;
+export const unveil = html => `<div class="unveil">${html}</div>`;
