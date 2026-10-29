@@ -52,7 +52,7 @@ export function createMode({ ds, group, params }) {
     $('#qtype').textContent = typeLabel(type);
     $('#given').innerHTML = given(item, from);
     $('#prompt').textContent = prompt(from, to);
-    $('#answer').innerHTML = (revealed ? unveil : veil)(answerHtml(item, to));
+    $('#answer').innerHTML = revealed ? unveil(answerHtml(item, to)) : veil(to === 'flag' ? 'flag' : 'text');
     $('#actions').innerHTML = actions();
     if (map) {
       $('#mix-map').hidden = !showMap;

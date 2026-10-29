@@ -25,6 +25,8 @@ export function isCloseEnough(input, accepted, max = 3) {
 
 export const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/** Answer shown blurred ("gecensureerd") until it is revealed; unveil() animates it sharp. */
-export const veil = html => `<div class="censored" aria-hidden="true">${html}</div>`;
+/** Blurred stand-in until the answer is revealed; unveil() animates the real answer in.
+ *  The stand-in is the same for every question, so its length or colours give nothing away. */
+export const veil = (kind = 'text') => `<div class="censored" aria-hidden="true">${kind === 'flag'
+  ? '<div class="qflag small"></div>' : '<div class="a">Verborgen antwoord</div>'}</div>`;
 export const unveil = html => `<div class="unveil">${html}</div>`;

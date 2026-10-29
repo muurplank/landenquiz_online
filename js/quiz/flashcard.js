@@ -59,7 +59,7 @@ export function createMode({ ds, params }) {
     card.innerHTML = `
       <div class="qmeta"><span class="pill">Vraag ${n}</span><span class="pill">${esc(dirLabel[qdir])}</span></div>
       ${questionHtml(item, qdir)}
-      <div class="answer" id="answer">${(revealed ? unveil : veil)(revealHtml(item, qdir))}</div>
+      <div class="answer" id="answer">${revealed ? unveil(revealHtml(item, qdir)) : veil(qdir === 'land-to-flag' ? 'flag' : 'text')}</div>
       ${typing ? `
         <form class="type-row" id="type-form" autocomplete="off">
           <label class="visually-hidden" for="type-input">Jouw antwoord</label>
