@@ -10,34 +10,28 @@ const page = document.getElementById('page');
 const ICONS = {
   cap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg>',
   keyboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h0M10 10h0M14 10h0M18 10h0M7 14h10"/></svg>',
-  target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
-  shape: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 3l6 2 5-1 2 6-3 4 1 6-6-2-5 2-2-6-3-3 3-5z"/></svg>',
-  thermo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.8V4a2 2 0 1 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 10v7"/></svg>',
-  route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 18h5a3 3 0 0 0 0-6h-1a3 3 0 0 1 0-6h6"/></svg>',
-  question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5h0"/></svg>'
 };
 
 const MORE = [
   { href: 'exam.html', icon: ICONS.cap, t: 'Het Grote Eindexamen', d: '588 vragen over alle 196 landen, met een seed om tegen elkaar te spelen.' },
   { href: 'sporcle.html', icon: ICONS.keyboard, t: 'Typ ze allemaal', d: 'Alle landen, hoofdsteden of vlaggen uit je hoofd typen tegen de klok.' }
 ];
-const DAILY_ICON = { warmkoud: ICONS.thermo, silhouet: ICONS.shape, grensroute: ICONS.route, geotrivia: ICONS.question };
+const DAILY_ICON = { warmkoud: '🌡️', silhouet: '🗺️', grensroute: '🧭', geotrivia: '⚡' };
 
 function dailyCard(g) {
   const r = results(g.id)[today()];
   const isNew = (Date.parse(today()) - Date.parse(g.since)) / 864e5 < 7;
   const status = r && r.done ? (r.won ? 'Vandaag gespeeld' : 'Vandaag geprobeerd') : 'Nog niet gespeeld';
   return `<div class="daily">
-    <a class="daily-card c-${g.color}" href="${siteUrl(g.href)}" aria-label="${g.title}: spel van vandaag. ${status}">
-      ${isNew ? '<span class="daily-new">Nieuw</span>' : ''}
-      ${r && r.done ? `<span class="daily-check" title="${status}">${I.check}</span>` : ''}
-      <span class="daily-icon">${DAILY_ICON[g.id]}</span>
-      <span class="daily-title">${g.title}</span>
-      <span class="daily-sub">${g.sub}</span>
-    </a>
-    <div class="daily-actions">
-      <a class="btn" href="${siteUrl(g.href + '?mode=random')}">Willekeurig</a>
-      <a class="btn" href="${siteUrl('archief.html?game=' + g.id)}">Archief</a>
+    ${isNew && !(r && r.done) ? '<span class="daily-new">Nieuw</span>' : ''}
+    <span class="daily-icon" aria-hidden="true">${DAILY_ICON[g.id]}</span>
+    <span class="daily-title">${g.title}</span>
+    <span class="daily-sub">${g.sub}</span>
+    <span class="daily-status${r && r.done ? ' done' : ''}">${r && r.done ? I.check.replace('<svg', '<svg width="13" height="13"') + ' ' : ''}${status}</span>
+    <a class="btn primary lg daily-play" href="${siteUrl(g.href)}" aria-label="${g.title}: spel van vandaag spelen">${r && r.done ? 'Bekijk resultaat' : 'Speel vandaag'}</a>
+    <div class="daily-links">
+      <a href="${siteUrl(g.href + '?mode=random')}">🎲 Willekeurige ronde</a>
+      <a href="${siteUrl('archief.html?game=' + g.id)}">Archief</a>
     </div>
   </div>`;
 }
@@ -68,7 +62,6 @@ function countdown() {
     usDone = us.size;
   } catch (_) { /* show the page without progress */ }
 
-  const usCells = Array.from({ length: 55 }, (_, i) => `<i class="${[11, 39, 40, 51, 52, 53, 62, 63, 64].includes(i) ? 'off' : (i % 7 === 0 ? 'on' : '')}"></i>`).join('');
   page.innerHTML = `
     <section class="hub-hero">
       <div class="eyebrow">Land Trainer</div>
@@ -77,26 +70,26 @@ function countdown() {
     </section>
     <section class="hub-main" aria-label="Oefensets">
       <a class="world-card w" href="${siteUrl('wereld.html')}">
-        <div class="world-art w" aria-hidden="true"></div>
+        <div class="world-art w" aria-hidden="true" data-art="art-globe.svg"></div>
         <div style="display:grid;gap:10px;position:relative">
-          <div class="meta"><span>${total} landen</span><span>16 weken</span><span>6 continenten</span></div>
+          <div class="meta"><span>🌍 16 weken · 6 continenten</span></div>
           <h2>De wereld</h2>
-          <p>Landen, hoofdsteden, vlaggen en de satellietkaart.</p>
+          <p>${total} landen met hoofdsteden, vlaggen en ligging.</p>
         </div>
         <div class="go">
-          <div class="prog">${mastered ? `${mastered} van ${total} landen minstens één keer goed` : 'Nog niet begonnen'}<div class="bar"><i style="width:${mastered / total * 100}%"></i></div></div>
+          <div class="prog"><span>${mastered ? `<strong>${mastered} van ${total}</strong> landen minstens één keer goed` : 'Nog niet begonnen'}</span><div class="bar"><i style="width:${mastered / total * 100}%"></i></div></div>
           <b>Oefenen ${I.arrow}</b>
         </div>
       </a>
       <a class="world-card us" href="${siteUrl('wereld.html?dataset=us')}">
-        <div class="us-grid" aria-hidden="true">${usCells}</div>
+        <div class="world-art us" aria-hidden="true" data-art="art-us.svg"></div>
         <div style="display:grid;gap:10px;position:relative">
-          <div class="meta"><span>50 staten</span><span>5 weken</span></div>
+          <div class="meta"><span>🇺🇸 5 weken</span></div>
           <h2>Amerikaanse staten</h2>
-          <p>Alle staten, hoofdsteden en staatsvlaggen, op dezelfde kaart.</p>
+          <p>Alle 50 staten met hoofdsteden en staatsvlaggen.</p>
         </div>
         <div class="go">
-          <div class="prog">${usDone ? `${usDone} van 50 staten minstens één keer goed` : 'Nog niet begonnen'}<div class="bar"><i style="width:${usDone / 50 * 100}%"></i></div></div>
+          <div class="prog"><span>${usDone ? `<strong>${usDone} van 50</strong> staten minstens één keer goed` : 'Nog niet begonnen'}</span><div class="bar"><i style="width:${usDone / 50 * 100}%"></i></div></div>
           <b>Oefenen ${I.arrow}</b>
         </div>
       </a>
@@ -104,7 +97,7 @@ function countdown() {
     <section class="daily-section" aria-label="Spellen van de dag">
       <div class="section-head">
         <div><h2>Spellen van de dag</h2><p>Elke dag nieuw, voor iedereen hetzelfde. Of speel een willekeurige ronde.</p></div>
-        <div class="countdown" aria-live="off"><span>Nieuwe spellen over</span><b id="countdown" class="tabnum">${countdown()}</b></div>
+        <div class="countdown" aria-live="off"><span aria-hidden="true">⏳</span><span>Nieuwe spellen over</span><b id="countdown" class="tabnum">${countdown()}</b></div>
       </div>
       <div class="daily-grid">${DAILY_GAMES.map(dailyCard).join('')}</div>
     </section>
@@ -114,6 +107,10 @@ function countdown() {
         ${MORE.map(g => `<a class="card game live" href="${siteUrl(g.href)}"><div class="gicon">${g.icon}</div><h3>${g.t}</h3><p>${g.d}</p></a>`).join('')}
       </div>
     </section>`;
+  // Decorative globe / US map, inlined so the theme colours apply to it.
+  page.querySelectorAll('[data-art]').forEach(el => {
+    fetch(siteUrl('assets/' + el.dataset.art)).then(r => r.ok ? r.text() : '').then(svg => { el.innerHTML = svg; }).catch(() => {});
+  });
   setInterval(() => {
     const el = document.getElementById('countdown');
     if (!el) return;
