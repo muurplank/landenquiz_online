@@ -6,7 +6,7 @@
  *
  *   const map = new MapView(el, { geo: '../assets/maps/world.detail.json', style: 'sat', names });
  *   await map.ready;
- *   map.setGroup(ids); map.fitTo(ids);
+ *   map.setGroup(ids); map.fitTo(ids);   // fitTo(ids, { padding, maxZoom, animate })
  *   map.on('click', iso => …); map.on('hover', iso => …);
  *   map.setTarget(iso);         // pulserend doel ("welk land is dit?")
  *   map.setHighlight(iso);      // zachte markering (bijv. hover in een lijst)
@@ -223,8 +223,8 @@
     zoomBy(f) { this.map.easeTo({ zoom: this.map.getZoom() + Math.log2(f), duration: 300 }); }
     has(iso) { return !!this.geo && (this.geo.byId.has(iso) || this.geo.anchor.has(iso)); }
 
-    fitTo(ids, { animate = true, padding = .86 } = {}) {
-      if (!this.geo) return this.ready.then(() => this.fitTo(ids, { animate, padding }));
+    fitTo(ids, { animate = true, padding = .86, maxZoom = zOf(MAX_K) } = {}) {
+      if (!this.geo) return this.ready.then(() => this.fitTo(ids, { animate, padding, maxZoom }));
       const g = this.geo;
       const point = id => { const a = merc(g.anchor.get(id)); return [a, a]; };
       // Een land dat zelf over de datumgrens loopt (Rusland, Fiji) telt met zijn ankerpunt mee.
@@ -234,7 +234,7 @@
         return b[1][0] - b[0][0] < TILE / 2 ? b : point(id);
       });
       if (!boxes.length) return;
-      if (this.projection === 'globe') return this._fitGlobe(ids, padding, animate, k => Math.min(MAX_K, k));
+      if (this.projection === 'globe') return this._fitGlobe(ids, padding, animate, k => Math.min(MAX_K, kOf(maxZoom), k));
       // Een set die over de datumgrens loopt (Oceanië) schuift één wereld op.
       const cx = boxes.map(b => (b[0][0] + b[1][0]) / 2);
       if (Math.max(...cx) - Math.min(...cx) > TILE / 2 && boxes.length < 60) {
@@ -243,7 +243,7 @@
       const x0 = d3.min(boxes, b => b[0][0]), y0 = d3.min(boxes, b => b[0][1]);
       const x1 = d3.max(boxes, b => b[1][0]), y1 = d3.max(boxes, b => b[1][1]);
       const W = Math.max(1, this.box.clientWidth), H = Math.max(1, this.box.clientHeight);
-      const k = Math.min(MAX_K, Math.max(1, padding * Math.min(W / Math.max(.02, x1 - x0), H / Math.max(.02, y1 - y0))));
+      const k = Math.min(MAX_K, kOf(maxZoom), Math.max(1, padding * Math.min(W / Math.max(.02, x1 - x0), H / Math.max(.02, y1 - y0))));
       const [lon, lat] = merc.invert([(((x0 + x1) / 2) % TILE + TILE) % TILE, (y0 + y1) / 2]);
       const cam = { center: [lon, lat], zoom: zOf(k) };
       if (animate) this.map.easeTo({ ...cam, duration: 850, easing: d3.easeCubicInOut });

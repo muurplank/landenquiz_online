@@ -8,6 +8,8 @@ import { isCloseEnough, normalize, escapeHtml as esc } from '../core/text.js';
 const NEXT_OK_MS = 900;
 const NEXT_BAD_MS = 1600;
 
+const FOCUS = { padding: .3, maxZoom: 5 };   // het land ~30% van de kaart, niet verder in dan landniveau
+
 export function createMode({ ds, group, params }) {
   const kind = params.dir === 'c' ? 'locate' : params.dir === 'b' ? 'zoek' : (params.ans === 'pick' ? 'pick' : 'snelle');
   const N = ds.noun;
@@ -140,6 +142,8 @@ export function createMode({ ds, group, params }) {
       revealed = false;
       locked = false;
       map.setTarget(kind === 'zoek' || kind === 'locate' ? null : id);
+      // Naar het gevraagde land zoomen, met de omgeving erbij; bij zoeken/plaatsen zou dat het antwoord verraden.
+      if (kind !== 'zoek' && kind !== 'locate') map.fitTo([id], FOCUS);
       render(n);
     },
     onKey(e) {
