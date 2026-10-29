@@ -1,7 +1,8 @@
 /**
- * MapView — één herbruikbare kaart voor de hele site (canvas + d3-geo).
+ * MapView — één herbruikbare kaart voor de hele site (MapLibre GL + d3-geo).
  *
- * Vereist d3 v7 (cdnjs) vóór dit script. Gebruik:
+ * Vereist d3 v7 en maplibre-gl 4 (cdnjs, met maplibre-gl.css) vóór dit script.
+ * Alleen MapView.loadGeo gebruiken (zonder kaart) kan ook zonder maplibre. Gebruik:
  *
  *   const map = new MapView(el, { geo: '../assets/maps/world.detail.json', style: 'sat', names });
  *   await map.ready;
@@ -11,9 +12,14 @@
  *   map.setHighlight(iso);      // zachte markering (bijv. hover in een lijst)
  *   map.flash(iso, true);       // kort groen (true) of rood (false)
  *   map.setDone(isos);          // al goed beantwoord
+ *   map.setColors({iso: kleur}); // eigen vulkleur per land
  *   map.setPoints([{id, ll}]);  // hoofdsteden als stipjes; map.setPointHighlight(id)
  *   map.setPins([{ll, ok}]);    // spelden (gok en antwoord) met een lijn ertussen
  *   map.on('clickpoint', ll => …) // elke klik, als [lon, lat]
+ *
+ * De kaart tekent via WebGL (GPU): de grenzen worden één keer opgebouwd en
+ * schuiven/zoomen kost daarna bijna niets. Kleuren lopen via feature-state,
+ * zodat een hover alleen dat ene land bijwerkt.
  *
  * Kleine landen krijgen automatisch een klikbare stip zolang ze op het scherm
  * te klein zijn. De kaart herhaalt zich horizontaal, zodat Oceanië over de
@@ -22,16 +28,19 @@
 (function () {
   const TILE = 256;
   const DOT_PX = 140;
-  const MAX_TILE_Z = 8;
-  const TILE_URL = (z, y, x) =>
-    `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/2004-01-01/GoogleMapsCompatible_Level8/${z}/${y}/${x}.jpeg`;
+  const MAX_K = 4000;          // verste inzoom van fitTo
+  const MAX_ZOOM = 15;         // handmatig inzoomen mag verder: Esri is tot op straatniveau scherp
+  const SAT_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const SAT_ATTR = 'Beelden © Esri, Maxar, Earthstar Geographics';
   // Ankerpunten voor landen die niet in het kaartbestand staan.
   const EXTRA_ANCHORS = { MDV: [73.5, 3.2] };
+  const NONE = 'rgba(0,0,0,0)';
 
   const STYLES = {
     sat: {
+      // Gedeelde grenzen worden per land getekend (dus dubbel): daarom lichtere lijnen.
       tiles: true, sea: '#0a1322', other: null, group: 'rgba(255,255,255,.10)',
-      border: 'rgba(6,10,22,.8)', halo: 'rgba(2,6,23,.3)', borderW: 1.3,
+      border: 'rgba(6,10,22,.5)', halo: 'rgba(2,6,23,.14)', borderW: 1,
       hover: 'rgba(255,255,255,.32)', target: ['rgba(255,255,255,.92)', 'rgba(255,255,255,.92)'], ring: '#ffffff',
       done: 'rgba(16,185,129,.42)', ok: 'rgba(16,185,129,.8)', bad: 'rgba(239,68,68,.8)',
       dot: 'rgba(255,255,255,.6)', dotGroup: 'rgba(255,255,255,.95)', dotLine: 'rgba(15,23,42,.65)'
@@ -71,43 +80,29 @@
         if (!r.ok) throw new Error(`Kaart laden mislukt (${r.status})`);
         return r.json();
       }).then(geo => {
-        const byId = new Map(), path2d = new Map(), area = new Map(), bounds = new Map(), anchor = new Map(), main = new Map();
-        const borders = new Path2D();
+        const byId = new Map(), area = new Map(), anchor = new Map(), main = new Map();
         for (const f of geo.features) {
           // Enkele ringen in de bron draaien verkeerd om en zouden de hele wereld bedekken.
           if (d3.geoArea(f) > 2 * Math.PI) f.geometry.coordinates.forEach(poly => poly.forEach(r => r.reverse()));
+          f.properties = Object.assign({}, f.properties, { iso: f.id });
           byId.set(f.id, f);
-          const p = new Path2D(); d3.geoPath(merc, p)(f); path2d.set(f.id, p);
-          d3.geoPath(merc, borders)(f);
           const mp = mainPart(f); main.set(f.id, mp);
           area.set(f.id, mpath.area(f));
-          bounds.set(f.id, d3.geoBounds(f));
-          const pr = f.properties || {};
+          const pr = f.properties;
           anchor.set(f.id, pr.lx != null ? [pr.lx, pr.ly] : d3.geoCentroid(mp));
         }
         for (const [iso, ll] of Object.entries(EXTRA_ANCHORS)) if (!anchor.has(iso)) anchor.set(iso, ll);
-        return { features: geo.features, byId, path2d, area, bounds, anchor, main, borders };
+        return { geojson: geo, features: geo.features, byId, area, anchor, main };
       }));
     }
     return geoCache.get(url);
   }
 
-  // Tegels worden ook gedeeld tussen kaarten op dezelfde pagina.
-  const tileCache = new Map();
-  function getTile(z, y, x, onload) {
-    const key = `${z}/${y}/${x}`;
-    let t = tileCache.get(key);
-    if (!t) {
-      const im = new Image();
-      im.crossOrigin = 'anonymous';
-      t = { im, ready: false, waiters: new Set() };
-      im.onload = () => { t.ready = true; t.waiters.forEach(fn => fn()); t.waiters.clear(); };
-      im.src = TILE_URL(z, y, x);
-      tileCache.set(key, t);
-    }
-    if (!t.ready && onload) t.waiters.add(onload);
-    return t;
-  }
+  const fc = features => ({ type: 'FeatureCollection', features });
+  const pt = (ll, props) => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: ll } });
+  // MapLibre-zoom z ↔ schaal k (wereld = 256·k px = 512·2^z px).
+  const kOf = z => Math.pow(2, z + 1);
+  const zOf = k => Math.log2(k) - 1;
 
   class MapView {
     constructor(el, opts = {}) {
@@ -115,50 +110,76 @@
       this.opts = opts;
       this.styleName = opts.style || 'sat';
       this.names = opts.names || null;          // {iso: naam}: alleen deze landen krijgen stippen/klik
-      this.dotsFor = opts.dotsFor || 'group';   // 'group' | 'all'
+      this.dotsFor = opts.dotsFor || 'group';   // 'group' | 'all' | 'none'
       this.group = new Set(opts.group || []);
       this.done = new Set();
       this.hover = null; this.highlight = null; this.target = null; this.flashState = null;
       this.listeners = { click: [], hover: [], clickpoint: [] };
       this.points = []; this.pointHighlight = null; this.pins = []; this.colors = {};
-      this.T = d3.zoomIdentity;
-      this.tileVersion = 0;
-      this.baseKey = '';
+      this.fills = new Map();   // iso → laatst gezette vulkleur (feature-state)
+      this.keys = {};           // laatst geschreven bronnen, om dubbel werk te vermijden
       this.pulse0 = performance.now();
 
       el.classList.add('mapview');
       if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
-      this.canvas = document.createElement('canvas');
-      this.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none';
+      this.box = document.createElement('div');
+      this.box.style.cssText = 'position:absolute;inset:0';
+      el.appendChild(this.box);
+
+      this.map = new maplibregl.Map({
+        container: this.box,
+        style: this._baseStyle(),
+        center: [10, 20], zoom: 0, minZoom: -1, maxZoom: MAX_ZOOM,
+        renderWorldCopies: true,
+        dragRotate: false, pitchWithRotate: false, touchPitch: false, doubleClickZoom: false,
+        attributionControl: { compact: true },
+        fadeDuration: 0
+      });
+      this.map.touchZoomRotate.disableRotation();
+      this.map.keyboard.disableRotation();
+      this.canvas = this.map.getCanvas();
       this.canvas.setAttribute('aria-label', opts.label || 'Kaart');
-      el.appendChild(this.canvas);
-      this.ctx = this.canvas.getContext('2d');
-      this.base = document.createElement('canvas');
 
-      this.zoom = d3.zoom().scaleExtent([1, 4000])
-        .filter(e => (!e.ctrlKey || e.type === 'wheel') && !e.button)
-        .on('zoom', e => { this.T = e.transform; this._schedule(); });
-      this.sel = d3.select(this.canvas).call(this.zoom).on('dblclick.zoom', null);
-
-      this.canvas.addEventListener('pointermove', e => this._onMove(e));
-      this.canvas.addEventListener('pointerleave', () => this._setHover(null));
-      this.canvas.addEventListener('click', e => {
-        const iso = this._hitAt(e);
-        if (iso) this.listeners.click.forEach(fn => fn(iso, e));
+      this.map.on('click', e => {
+        const iso = this._hitAt(e.point);
+        if (iso) this.listeners.click.forEach(fn => fn(iso, e.originalEvent));
         if (this.listeners.clickpoint.length) {
-          const ll = this._lonLatAt(e);
-          if (ll) this.listeners.clickpoint.forEach(fn => fn(ll, e));
+          const ll = e.lngLat.wrap();
+          this.listeners.clickpoint.forEach(fn => fn([ll.lng, ll.lat], e.originalEvent));
         }
       });
-      this.ro = new ResizeObserver(() => this._resize());
+      this.map.on('mousemove', e => {
+        this._movePt = e.point;
+        if (this._moveQueued) return;
+        this._moveQueued = true;
+        requestAnimationFrame(() => { this._moveQueued = false; if (!this.destroyed) this._onMove(this._movePt); });
+      });
+      this.canvas.addEventListener('pointerleave', () => this._setHover(null));
+      this.map.on('move', () => this._schedule());
+
+      this.ro = new ResizeObserver(() => { if (!this.destroyed) this.map.resize(); });
       this.ro.observe(el);
 
-      this.ready = loadGeo(opts.geo).then(g => { this.geo = g; this._resize(); return this; });
+      const loaded = new Promise(res => this.map.once('load', res)).then(() => {
+        // Bronvermelding ingeklapt tot het i-knopje.
+        const a = this.box.querySelector('.maplibregl-ctrl-attrib');
+        if (a) a.classList.remove('maplibregl-compact-show');
+      });
+      this.ready = Promise.all([loadGeo(opts.geo), loaded]).then(([g]) => {
+        this.map.getSource('countries').setData(g.geojson);
+        this.geo = g;
+        this._sync();
+        return this;
+      });
     }
 
     /* ---------- Publieke API ---------- */
     on(type, fn) { (this.listeners[type] || (this.listeners[type] = [])).push(fn); return this; }
-    setStyle(name) { this.styleName = STYLES[name] ? name : 'sat'; this._schedule(); }
+    setStyle(name) {
+      this.styleName = STYLES[name] ? name : 'sat';
+      if (this.map.isStyleLoaded()) this._applyStyle();
+      this._schedule();
+    }
     setGroup(ids) { this.group = new Set(ids || []); this._schedule(); }
     setDone(ids) { this.done = new Set(ids || []); this._schedule(); }
     setHighlight(iso) { this.highlight = iso || null; this._schedule(); }
@@ -176,7 +197,7 @@
     setPins(pins) { this.pins = pins || []; this._schedule(); }
     /** Great-circle distance in km. */
     static distanceKm(a, b) { return d3.geoDistance(a, b) * 6371; }
-    zoomBy(f) { this.sel.transition().duration(300).call(this.zoom.scaleBy, f); }
+    zoomBy(f) { this.map.easeTo({ zoom: this.map.getZoom() + Math.log2(f), duration: 300 }); }
     has(iso) { return !!this.geo && (this.geo.byId.has(iso) || this.geo.anchor.has(iso)); }
 
     fitTo(ids, { animate = true, padding = .86 } = {}) {
@@ -193,95 +214,125 @@
       }
       const x0 = d3.min(boxes, b => b[0][0]), y0 = d3.min(boxes, b => b[0][1]);
       const x1 = d3.max(boxes, b => b[1][0]), y1 = d3.max(boxes, b => b[1][1]);
-      const k = Math.min(4000, Math.max(1, padding * Math.min(this.W / Math.max(.02, x1 - x0), this.H / Math.max(.02, y1 - y0))));
-      const t = d3.zoomIdentity.translate(this.W / 2 - k * (x0 + x1) / 2, this.H / 2 - k * (y0 + y1) / 2).scale(k);
-      (animate ? this.sel.transition().duration(850).ease(d3.easeCubicInOut) : this.sel).call(this.zoom.transform, t);
+      const W = Math.max(1, this.box.clientWidth), H = Math.max(1, this.box.clientHeight);
+      const k = Math.min(MAX_K, Math.max(1, padding * Math.min(W / Math.max(.02, x1 - x0), H / Math.max(.02, y1 - y0))));
+      const [lon, lat] = merc.invert([(((x0 + x1) / 2) % TILE + TILE) % TILE, (y0 + y1) / 2]);
+      const cam = { center: [lon, lat], zoom: zOf(k) };
+      if (animate) this.map.easeTo({ ...cam, duration: 850, easing: d3.easeCubicInOut });
+      else this.map.jumpTo(cam);
     }
 
-    destroy() { this.ro.disconnect(); this.canvas.remove(); this.destroyed = true; }
+    destroy() {
+      this.destroyed = true;
+      this.ro.disconnect();
+      clearTimeout(this._flashTimer);
+      this.map.remove();
+      this.box.remove();
+    }
 
     /* ---------- Intern ---------- */
-    _resize() {
-      const r = this.el.getBoundingClientRect();
-      this.DPR = Math.min(2, window.devicePixelRatio || 1);
-      this.W = Math.max(1, r.width); this.H = Math.max(1, r.height);
-      this.canvas.width = Math.round(this.W * this.DPR); this.canvas.height = Math.round(this.H * this.DPR);
-      this.zoom.extent([[0, 0], [this.W, this.H]]);
-      this.baseKey = '';
-      this._schedule();
+    _baseStyle() {
+      const st = STYLES[this.styleName];
+      const sea = Array.isArray(st.sea) ? st.sea[0] : st.sea;
+      const empty = fc([]);
+      const fill = ['to-color', ['coalesce', ['feature-state', 'fill'], NONE]];
+      return {
+        version: 8,
+        sources: {
+          sat: { type: 'raster', tiles: [SAT_URL], tileSize: 256, maxzoom: 19, attribution: SAT_ATTR },
+          // Brondata blijft volledig; MapLibre rondt per zoomniveau alleen onder-pixel af.
+          countries: { type: 'geojson', data: empty, promoteId: 'iso', tolerance: .2, maxzoom: 12 },
+          dots: { type: 'geojson', data: empty },
+          points: { type: 'geojson', data: empty },
+          pins: { type: 'geojson', data: empty },
+          pinline: { type: 'geojson', data: empty }
+        },
+        layers: [
+          { id: 'sea', type: 'background', paint: { 'background-color': sea } },
+          { id: 'sat', type: 'raster', source: 'sat', layout: { visibility: st.tiles ? 'visible' : 'none' } },
+          { id: 'fill', type: 'fill', source: 'countries', paint: { 'fill-color': fill, 'fill-antialias': false } },
+          { id: 'halo', type: 'line', source: 'countries', layout: { 'line-join': 'round', visibility: st.halo ? 'visible' : 'none' },
+            paint: { 'line-color': st.halo || NONE, 'line-width': 3.5 } },
+          { id: 'border', type: 'line', source: 'countries', layout: { 'line-join': 'round' },
+            paint: { 'line-color': st.border, 'line-width': st.borderW } },
+          { id: 'ring', type: 'line', source: 'countries', filter: ['==', ['get', 'iso'], ''], layout: { 'line-join': 'round' },
+            paint: { 'line-color': st.ring, 'line-width': 2.2 } },
+          { id: 'ring-pulse', type: 'line', source: 'countries', filter: ['==', ['get', 'iso'], ''], layout: { 'line-join': 'round' },
+            paint: { 'line-color': st.ring, 'line-width': 2, 'line-opacity': .55 } },
+          { id: 'dots', type: 'circle', source: 'dots',
+            paint: { 'circle-radius': 6, 'circle-color': ['get', 'c'], 'circle-stroke-width': 1.5, 'circle-stroke-color': st.dotLine } },
+          { id: 'dot-pulse', type: 'circle', source: 'dots', filter: ['==', ['get', 't'], true],
+            paint: { 'circle-radius': 7, 'circle-color': NONE, 'circle-stroke-width': 2, 'circle-stroke-color': st.ring, 'circle-stroke-opacity': 1 } },
+          { id: 'points', type: 'circle', source: 'points',
+            paint: { 'circle-radius': ['case', ['get', 'hi'], 5, 3.2], 'circle-color': ['case', ['get', 'hi'], '#facc15', '#ffffff'],
+              'circle-stroke-width': ['case', ['get', 'hi'], 2, 1.3], 'circle-stroke-color': 'rgba(15,23,42,.85)' } },
+          { id: 'pinline', type: 'line', source: 'pinline',
+            paint: { 'line-color': 'rgba(255,255,255,.9)', 'line-width': 2, 'line-dasharray': [3, 2.5] } },
+          { id: 'pins', type: 'circle', source: 'pins',
+            paint: { 'circle-radius': 7, 'circle-color': ['get', 'c'], 'circle-stroke-width': 2.5, 'circle-stroke-color': '#ffffff' } }
+        ]
+      };
+    }
+
+    _applyStyle() {
+      const st = STYLES[this.styleName], m = this.map;
+      m.setPaintProperty('sea', 'background-color', Array.isArray(st.sea) ? st.sea[0] : st.sea);
+      m.setLayoutProperty('sat', 'visibility', st.tiles ? 'visible' : 'none');
+      m.setLayoutProperty('halo', 'visibility', st.halo ? 'visible' : 'none');
+      if (st.halo) m.setPaintProperty('halo', 'line-color', st.halo);
+      m.setPaintProperty('border', 'line-color', st.border);
+      m.setPaintProperty('border', 'line-width', st.borderW);
+      m.setPaintProperty('ring', 'line-color', st.ring);
+      m.setPaintProperty('ring-pulse', 'line-color', st.ring);
+      m.setPaintProperty('dots', 'circle-stroke-color', st.dotLine);
+      m.setPaintProperty('dot-pulse', 'circle-stroke-color', st.ring);
+      this.keys = {};
     }
 
     _schedule() {
       if (this.queued || this.destroyed) return;
       this.queued = true;
-      requestAnimationFrame(now => this._draw(now));
+      requestAnimationFrame(now => { this.queued = false; this._sync(now); });
     }
 
-    _copies() {
-      const out = [], T = this.T;
-      for (let o = -2; o <= 2; o++) {
-        const l = T.x + o * TILE * T.k;
-        if (l < this.W && l + TILE * T.k > 0) out.push(o * TILE);
-      }
-      return out;
-    }
+    _k() { return kOf(this.map.getZoom()); }
 
     _eligible(iso) { return !this.names || iso in this.names; }
 
-    _isDot(iso) {
+    _isDot(iso, k = this._k()) {
       if (!this._eligible(iso)) return false;
       if (!this.geo.byId.has(iso)) return true;
-      return this.geo.area.get(iso) * this.T.k * this.T.k < DOT_PX;
+      return this.geo.area.get(iso) * k * k < DOT_PX;
     }
 
     _dots() {
-      const out = [];
+      const out = [], k = this._k();
       for (const iso of this.geo.anchor.keys()) {
         if (this.dotsFor === 'none' && iso !== this.target) continue;
-        if ((this.dotsFor === 'all' || this.group.has(iso) || iso === this.target) && this._isDot(iso)) out.push(iso);
+        if ((this.dotsFor === 'all' || this.group.has(iso) || iso === this.target) && this._isDot(iso, k)) out.push(iso);
       }
       return out;
     }
 
-    _dotPositions(iso) {
-      const ll = this.geo.anchor.get(iso); if (!ll) return [];
-      const p = merc(ll), T = this.T;
-      return this._copies().map(o => [(p[0] + o) * T.k + T.x, p[1] * T.k + T.y]);
-    }
-
-    _lonLatAt(e) {
-      const r = this.canvas.getBoundingClientRect();
-      let wx = (e.clientX - r.left - this.T.x) / this.T.k;
-      wx = ((wx % TILE) + TILE) % TILE;
-      return merc.invert([wx, (e.clientY - r.top - this.T.y) / this.T.k]);
-    }
-
+    // Schermposities van een punt in alle kopieën van de wereld.
     _screen(ll) {
-      const p = merc(ll), T = this.T;
-      return this._copies().map(o => [(p[0] + o) * T.k + T.x, p[1] * T.k + T.y]);
+      const p = this.map.project(ll), w = TILE * this._k(), out = [];
+      for (let o = -2; o <= 2; o++) out.push([p.x + o * w, p.y]);
+      return out;
     }
 
-    _hitAt(e) {
+    _hitAt(pt) {
       if (!this.geo) return null;
-      const r = this.canvas.getBoundingClientRect();
-      const px = e.clientX - r.left, py = e.clientY - r.top;
       for (const iso of this._dots()) {
-        for (const p of this._dotPositions(iso)) if (Math.hypot(p[0] - px, p[1] - py) < 11) return iso;
+        for (const p of this._screen(this.geo.anchor.get(iso))) if (Math.hypot(p[0] - pt.x, p[1] - pt.y) < 11) return iso;
       }
-      let wx = (px - this.T.x) / this.T.k;
-      wx = ((wx % TILE) + TILE) % TILE;
-      const ll = merc.invert([wx, (py - this.T.y) / this.T.k]);
-      for (const f of this.geo.features) {
-        const [[a, b], [c, d]] = this.geo.bounds.get(f.id);
-        if (ll[1] < b || ll[1] > d) continue;
-        if (a <= c && (ll[0] < a || ll[0] > c)) continue;
-        if (d3.geoContains(f, ll)) return this._eligible(f.id) ? f.id : null;
-      }
-      return null;
+      const f = this.map.queryRenderedFeatures([pt.x, pt.y], { layers: ['fill'] })[0];
+      const iso = f && f.properties.iso;
+      return iso && this._eligible(iso) ? iso : null;
     }
 
-    _onMove(e) {
-      const iso = this._hitAt(e);
+    _onMove(pt) {
+      const iso = this._hitAt(pt);
       this.canvas.style.cursor = iso && this.listeners.click.length ? 'pointer' : '';
       this._setHover(iso);
     }
@@ -303,134 +354,64 @@
       return st.other;
     }
 
-    _grad(ctx, st, iso) {
-      const [[x0, y0], [x1, y1]] = mpath.bounds(this.geo.main.get(iso));
-      const g = ctx.createLinearGradient(x0, y0, x1, y1);
-      g.addColorStop(0, st.target[0]); g.addColorStop(1, st.target[1]);
-      return g;
+    _setData(id, key, data) {
+      if (this.keys[id] === key) return;
+      this.keys[id] = key;
+      this.map.getSource(id).setData(data);
     }
 
-    _draw(now) {
-      this.queued = false;
+    // Zet de staat (kleuren, stippen, spelden, doel) over naar de kaart; alleen wat veranderd is.
+    _sync(now = performance.now()) {
       if (!this.geo || this.destroyed) return;
-      const st = STYLES[this.styleName], ctx = this.ctx, T = this.T;
-      const key = [this.styleName, T.x, T.y, T.k, this.W, this.H, this.hover, this.highlight, this.target,
-        this.done.size, this.flashState && this.flashState.iso, this.flashState && this.flashState.ok,
-        this.group.size, this.tileVersion, Object.keys(this.colors).length].join('|');
-      if (key !== this.baseKey) { this._renderBase(st); this.baseKey = key; }
+      const st = STYLES[this.styleName], m = this.map, k = this._k();
 
-      ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
-      ctx.clearRect(0, 0, this.W, this.H);
-      ctx.drawImage(this.base, 0, 0, this.W, this.H);
-
-      const pulse = ((now - this.pulse0) % 1400) / 1400;
-      if (this.target && this.geo.byId.has(this.target) && !this._isDot(this.target)) {
-        const p = this.geo.path2d.get(this.target), lw = 1 / T.k;
-        for (const o of this._copies()) {
-          ctx.save(); ctx.translate(T.x + o * T.k, T.y); ctx.scale(T.k, T.k);
-          ctx.strokeStyle = st.ring; ctx.lineWidth = 2.2 * lw; ctx.stroke(p);
-          ctx.globalAlpha = (1 - pulse) * .55; ctx.lineWidth = (2 + pulse * 10) * lw; ctx.stroke(p);
-          ctx.restore();
-        }
+      for (const f of this.geo.features) {
+        let c = this._fill(f.id, st);
+        if (c === 'TARGET') c = st.target[0];
+        c = c || NONE;
+        if (this.fills.get(f.id) !== c) { this.fills.set(f.id, c); m.setFeatureState({ source: 'countries', id: f.id }, { fill: c }); }
       }
 
-      for (const iso of this._dots()) {
-        let fill = this._fill(iso, st);
-        const isT = fill === 'TARGET';
-        if (!fill || fill === st.group || fill === st.other) fill = this.group.has(iso) ? st.dotGroup : st.dot;
-        for (const p of this._dotPositions(iso)) {
-          ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, 2 * Math.PI);
-          ctx.fillStyle = isT ? st.target[0] : fill; ctx.fill();
-          ctx.lineWidth = 1.5; ctx.strokeStyle = st.dotLine; ctx.stroke();
-          if (isT) {
-            ctx.beginPath(); ctx.arc(p[0], p[1], 7 + pulse * 14, 0, 2 * Math.PI);
-            ctx.globalAlpha = 1 - pulse; ctx.strokeStyle = st.ring; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
-          }
-        }
+      const ringIso = this.target && this.geo.byId.has(this.target) && !this._isDot(this.target, k) ? this.target : '';
+      if (this.keys.ring !== ringIso) {
+        this.keys.ring = ringIso;
+        m.setFilter('ring', ['==', ['get', 'iso'], ringIso]);
+        m.setFilter('ring-pulse', ['==', ['get', 'iso'], ringIso]);
       }
 
-      // Capital points
-      for (const pt of this.points) {
-        const hi = pt.id === this.pointHighlight;
-        for (const p of this._screen(pt.ll)) {
-          ctx.beginPath(); ctx.arc(p[0], p[1], hi ? 5 : 3.2, 0, 2 * Math.PI);
-          ctx.fillStyle = hi ? '#facc15' : '#ffffff'; ctx.fill();
-          ctx.lineWidth = hi ? 2 : 1.3; ctx.strokeStyle = 'rgba(15,23,42,.85)'; ctx.stroke();
-        }
-      }
-      // Pins (guess / answer) with a dashed line between the first two
-      if (this.pins.length) {
-        if (this.pins.length > 1) {
-          const a = this._screen(this.pins[0].ll), b = this._screen(this.pins[1].ll);
-          const best = a.flatMap(p => b.map(q => [p, q])).sort((u, v) => Math.hypot(u[0][0] - u[1][0], u[0][1] - u[1][1]) - Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]))[0];
-          ctx.save(); ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.9)';
-          ctx.beginPath(); ctx.moveTo(best[0][0], best[0][1]); ctx.lineTo(best[1][0], best[1][1]); ctx.stroke(); ctx.restore();
-        }
-        for (const pin of this.pins) {
-          for (const p of this._screen(pin.ll)) {
-            ctx.beginPath(); ctx.arc(p[0], p[1], 7, 0, 2 * Math.PI);
-            ctx.fillStyle = pin.ok ? st.ok : st.bad; ctx.fill();
-            ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-          }
-        }
-      }
+      const dots = this._dots().map(iso => {
+        let c = this._fill(iso, st);
+        const t = c === 'TARGET';
+        if (!c || c === st.group || c === st.other) c = this.group.has(iso) ? st.dotGroup : st.dot;
+        return pt(this.geo.anchor.get(iso), { iso, c: t ? st.target[0] : c, t });
+      });
+      this._setData('dots', dots.map(d => d.properties.iso + d.properties.c).join('|'), fc(dots));
 
-      if (this.target || this.flashState) this._schedule();
-    }
+      const pts = this.points.map(p => pt(p.ll, { hi: p.id === this.pointHighlight }));
+      this._setData('points', this.points.map(p => p.id + p.ll).join('|') + '#' + this.pointHighlight, fc(pts));
 
-    // Alles wat stilstaat (zee, tegels, vlakken, grenzen) wordt alleen opnieuw getekend als er iets verandert.
-    _renderBase(st) {
-      const T = this.T, g = this.geo;
-      this.base.width = this.canvas.width; this.base.height = this.canvas.height;
-      const ctx = this.base.getContext('2d');
-      ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
-      if (Array.isArray(st.sea)) {
-        const gr = ctx.createLinearGradient(0, 0, 0, this.H);
-        gr.addColorStop(0, st.sea[0]); gr.addColorStop(1, st.sea[1]); ctx.fillStyle = gr;
-      } else ctx.fillStyle = st.sea;
-      ctx.fillRect(0, 0, this.W, this.H);
-      const lw = 1 / T.k;
-      for (const o of this._copies()) {
-        ctx.save();
-        ctx.translate(T.x + o * T.k, T.y); ctx.scale(T.k, T.k);
-        if (st.tiles) this._drawTiles(ctx, o);
-        if (st.grat) { ctx.beginPath(); d3.geoPath(merc, ctx)(d3.geoGraticule10()); ctx.strokeStyle = st.grat; ctx.lineWidth = lw; ctx.stroke(); }
-        for (const f of g.features) {
-          const fill = this._fill(f.id, st);
-          if (!fill) continue;
-          ctx.fillStyle = fill === 'TARGET' ? this._grad(ctx, st, f.id) : fill;
-          ctx.fill(g.path2d.get(f.id));
-        }
-        ctx.lineJoin = 'round';
-        if (st.halo) { ctx.strokeStyle = st.halo; ctx.lineWidth = 3.5 * lw; ctx.stroke(g.borders); }
-        ctx.strokeStyle = st.border; ctx.lineWidth = st.borderW * lw; ctx.stroke(g.borders);
-        ctx.restore();
+      const pinKey = this.pins.map(p => p.ll + ':' + p.ok).join('|') + st.ok + st.bad;
+      this._setData('pins', pinKey, fc(this.pins.map(p => pt(p.ll, { c: p.ok ? st.ok : st.bad }))));
+      let line = [];
+      if (this.pins.length > 1) {
+        // Kortste weg: gaat de lijn over de datumgrens, schuif het tweede punt één wereld op.
+        const a = this.pins[0].ll, b = this.pins[1].ll.slice();
+        if (b[0] - a[0] > 180) b[0] -= 360; else if (a[0] - b[0] > 180) b[0] += 360;
+        line = [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [a, b] } }];
       }
-    }
+      this._setData('pinline', pinKey, fc(line));
 
-    // Tekent de zichtbare satelliettegels; zolang een scherpe tegel laadt, vult een grovere het gat.
-    _drawTiles(ctx, offset) {
-      const T = this.T;
-      const z = Math.max(1, Math.min(MAX_TILE_Z, Math.ceil(Math.log2(T.k * this.DPR))));
-      const n = 1 << z, ts = TILE / n;
-      const wx0 = (-T.x) / T.k - offset, wx1 = (this.W - T.x) / T.k - offset;
-      const wy0 = (-T.y) / T.k, wy1 = (this.H - T.y) / T.k;
-      const xa = Math.max(0, Math.floor(wx0 / ts)), xb = Math.min(n - 1, Math.floor(wx1 / ts));
-      const ya = Math.max(0, Math.floor(wy0 / ts)), yb = Math.min(n - 1, Math.floor(wy1 / ts));
-      const bump = () => { this.tileVersion++; this._schedule(); };
-      const seam = .5 / T.k;
-      for (let y = ya; y <= yb; y++) {
-        for (let x = xa; x <= xb; x++) {
-          const t = getTile(z, y, x, bump);
-          if (t.ready) { ctx.drawImage(t.im, x * ts, y * ts, ts + seam, ts + seam); continue; }
-          for (let pz = z - 1; pz >= 1; pz--) {
-            const s = z - pz, px = x >> s, py = y >> s, pt = getTile(pz, py, px, bump);
-            if (!pt.ready) continue;
-            const sub = 1 << s, sw = TILE / sub;
-            ctx.drawImage(pt.im, (x - (px << s)) * sw, (y - (py << s)) * sw, sw, sw, x * ts, y * ts, ts + seam, ts + seam);
-            break;
-          }
+      // Pulserend doel: alleen de pulslaag verandert per frame.
+      if (this.target) {
+        const pulse = (Math.max(0, now - this.pulse0) % 1400) / 1400;
+        if (ringIso) {
+          m.setPaintProperty('ring-pulse', 'line-opacity', (1 - pulse) * .55);
+          m.setPaintProperty('ring-pulse', 'line-width', 2 + pulse * 10);
+        } else {
+          m.setPaintProperty('dot-pulse', 'circle-radius', 7 + pulse * 14);
+          m.setPaintProperty('dot-pulse', 'circle-stroke-opacity', 1 - pulse);
         }
+        this._schedule();
       }
     }
   }
