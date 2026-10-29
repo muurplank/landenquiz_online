@@ -135,8 +135,9 @@ button { cursor: pointer; }
   box-shadow: inset -4px -4px 8px rgba(0, 0, 0, .25);
 }
 .globe::before, .globe::after { content: ""; position: absolute; border-radius: 50%; }
-.globe::before { inset: 4px 11px; border: 1.5px solid rgba(255, 255, 255, .55); }
-.globe::after { left: -2px; right: -2px; top: 13px; height: 1.5px; background: rgba(255, 255, 255, .55); border-radius: 0; }
+/* Meridian from pole to pole and a centred equator, so the lines meet the globe's edge. */
+.globe::before { inset: -1px 25%; border: 1.5px solid rgba(255, 255, 255, .55); }
+.globe::after { left: 0; right: 0; top: calc(50% - .75px); height: 1.5px; background: rgba(255, 255, 255, .55); border-radius: 0; }
 .ctx {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; font-weight: 600; border: 0;
