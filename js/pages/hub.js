@@ -17,7 +17,7 @@ const ICONS = {
 const GAMES = [
   { live: true, href: 'exam.html', icon: ICONS.cap, t: 'Het Grote Eindexamen', d: '588 vragen over alle 196 landen, met een seed om tegen elkaar te spelen.' },
   { live: true, href: 'sporcle.html', icon: ICONS.keyboard, t: 'Typ ze allemaal', d: 'Alle landen, hoofdsteden of vlaggen uit je hoofd typen tegen de klok.' },
-  { icon: I.map, t: 'Grensroute', d: 'Twee willekeurige landen. Verbind ze via landgrenzen in zo min mogelijk stappen.', pill: 'Binnenkort' },
+  { live: true, href: 'grensroute.html', icon: I.map, t: 'Grensroute', d: 'Reis van het ene land naar het andere, steeds naar een buurland, in zo min mogelijk stappen.' },
   { icon: ICONS.target, t: 'Warm of koud', d: 'Raad een geheim land. Elke gok kleurt de globe warmer naarmate je dichterbij zit.', pill: 'Binnenkort' },
   { icon: ICONS.shape, t: 'Silhouet', d: 'Raad het land aan zijn vorm. Na elke gok zie je hoe ver en welke kant op.', pill: 'Binnenkort' },
   { icon: ICONS.question, t: 'Geo trivia', d: 'Hoogste berg, langste rivier, grootste stad: snelle meerkeuzevragen.', pill: 'Idee' }

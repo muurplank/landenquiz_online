@@ -1,0 +1,213 @@
+// Grensroute: travel from the start country to the goal, one neighbouring country at a time.
+// Type a country or click it on the map. A country that doesn't border where you are counts as a mistake.
+import { loadDataset, loadJSON, siteUrl } from '../core/data.js';
+import { normalize, levenshtein, escapeHtml as esc } from '../core/text.js';
+import { renderTopbar, I, prefs } from '../ui/shell.js';
+
+renderTopbar(document.getElementById('topbar'), { current: 'hub' });
+const page = document.getElementById('page');
+const STATS_KEY = 'landjes_grensroute';
+const LEVELS = { easy: ['Makkelijk', 2, 3], normal: ['Normaal', 4, 5], hard: ['Moeilijk', 6, 9] };
+const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 'Azië', Americas: 'Amerika' };
+
+(async () => {
+  const [ds, borders] = await Promise.all([loadDataset('world'), loadJSON('data/borders.json')]);
+  const nameOf = id => ds.items.get(id).name;
+  const inArea = (id, area) => area === 'world' || (area === 'Americas'
+    ? ['North America', 'South America'].includes(ds.items.get(id).region)
+    : ds.items.get(id).region === area);
+
+  const settings = Object.assign({ level: 'normal', area: 'world' }, prefs.get(STATS_KEY + '_settings', {}));
+  const stats = Object.assign({ played: 0, won: 0, perfect: 0, streak: 0, best: 0 }, prefs.get(STATS_KEY, {}));
+  let G = null, map = null;
+
+  function bfs(from) {
+    const dist = { [from]: 0 }, parent = {}, queue = [from];
+    while (queue.length) {
+      const c = queue.shift();
+      for (const n of borders[c] || []) if (!(n in dist)) { dist[n] = dist[c] + 1; parent[n] = c; queue.push(n); }
+    }
+    return { dist, parent };
+  }
+  function pathTo(parent, from, to) { const p = [to]; while (p[0] !== from) p.unshift(parent[p[0]]); return p; }
+
+  function newPuzzle() {
+    const [, lo, hi] = LEVELS[settings.level];
+    const starts = Object.keys(borders).filter(id => borders[id].length && ds.items.has(id) && inArea(id, settings.area));
+    for (let tries = 0; tries < 400; tries++) {
+      const start = starts[Math.floor(Math.random() * starts.length)];
+      const { dist, parent } = bfs(start);
+      const ends = Object.keys(dist).filter(id => dist[id] >= lo && dist[id] <= hi && inArea(id, settings.area));
+      if (!ends.length) continue;
+      const end = ends[Math.floor(Math.random() * ends.length)];
+      return { start, end, shortest: dist[end], best: pathTo(parent, start, end), path: [start], mistakes: 0, hints: 0, done: false, msg: '', msgCls: '' };
+    }
+    return null;
+  }
+
+  function render() {
+    const cur = G.path[G.path.length - 1];
+    const steps = G.path.length - 1;
+    page.innerHTML = `
+      <div class="game-head">
+        <div><div class="eyebrow">Spel</div><h1>Grensroute</h1><p class="muted">Reis van het startland naar het doel, steeds naar een buurland.</p></div>
+        <div class="game-settings">
+          <div class="seg small" role="group" aria-label="Moeilijkheid">${Object.entries(LEVELS).map(([k, [t]]) => `<button data-level="${k}" aria-pressed="${settings.level === k}">${t}</button>`).join('')}</div>
+          <label class="visually-hidden" for="area">Gebied</label>
+          <select class="select" id="area">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${settings.area === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="gr-grid">
+        <section class="card gr-play">
+          <div class="gr-ends">
+            <div class="gr-end"><span class="label">Start</span><div><img class="flag" src="${ds.items.get(G.start).flag}" alt="" width="36" height="24"><b>${esc(nameOf(G.start))}</b></div></div>
+            <div class="gr-arrow">${I.arrow}<span class="muted">${G.shortest} stappen kan</span></div>
+            <div class="gr-end goal"><span class="label">Doel</span><div><img class="flag" src="${ds.items.get(G.end).flag}" alt="" width="36" height="24"><b>${esc(nameOf(G.end))}</b></div></div>
+          </div>
+          <div class="quiz-map gr-map" id="gr-map"></div>
+          ${G.done ? doneHtml() : `
+          <form class="type-row" id="gr-form" autocomplete="off">
+            <label class="visually-hidden" for="gr-input">Volgende land</label>
+            <div class="suggest-wrap">
+              <input id="gr-input" class="type-input" placeholder="Buurland van ${esc(nameOf(cur))}…" spellcheck="false" autocapitalize="off" enterkeyhint="go">
+              <div class="suggest" id="suggest" hidden></div>
+            </div>
+            <button class="btn lg primary" type="submit">Reis <span class="kbd">Enter</span></button>
+          </form>`}
+          <p class="type-feedback ${G.msgCls}" id="gr-msg" aria-live="polite">${esc(G.msg)}</p>
+        </section>
+        <aside class="side">
+          <div class="card panel">
+            <div class="panel-head"><h3>Jouw route</h3><span class="muted tabnum" style="font-size:13px">${steps} ${steps === 1 ? 'stap' : 'stappen'}</span></div>
+            <ol class="route">${G.path.map((id, i) => `<li class="${i === G.path.length - 1 && !G.done ? 'now' : ''}"><img class="flag" src="${ds.items.get(id).flag}" alt="" width="24" height="16"><span>${esc(nameOf(id))}</span></li>`).join('')}
+              ${G.done ? '' : `<li class="goal"><img class="flag" src="${ds.items.get(G.end).flag}" alt="" width="24" height="16"><span>${esc(nameOf(G.end))}</span></li>`}</ol>
+            ${G.done ? '' : `<div class="gr-tools"><button class="btn" data-act="undo" ${G.path.length < 2 ? 'disabled' : ''}>Stap terug</button><button class="btn" data-act="hint">Toon buurlanden</button></div>`}
+          </div>
+          <div class="tiles">
+            <div class="card tile"><span class="v">${G.mistakes}</span><span class="k">Fouten</span></div>
+            <div class="card tile"><span class="v">${G.hints}</span><span class="k">Hints</span></div>
+            <div class="card tile"><span class="v">${stats.won}</span><span class="k">Gewonnen</span></div>
+            <div class="card tile"><span class="v">${stats.streak}</span><span class="k">Perfecte reeks</span></div>
+          </div>
+          <button class="btn" data-act="new">Nieuwe route</button>
+        </aside>
+      </div>`;
+    mountMap();
+    const input = document.getElementById('gr-input');
+    if (input) {
+      input.focus();
+      input.addEventListener('input', suggest);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') moveSuggest(e);
+      });
+      document.getElementById('gr-form').addEventListener('submit', e => { e.preventDefault(); submitTyped(input.value); });
+    }
+  }
+
+  function doneHtml() {
+    const steps = G.path.length - 1, extra = steps - G.shortest;
+    const perfect = extra === 0 && !G.mistakes && !G.hints;
+    return `<div class="gr-done">
+      <div class="done-icon">${I.check}</div>
+      <div><h2>${perfect ? 'Perfecte route!' : 'Aangekomen!'}</h2>
+        <p class="muted">${steps} stappen${extra ? `, ${extra} meer dan nodig` : ', de kortste route'}${G.mistakes ? ` · ${G.mistakes} ${G.mistakes === 1 ? 'fout' : 'fouten'}` : ''}${G.hints ? ` · ${G.hints} ${G.hints === 1 ? 'hint' : 'hints'}` : ''}.</p>
+        ${extra ? `<p class="muted" style="margin-top:6px">Kortste route: ${G.best.map(id => esc(nameOf(id))).join(' → ')}</p>` : ''}
+      </div>
+      <button class="btn lg primary" data-act="new">Nieuwe route ${I.arrow}</button>
+    </div>`;
+  }
+
+  function mountMap() {
+    const el = document.getElementById('gr-map');
+    const names = Object.fromEntries([...ds.items.values()].map(it => [it.id, it.name]));
+    if (map) { el.replaceWith(map.el); } else {
+      map = new MapView(el, { geo: ds.geo, style: 'sat', names, dotsFor: 'all', label: 'Kaart: klik het volgende land' });
+      map.on('click', id => { if (G && !G.done) travel(id); });
+      map.ready.then(() => { updateMap(); fit(false); });
+    }
+    if (map.geo) updateMap();
+  }
+  function fit(animate = true) { map.fitTo(G.done ? G.path.concat(G.best) : [G.start, G.end], { padding: .7, animate }); }
+  function updateMap() {
+    map.setDone(G.path);
+    map.setTarget(G.done ? null : G.end);
+    map.setGroup(G.showHint ? borders[G.path[G.path.length - 1]] : []);
+    map.setHighlight(G.done ? null : G.path[G.path.length - 1]);
+  }
+
+  function say(msg, cls = '') { G.msg = msg; G.msgCls = cls; const el = document.getElementById('gr-msg'); if (el) { el.textContent = msg; el.className = 'type-feedback ' + cls; } }
+
+  function travel(id) {
+    const cur = G.path[G.path.length - 1];
+    if (!ds.items.has(id) || id === cur) return;
+    if (G.path.includes(id)) { say(`Daar ben je al geweest. Gebruik "Stap terug" om terug te gaan.`); return; }
+    if (!(borders[cur] || []).includes(id)) {
+      G.mistakes++;
+      map.flash(id, false, 700);
+      say(`${nameOf(id)} grenst niet aan ${nameOf(cur)}.`);
+      render();
+      return;
+    }
+    G.path.push(id);
+    G.showHint = false;
+    if (id === G.end) finish(); else say(`Op weg via ${nameOf(id)}.`, 'ok');
+    render();
+    if (G.done) fit();
+  }
+
+  function finish() {
+    G.done = true;
+    const perfect = G.path.length - 1 === G.shortest && !G.mistakes && !G.hints;
+    stats.played++; stats.won++;
+    if (perfect) { stats.perfect++; stats.streak++; stats.best = Math.max(stats.best, stats.streak); } else stats.streak = 0;
+    prefs.set(STATS_KEY, stats);
+    G.msg = ''; G.msgCls = '';
+  }
+
+  // ---------- Typing with suggestions over all countries (no hint about neighbours) ----------
+  const all = [...ds.items.values()].map(it => ({ id: it.id, name: it.name, n: normalize(it.name) }));
+  let sugg = [], sel = 0;
+  function suggest() {
+    const q = normalize(document.getElementById('gr-input').value);
+    const box = document.getElementById('suggest');
+    sugg = q ? all.filter(c => c.n.startsWith(q)).concat(all.filter(c => !c.n.startsWith(q) && c.n.includes(q))).slice(0, 6) : [];
+    sel = 0;
+    box.hidden = !sugg.length;
+    box.innerHTML = sugg.map((c, i) => `<button type="button" class="${i === sel ? 'on' : ''}" data-sug="${c.id}"><img class="flag" src="${ds.items.get(c.id).flag}" alt="" width="24" height="16">${esc(c.name)}</button>`).join('');
+  }
+  function moveSuggest(e) {
+    if (!sugg.length) return;
+    e.preventDefault();
+    sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + sugg.length) % sugg.length;
+    document.querySelectorAll('#suggest button').forEach((b, i) => b.classList.toggle('on', i === sel));
+  }
+  function submitTyped(value) {
+    const q = normalize(value);
+    if (!q) return;
+    let pick = sugg[sel];
+    if (!pick || (pick.n !== q && levenshtein(pick.n, q) > 3 && !pick.n.startsWith(q))) {
+      pick = all.map(c => ({ c, d: levenshtein(c.n, q) })).sort((a, b) => a.d - b.d)[0];
+      pick = pick.d <= 3 ? pick.c : null;
+    }
+    if (!pick) { say(`"${value}" ken ik niet als land.`); return; }
+    travel(pick.id);
+  }
+
+  page.addEventListener('click', e => {
+    const s = e.target.closest('[data-sug]'); if (s) { travel(s.dataset.sug); return; }
+    const lv = e.target.closest('[data-level]'); if (lv) { settings.level = lv.dataset.level; prefs.set(STATS_KEY + '_settings', settings); start(); return; }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'new') { if (G && !G.done && G.path.length > 1) stats.streak = 0, prefs.set(STATS_KEY, stats); start(); }
+    if (a.dataset.act === 'undo' && G.path.length > 1) { G.path.pop(); say(''); render(); }
+    if (a.dataset.act === 'hint') { G.hints++; G.showHint = true; say(`${nameOf(G.path[G.path.length - 1])} heeft ${borders[G.path[G.path.length - 1]].length} buurlanden, ze lichten op.`); render(); }
+  });
+  page.addEventListener('change', e => { if (e.target.id === 'area') { settings.area = e.target.value; prefs.set(STATS_KEY + '_settings', settings); start(); } });
+
+  function start() {
+    G = newPuzzle();
+    if (!G) { page.innerHTML = '<div class="card panel"><p>Geen route gevonden voor deze instellingen. Kies een ander gebied of niveau.</p></div>'; return; }
+    render();
+    if (map && map.geo) fit(false);
+  }
+  start();
+})();
