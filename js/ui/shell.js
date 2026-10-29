@@ -65,6 +65,9 @@ export function renderTopbar(el, { current = 'oefenen', dataset = 'world' } = {}
   import('./account.js').then(m => m.mountAccount(el.querySelector('[data-account]'))).catch(e => console.warn('Account niet geladen', e));
 }
 
+// Service worker that revalidates every file, so a deploy shows up right away (see sw.js).
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register(siteUrl('sw.js')).catch(() => {});
+
 /** localStorage helpers that never throw (private mode, blocked storage). */
 export const prefs = {
   get(key, fallback) { try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch (_) { return fallback; } },

@@ -57,7 +57,7 @@ export function createMode({ ds, group, params }) {
     $('#actions').innerHTML = actions();
     if (map) {
       $('#mix-map').hidden = !showMap;
-      if (showMap) { map.setTarget(item.id); setTimeout(() => map.fitTo([item.id], { padding: .3, maxZoom: 5, animate: false }), 60); }
+      if (showMap) { map.setTarget(item.id); setTimeout(() => map.fitTo([item.id], { padding: .55, maxZoom: 5, animate: false }), 60); }
       else map.setTarget(null);
     }
   }

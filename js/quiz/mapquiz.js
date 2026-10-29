@@ -8,7 +8,7 @@ import { isCloseEnough, normalize, escapeHtml as esc } from '../core/text.js';
 const NEXT_OK_MS = 900;
 const NEXT_BAD_MS = 1600;
 
-const FOCUS = { padding: .3, maxZoom: 5 };   // het land ~30% van de kaart, niet verder in dan landniveau
+const FOCUS = { padding: .55, maxZoom: 5 };   // het land ~55% van de kaart, niet verder in dan landniveau
 
 export function createMode({ ds, group, params }) {
   const kind = params.dir === 'c' ? 'locate' : params.dir === 'b' ? 'zoek' : (params.ans === 'pick' ? 'pick' : 'snelle');
