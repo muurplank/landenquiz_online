@@ -897,5 +897,6 @@ a.world-card { color: #fff; }
 .censored { filter: blur(9px); opacity: .6; user-select: none; pointer-events: none; }
 .censored img { filter: grayscale(1); }
 .unveil { animation: unveil .35s ease-out; }
-@keyframes unveil { from { filter: blur(9px); opacity: .6; } to { filter: blur(0); opacity: 1; } }
+/* Alleen opacity/transform: een filter-animatie laat Safari soms vaag achter. */
+@keyframes unveil { from { opacity: .4; transform: scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .unveil { animation: none; } }
