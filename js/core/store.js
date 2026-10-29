@@ -74,6 +74,10 @@ export function finalizeSession(session) {
   saveHistory(history);
 }
 
+// A session counts for its own group and, when played in a selection ('sel.<week>.<week>…'), for each week in it.
+const countsFor = (sessionGroup, groupId) => sessionGroup === groupId
+  || (typeof sessionGroup === 'string' && sessionGroup.startsWith('sel.') && sessionGroup.slice(4).split('.').includes(groupId));
+
 /**
  * Progress per group in percent per type (capital, flag, map), as in the old
  * getGroupProgress: a country counts once it was answered correctly at least once.
@@ -83,7 +87,7 @@ export function groupProgress(groupId, ids, history = loadHistory()) {
   const idSet = new Set(ids);
   const mastered = { capital: new Set(), flag: new Set(), map: new Set(), history: new Set() };
   for (const s of history.sessions) {
-    if (!s.endedAt || s.groupId !== groupId) continue;
+    if (!s.endedAt || !countsFor(s.groupId, groupId)) continue;
     const type = s.quizType;
     if ((type === 'capital' || type === 'flag') && s.subMode === 'both') continue;
     for (const [iso, st] of Object.entries(s.perCountryStats || {})) {
