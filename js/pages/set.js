@@ -10,6 +10,7 @@ const page = document.getElementById('page');
 const INFINITE_KEY = 'landjes_alles_oneindig';   // same key as the old group page ('1' / '0')
 const PICKER_KEY = 'landjes_picker_v2';
 const LEARN_KEY = 'landjes_oefenen_collapsed';    // same key as the old group page: {groupId: true}
+const HISTORY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h12v16H6a2 2 0 00-2 2V5z"/><path d="M4 19a2 2 0 002 2h12M9 7h5M9 11h5"/></svg>';
 
 renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: params.dataset || 'world' });
 
@@ -45,7 +46,10 @@ function subjects(ds, oceania) {
         c => c.dir === 'a' ? { click: `Hoort bij ${L} → kaart` } : { self: `Hoort bij Kaart → ${l}`, pick: `Hoort bij Kaart → ${l}` }]] },
     { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
     { k: 'mix', icon: 'shuffle', t: 'Mix', d: 'Hoofdstad, vlag en kaart door elkaar.', steps: [
-      ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] }
+      ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] },
+    ...(ds.name === 'world' ? [{ k: 'history', svg: HISTORY_ICON, t: 'Geschiedenis', d: 'Vijf weetjes over de geschiedenis van elk land, met vragen erover.', steps: [
+      ['dir', 'Hoe wil je oefenen?', [['ask', 'Meteen de vraag', 'Na je antwoord zie je de weetjes van het land'], ['read', 'Eerst lezen', 'Je leest de weetjes, daarna volgt de vraag']]],
+      ['order', 'In welke volgorde?', ord]] }] : [])
   ];
 }
 
@@ -66,7 +70,7 @@ function render(ds, group) {
   const saved = prefs.get(PICKER_KEY, {});
   const S = {
     subj: list.some(s => s.k === saved.subj) ? saved.subj : 'capital',
-    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, kwartet: {}, mix: { mix: 'std' } }, saved.cfg || {}),
+    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, kwartet: {}, mix: { mix: 'std' }, history: { dir: 'ask', order: 'deck' } }, saved.cfg || {}),
     mix: new Set(saved.mixTypes || []),
     infinite: readInfinite()
   };
@@ -83,7 +87,7 @@ function render(ds, group) {
         <p class="sub">${esc(sub)}</p>
       </div>
       <div class="card set-progress" aria-label="Voortgang">
-        ${[['Hoofdstad', prog.capital], ['Vlag', prog.flag], ['Kaart', prog.map]].map(([l, p]) => `<div class="ring-wrap"><div class="ring" style="--p:${p}"><b>${p}%</b></div><span>${l}</span></div>`).join('')}
+        ${[['Hoofdstad', prog.capital], ['Vlag', prog.flag], ['Kaart', prog.map], ...(ds.name === 'world' ? [['Geschiedenis', prog.history]] : [])].map(([l, p]) => `<div class="ring-wrap"><div class="ring" style="--p:${p}"><b>${p}%</b></div><span>${l}</span></div>`).join('')}
       </div>
     </div>
     <div class="flagstrip set-flags">${items.slice(0, 16).map(it => `<img class="flag" src="${it.flag}" alt="" width="30" height="20" loading="lazy">`).join('')}${items.length > 16 ? `<span class="more">+${items.length - 16}</span>` : ''}</div>
@@ -128,14 +132,14 @@ function render(ds, group) {
     const subj = list.find(x => x.k === S.subj);
     fix(subj);
     const c = S.cfg[subj.k];
-    const progOf = { capital: prog.capital, flag: prog.flag, map: prog.map };
+    const progOf = { capital: prog.capital, flag: prog.flag, map: prog.map, history: ds.name === 'world' ? prog.history : null };
     const summary = subj.steps.map(([key, , opts]) => (opts.find(o => o[0] === c[key]) || [])[1]).filter(Boolean);
     const ownEmpty = subj.k === 'mix' && c.mix === 'own' && !S.mix.size;
     picker.innerHTML = `
       <div class="rail" role="tablist" aria-label="Onderwerp">
         <div class="label rail-label">Wat wil je oefenen?</div>
         ${list.map(x => `<button class="subj" role="tab" data-subj="${x.k}" aria-selected="${x.k === subj.k}">
-          <span class="gicon">${I[x.icon]}</span>
+          <span class="gicon">${x.svg || I[x.icon]}</span>
           <span class="subj-t"><b>${x.t}</b>${progOf[x.k] != null ? `<span class="tabnum">${progOf[x.k]}% beheerst</span>` : ''}</span>
         </button>`).join('')}
       </div>

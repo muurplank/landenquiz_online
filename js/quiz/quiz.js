@@ -1,7 +1,7 @@
 // Quiz page: one layout for every quiz type. The mode module fills the question card;
 // this file owns the header, session stats, cheat sheet, keyboard and end screen.
 //
-// URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet&dir=a|b|both
+// URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet|history&dir=a|b|both
 //      &ans=self|type|pick|click&order=deck|smart&infinite=1&mix=std|mega|own&custom=a,b
 
 import { loadDataset, getGroup, shortTitle, siteUrl } from '../core/data.js';
@@ -17,7 +17,8 @@ const MODE_LOADERS = {
   flag: () => import('./flashcard.js'),
   map: () => import('./mapquiz.js'),
   mix: () => import('./mix.js'),
-  kwartet: () => import('./kwartet.js')
+  kwartet: () => import('./kwartet.js'),
+  history: () => import('./history.js')
 };
 
 renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: params.dataset || 'world' });
@@ -29,7 +30,7 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     group = await getGroup(ds, params.set);
     const load = MODE_LOADERS[params.type];
     if (!load) throw new Error('Onbekende quizvorm.');
-    mode = (await load()).createMode({ ds, group, params });
+    mode = await (await load()).createMode({ ds, group, params });
   } catch (e) {
     page.innerHTML = `<div class="card" style="padding:24px"><h1 style="font-size:22px">Quiz kon niet starten</h1><p class="muted" style="margin-top:6px">${esc(e.message)}</p><p style="margin-top:14px"><a class="btn" href="${siteUrl('wereld.html')}">Terug naar het overzicht</a></p></div>`;
     console.error(e);

@@ -80,7 +80,7 @@ export function finalizeSession(session) {
  */
 export function groupProgress(groupId, ids, history = loadHistory()) {
   const idSet = new Set(ids);
-  const mastered = { capital: new Set(), flag: new Set(), map: new Set() };
+  const mastered = { capital: new Set(), flag: new Set(), map: new Set(), history: new Set() };
   for (const s of history.sessions) {
     if (!s.endedAt || s.groupId !== groupId) continue;
     const type = s.quizType;
@@ -92,5 +92,5 @@ export function groupProgress(groupId, ids, history = loadHistory()) {
     }
   }
   const pct = set => ids.length ? Math.round(set.size / ids.length * 100) : 0;
-  return { capital: pct(mastered.capital), flag: pct(mastered.flag), map: pct(mastered.map) };
+  return { capital: pct(mastered.capital), flag: pct(mastered.flag), map: pct(mastered.map), history: pct(mastered.history) };
 }
