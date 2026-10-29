@@ -12,7 +12,11 @@ const LEVELS = { easy: ['Makkelijk', 2, 3], normal: ['Normaal', 4, 5], hard: ['M
 const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 'Azië', Americas: 'Amerika' };
 
 (async () => {
-  const [ds, borders] = await Promise.all([loadDataset('world'), loadJSON('data/borders.json')]);
+  const [ds, allBorders] = await Promise.all([loadDataset('world'), loadJSON('data/borders.json')]);
+  // Alleen over land reizen: grenzen via overzeese gebieden of exclaven aan de overkant van de zee tellen niet,
+  // net als de grenzen op Borneo (dan zou je vanaf het Maleisische vasteland naar Indonesië 'lopen').
+  const SEA = new Set(['BRA-FRA', 'FRA-SUR', 'ESP-MAR', 'IDN-MYS', 'BRN-MYS']);
+  const borders = Object.fromEntries(Object.entries(allBorders).map(([id, ns]) => [id, ns.filter(n => !SEA.has([id, n].sort().join('-')))]));
   const nameOf = id => ds.items.get(id).name;
   const inArea = (id, area) => area === 'world' || (area === 'Americas'
     ? ['North America', 'South America'].includes(ds.items.get(id).region)
