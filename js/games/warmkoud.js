@@ -4,10 +4,11 @@ import { loadDataset, loadJSON } from '../core/data.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
 import { countryInput, samplePoints, countryDistanceKm, gameStats, fmtKm } from './common.js';
+import { playDate, today as todayStr, isRandomMode, niceDate, hash, saveResult } from './daily.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'hub' });
 const page = document.getElementById('page');
-const DAILY_KEY = 'landjes_warmkoud_daily';
+const DAYS_KEY = 'landjes_warmkoud_days';   // {date: game state}
 const HINT_CONTINENT = 5, HINT_LETTER = 8;
 
 const heat = d3.scaleLinear().domain([0, 400, 1200, 3000, 6000, 12000])
@@ -26,28 +27,29 @@ const label = km => km < 1 ? 'Gloeiend heet' : km < 400 ? 'Heet' : km < 1200 ? '
   const dist = (a, b) => a === b ? 0 : (borders[a] || []).includes(b) ? 0 : countryDistanceKm(pointsOf(a), pointsOf(b));
   const stats = { daily: gameStats('landjes_warmkoud_stats_daily'), free: gameStats('landjes_warmkoud_stats') };
 
-  const today = new Date().toISOString().slice(0, 10);
-  function dailySecret() {
-    let h = 2166136261;
-    for (const ch of 'warmkoud' + today) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
-    const sorted = [...ids].sort();
-    return sorted[(h >>> 0) % sorted.length];
-  }
+  const day = playDate();
+  const dailySecret = () => { const sorted = [...ids].sort(); return sorted[hash('warmkoud' + day) % sorted.length]; };
 
-  let mode = prefs.get('landjes_warmkoud_mode', 'daily');
+  let mode = isRandomMode() ? 'free' : 'daily';
   let G, map;
 
   function newGame() {
     if (mode === 'daily') {
-      const saved = prefs.get(DAILY_KEY, null);
-      if (saved && saved.date === today) { G = saved; return; }
-      G = { date: today, secret: dailySecret(), guesses: [], done: false, gaveUp: false };
+      const saved = prefs.get(DAYS_KEY, {})[day];
+      if (saved) { G = saved; return; }
+      G = { date: day, secret: dailySecret(), guesses: [], done: false, gaveUp: false };
     } else {
       G = { secret: ids[Math.floor(Math.random() * ids.length)], guesses: [], done: false, gaveUp: false };
     }
     save();
   }
-  function save() { if (mode === 'daily') prefs.set(DAILY_KEY, G); }
+  function save() {
+    if (mode !== 'daily') return;
+    const days = prefs.get(DAYS_KEY, {});
+    days[day] = G;
+    prefs.set(DAYS_KEY, days);
+    if (G.done) saveResult('warmkoud', day, { done: true, won: !G.gaveUp, guesses: G.guesses.length });
+  }
 
   function guess(id) {
     if (G.done || !ds.items.has(id)) return;
@@ -82,7 +84,7 @@ const label = km => km < 1 ? 'Gloeiend heet' : km < 400 ? 'Heet' : km < 1200 ? '
         <div><div class="eyebrow">Spel</div><h1>Warm of koud</h1><p class="muted">Raad het geheime land. Hoe dichterbij je gok, hoe warmer de kleur op de kaart.</p></div>
         <div class="game-settings">
           <div class="seg small" role="group" aria-label="Spelvorm">
-            <button data-mode="daily" aria-pressed="${mode === 'daily'}">Land van de dag</button>
+            <button data-mode="daily" aria-pressed="${mode === 'daily'}">${day === todayStr() ? 'Land van de dag' : esc(niceDate(day))}</button>
             <button data-mode="free" aria-pressed="${mode === 'free'}">Oefenen</button>
           </div>
         </div>
@@ -94,7 +96,7 @@ const label = km => km < 1 ? 'Gloeiend heet' : km < 400 ? 'Heet' : km < 1200 ? '
               <img class="flag" src="${secret.flag}" alt="" width="60" height="40">
               <div><h2>${G.gaveUp ? `Het was ${esc(secret.name)}` : `${esc(secret.name)}!`}</h2>
                 <p class="muted">${G.gaveUp ? `Opgegeven na ${n} ${n === 1 ? 'gok' : 'gokken'}.` : `Geraden in ${n} ${n === 1 ? 'gok' : 'gokken'}.`} Hoofdstad: ${esc(secret.answers.join(', '))}.</p></div>
-              ${mode === 'free' ? `<button class="btn lg primary" data-act="new">Nieuw land ${I.arrow}</button>` : `<span class="muted" style="font-size:13px">Morgen een nieuw land</span>`}
+              ${mode === 'free' ? `<button class="btn lg primary" data-act="new">Nieuw land ${I.arrow}</button>` : `<a class="btn" href="archief.html?game=warmkoud">Archief</a>`}
             </div>`
             : `<form id="wk-form"></form>`}
           <p class="type-feedback" id="wk-msg" aria-live="polite"></p>
@@ -143,7 +145,7 @@ const label = km => km < 1 ? 'Gloeiend heet' : km < 400 ? 'Heet' : km < 1200 ? '
 
   page.addEventListener('click', e => {
     const m = e.target.closest('[data-mode]');
-    if (m && m.dataset.mode !== mode) { mode = m.dataset.mode; prefs.set('landjes_warmkoud_mode', mode); newGame(); render(); if (map && map.geo) map.fitTo(ids, { animate: false, padding: .98 }); return; }
+    if (m && m.dataset.mode !== mode) { mode = m.dataset.mode; history.replaceState(null, '', mode === 'free' ? '?mode=random' : day !== todayStr() ? `?date=${day}` : location.pathname); newGame(); render(); if (map && map.geo) map.fitTo(ids, { animate: false, padding: .98 }); return; }
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'giveup') giveUp();
     if (a.dataset.act === 'new') { newGame(); render(); map.fitTo(ids, { padding: .98 }); }

@@ -3,6 +3,7 @@
 import { loadDataset, loadJSON } from '../core/data.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
+import { playDate, today as todayStr, isRandomMode, niceDate, hash, rng, results, saveResult } from './daily.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'hub' });
 const page = document.getElementById('page');
@@ -17,13 +18,6 @@ const CATS = {
   kust: 'Kust',
   continent: 'Continenten'
 };
-
-/** Small seeded random generator (mulberry32), so the daily round is the same for everyone. */
-function rng(seed) {
-  let a = seed >>> 0;
-  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-}
-function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 (async () => {
   const [ds, borders, facts, capAt] = await Promise.all([
@@ -143,29 +137,30 @@ function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(
   }
 
   // ---------- State & screens ----------
-  const store = Object.assign({ best: 0, bestDaily: {}, rounds: 0, cats: Object.keys(CATS) }, prefs.get(KEY, {}));
+  const store = Object.assign({ best: 0, rounds: 0, cats: Object.keys(CATS) }, prefs.get(KEY, {}));
   const save = () => prefs.set(KEY, store);
-  const today = new Date().toISOString().slice(0, 10);
+  const day = playDate();
+  const dayResult = () => results('geotrivia')[day];
   let R = null, timer = null;
 
   function start(daily) {
     const cats = daily ? Object.keys(CATS) : store.cats;
-    const seed = daily ? hash('geotrivia' + today) : Math.floor(Math.random() * 2 ** 32);
+    const seed = daily ? hash('geotrivia' + day) : Math.floor(Math.random() * 2 ** 32);
     R = { daily, qs: makeRound(seed, cats), i: 0, score: 0, correct: 0, picked: null, t0: 0, log: [] };
     question();
   }
 
   function startScreen() {
     clearInterval(timer);
-    const playedToday = store.bestDaily[today] != null;
+    const played = dayResult();
     page.innerHTML = `
       <div class="game-head"><div><div class="eyebrow">Spel</div><h1>Geo trivia</h1><p class="muted">10 snelle vragen over grenzen, oppervlakte, inwoners en ligging. Hoe sneller je antwoordt, hoe meer punten.</p></div></div>
       <div class="gt-start">
         <section class="card panel gt-mode">
-          <span class="label">Ronde van de dag</span>
-          <h2>${new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
-          <p class="muted">Dezelfde 10 vragen voor iedereen, alle categorieën.${playedToday ? ` Jouw score vandaag: <b>${store.bestDaily[today]}</b>.` : ''}</p>
-          <button class="btn lg primary" data-act="daily">${playedToday ? 'Nog eens spelen' : 'Start ronde van de dag'} ${I.arrow}</button>
+          <span class="label">${day === todayStr() ? 'Ronde van de dag' : 'Uit het archief'}</span>
+          <h2>${esc(niceDate(day))}</h2>
+          <p class="muted">Dezelfde 10 vragen voor iedereen, alle categorieën.${played ? ` Jouw score: <b>${played.score}</b> (${played.correct} van 10 goed).` : ''}</p>
+          <div class="row-btns"><button class="btn lg primary" data-act="daily">${played ? 'Nog eens spelen' : 'Start deze ronde'} ${I.arrow}</button><a class="btn lg" href="archief.html?game=geotrivia">Archief</a></div>
         </section>
         <section class="card panel gt-mode">
           <span class="label">Oefenen</span>
@@ -239,7 +234,7 @@ function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(
     store.rounds++;
     const isBest = R.score > store.best;
     store.best = Math.max(store.best, R.score);
-    if (R.daily) store.bestDaily = { [today]: Math.max(store.bestDaily[today] || 0, R.score) };
+    if (R.daily && !dayResult()) saveResult('geotrivia', day, { done: true, won: R.correct >= 5, score: R.score, correct: R.correct });
     save();
     page.innerHTML = `
       <article class="card gt-card gt-end">
@@ -264,5 +259,5 @@ function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(
     if (/^[1-4]$/.test(e.key) && R.picked === null && document.querySelector('.gt-opt')) answer(Number(e.key) - 1);
     else if (e.key === 'Enter' && R.picked !== null && document.querySelector('[data-act="next"]')) { e.preventDefault(); R.i++; question(); }
   });
-  startScreen();
+  if (isRandomMode()) start(false); else startScreen();
 })();

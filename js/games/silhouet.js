@@ -4,10 +4,11 @@ import { loadDataset, loadJSON } from '../core/data.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
 import { countryInput, samplePoints, countryDistanceKm, gameStats, fmtKm } from './common.js';
+import { playDate, today as todayStr, isRandomMode, niceDate, hash, saveResult } from './daily.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'hub' });
 const page = document.getElementById('page');
-const MAX = 6, DAILY_KEY = 'landjes_silhouet_daily';
+const MAX = 6, DAYS_KEY = 'landjes_silhouet_days';   // {date: game state}
 const REVEALS = ['Alleen de vorm', 'De buurlanden', 'Het continent', 'De hoofdstad', 'De eerste letter', 'Niets meer'];
 
 (async () => {
@@ -20,25 +21,26 @@ const REVEALS = ['Alleen de vorm', 'De buurlanden', 'Het continent', 'De hoofdst
   const dist = (a, b) => a === b ? 0 : (borders[a] || []).includes(b) ? 0 : countryDistanceKm(pointsOf(a), pointsOf(b));
   const heat = d3.scaleLinear().domain([0, 400, 1200, 3000, 6000, 12000]).range(['#ff1f1f', '#ff7a00', '#ffc400', '#ffe9a3', '#8fd3ff', '#2f6fdf']).clamp(true);
   const stats = { daily: gameStats('landjes_silhouet_stats_daily'), free: gameStats('landjes_silhouet_stats') };
-  const today = new Date().toISOString().slice(0, 10);
-  let mode = prefs.get('landjes_silhouet_mode', 'daily');
+  const day = playDate();
+  let mode = isRandomMode() ? 'free' : 'daily';
   let G;
 
-  function dailySecret() {
-    let h = 2166136261;
-    for (const ch of 'silhouet' + today) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
-    const sorted = [...ids].sort();
-    return sorted[(h >>> 0) % sorted.length];
-  }
+  const dailySecret = () => { const sorted = [...ids].sort(); return sorted[hash('silhouet' + day) % sorted.length]; };
   function newGame() {
     if (mode === 'daily') {
-      const saved = prefs.get(DAILY_KEY, null);
-      if (saved && saved.date === today) { G = saved; return; }
-      G = { date: today, secret: dailySecret(), guesses: [], done: false, won: false };
+      const saved = prefs.get(DAYS_KEY, {})[day];
+      if (saved) { G = saved; return; }
+      G = { date: day, secret: dailySecret(), guesses: [], done: false, won: false };
     } else G = { secret: ids[Math.floor(Math.random() * ids.length)], guesses: [], done: false, won: false };
     save();
   }
-  const save = () => { if (mode === 'daily') prefs.set(DAILY_KEY, G); };
+  const save = () => {
+    if (mode !== 'daily') return;
+    const days = prefs.get(DAYS_KEY, {});
+    days[day] = G;
+    prefs.set(DAYS_KEY, days);
+    if (G.done) saveResult('silhouet', day, { done: true, won: G.won, guesses: G.guesses.length });
+  };
   const wrong = () => G.guesses.filter(g => g.id !== G.secret).length;
   const level = () => G.done ? 99 : wrong();
 
@@ -65,9 +67,13 @@ const REVEALS = ['Alleen de vorm', 'De buurlanden', 'Het continent', 'De hoofdst
     const neighbours = lv >= 1 ? (borders[G.secret] || []).filter(n => geo.byId.has(n)) : [];
     const c = d3.geoCentroid(main);
     const proj = d3.geoAzimuthalEqualArea().rotate([-c[0], -c[1]]).clipAngle(150);
+    // Frame every part at least 10% the size of the largest (Malaysia's two halves, not French Guiana).
+    const parts = f.geometry.coordinates.map(c => ({ type: 'Polygon', coordinates: c }));
+    const biggest = Math.max(...parts.map(p => d3.geoArea(p)));
+    const shape = { type: 'Feature', geometry: { type: 'MultiPolygon', coordinates: parts.filter(p => d3.geoArea(p) >= biggest * .1).map(p => p.coordinates) } };
     const fitTo = lv >= 1 && neighbours.length
-      ? { type: 'FeatureCollection', features: [main, ...neighbours.map(n => geo.main.get(n))] }
-      : main;
+      ? { type: 'FeatureCollection', features: [shape, ...neighbours.map(n => geo.main.get(n))] }
+      : shape;
     proj.fitExtent([[28, 28], [W - 28, H - 28]], fitTo);
     const path = d3.geoPath(proj, ctx);
 
@@ -112,7 +118,7 @@ const REVEALS = ['Alleen de vorm', 'De buurlanden', 'Het continent', 'De hoofdst
       <div class="game-head">
         <div><div class="eyebrow">Spel</div><h1>Silhouet</h1><p class="muted">Welk land heeft deze vorm? Na elke foute gok zie je meer.</p></div>
         <div class="game-settings"><div class="seg small" role="group" aria-label="Spelvorm">
-          <button data-mode="daily" aria-pressed="${mode === 'daily'}">Vorm van de dag</button>
+          <button data-mode="daily" aria-pressed="${mode === 'daily'}">${day === todayStr() ? 'Vorm van de dag' : esc(niceDate(day))}</button>
           <button data-mode="free" aria-pressed="${mode === 'free'}">Oefenen</button>
         </div></div>
       </div>
@@ -129,7 +135,7 @@ const REVEALS = ['Alleen de vorm', 'De buurlanden', 'Het continent', 'De hoofdst
               <img class="flag" src="${secret.flag}" alt="" width="60" height="40">
               <div><h2>${G.won ? `${esc(secret.name)}!` : `Het was ${esc(secret.name)}`}</h2>
                 <p class="muted">${G.won ? `Geraden in ${G.guesses.length} ${G.guesses.length === 1 ? 'gok' : 'gokken'}.` : 'Alle zes gokken op.'} Hoofdstad: ${esc(secret.answers.join(', '))}.</p></div>
-              ${mode === 'free' ? `<button class="btn lg primary" data-act="new">Nieuwe vorm ${I.arrow}</button>` : '<span class="muted" style="font-size:13px">Morgen een nieuwe vorm</span>'}
+              ${mode === 'free' ? `<button class="btn lg primary" data-act="new">Nieuwe vorm ${I.arrow}</button>` : '<a class="btn" href="archief.html?game=silhouet">Archief</a>'}
             </div>` : `<form id="sil-form"></form>`}
         </section>
         <aside class="side">
@@ -156,7 +162,7 @@ const REVEALS = ['Alleen de vorm', 'De buurlanden', 'Het continent', 'De hoofdst
 
   page.addEventListener('click', e => {
     const m = e.target.closest('[data-mode]');
-    if (m && m.dataset.mode !== mode) { mode = m.dataset.mode; prefs.set('landjes_silhouet_mode', mode); newGame(); render(); return; }
+    if (m && m.dataset.mode !== mode) { mode = m.dataset.mode; history.replaceState(null, '', mode === 'free' ? '?mode=random' : day !== todayStr() ? `?date=${day}` : location.pathname); newGame(); render(); return; }
     const a = e.target.closest('[data-act]');
     if (a && a.dataset.act === 'new') { newGame(); render(); }
   });

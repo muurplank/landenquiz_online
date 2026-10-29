@@ -2,6 +2,7 @@
 import { loadDataset, siteUrl } from '../core/data.js';
 import { loadHistory } from '../core/store.js';
 import { renderTopbar, I } from '../ui/shell.js';
+import { DAILY_GAMES, results, today, msToMidnight } from '../games/daily.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'hub' });
 const page = document.getElementById('page');
@@ -11,17 +12,42 @@ const ICONS = {
   keyboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h0M10 10h0M14 10h0M18 10h0M7 14h10"/></svg>',
   target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
   shape: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 3l6 2 5-1 2 6-3 4 1 6-6-2-5 2-2-6-3-3 3-5z"/></svg>',
+  thermo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.8V4a2 2 0 1 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 10v7"/></svg>',
+  route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 18h5a3 3 0 0 0 0-6h-1a3 3 0 0 1 0-6h6"/></svg>',
   question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5h0"/></svg>'
 };
 
-const GAMES = [
-  { live: true, href: 'exam.html', icon: ICONS.cap, t: 'Het Grote Eindexamen', d: '588 vragen over alle 196 landen, met een seed om tegen elkaar te spelen.' },
-  { live: true, href: 'sporcle.html', icon: ICONS.keyboard, t: 'Typ ze allemaal', d: 'Alle landen, hoofdsteden of vlaggen uit je hoofd typen tegen de klok.' },
-  { live: true, href: 'grensroute.html', icon: I.map, t: 'Grensroute', d: 'Reis van het ene land naar het andere, steeds naar een buurland, in zo min mogelijk stappen.' },
-  { live: true, href: 'warmkoud.html', icon: ICONS.target, t: 'Warm of koud', d: 'Raad het land van de dag. Elke gok kleurt de kaart warmer naarmate je dichterbij zit.' },
-  { live: true, href: 'silhouet.html', icon: ICONS.shape, t: 'Silhouet', d: 'Raad het land aan zijn vorm. Na elke foute gok zie je meer: buurlanden, continent, hoofdstad.' },
-  { live: true, href: 'geotrivia.html', icon: ICONS.question, t: 'Geo trivia', d: 'Tien snelle vragen over buurlanden, oppervlakte, inwoners en ligging. Elke dag een nieuwe ronde.' }
+const MORE = [
+  { href: 'exam.html', icon: ICONS.cap, t: 'Het Grote Eindexamen', d: '588 vragen over alle 196 landen, met een seed om tegen elkaar te spelen.' },
+  { href: 'sporcle.html', icon: ICONS.keyboard, t: 'Typ ze allemaal', d: 'Alle landen, hoofdsteden of vlaggen uit je hoofd typen tegen de klok.' }
 ];
+const DAILY_ICON = { warmkoud: ICONS.thermo, silhouet: ICONS.shape, grensroute: ICONS.route, geotrivia: ICONS.question };
+
+function dailyCard(g) {
+  const r = results(g.id)[today()];
+  const isNew = (Date.parse(today()) - Date.parse(g.since)) / 864e5 < 7;
+  const status = r && r.done ? (r.won ? 'Vandaag gespeeld' : 'Vandaag geprobeerd') : 'Nog niet gespeeld';
+  return `<div class="daily">
+    <a class="daily-card c-${g.color}" href="${siteUrl(g.href)}" aria-label="${g.title}: spel van vandaag. ${status}">
+      ${isNew ? '<span class="daily-new">Nieuw</span>' : ''}
+      ${r && r.done ? `<span class="daily-check" title="${status}">${I.check}</span>` : ''}
+      <span class="daily-icon">${DAILY_ICON[g.id]}</span>
+      <span class="daily-title">${g.title}</span>
+      <span class="daily-sub">${g.sub}</span>
+    </a>
+    <div class="daily-actions">
+      <a class="btn" href="${siteUrl(g.href + '?mode=random')}">Willekeurig</a>
+      <a class="btn" href="${siteUrl('archief.html?game=' + g.id)}">Archief</a>
+    </div>
+  </div>`;
+}
+
+function countdown() {
+  const ms = msToMidnight();
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(Math.floor(ms / 36e5))}:${pad(Math.floor(ms / 6e4) % 60)}:${pad(Math.floor(ms / 1e3) % 60)}`;
+}
+
 
 (async () => {
   let mastered = 0, total = 196, usDone = 0;
@@ -75,12 +101,23 @@ const GAMES = [
         </div>
       </a>
     </section>
-    <section style="display:grid;gap:14px" aria-label="Spellen">
-      <div class="section-head"><div><h2>Spellen</h2><p>Test wat je weet, zonder hints.</p></div></div>
-      <div class="games">
-        ${GAMES.map(g => g.live
-          ? `<a class="card game live" href="${siteUrl(g.href)}"><div class="gicon">${g.icon}</div><h3>${g.t}</h3><p>${g.d}</p></a>`
-          : `<div class="card game later"><span class="pill soon">${g.pill}</span><div class="gicon">${g.icon}</div><h3>${g.t}</h3><p>${g.d}</p></div>`).join('')}
+    <section class="daily-section" aria-label="Spellen van de dag">
+      <div class="section-head">
+        <div><h2>Spellen van de dag</h2><p>Elke dag nieuw, voor iedereen hetzelfde. Of speel een willekeurige ronde.</p></div>
+        <div class="countdown" aria-live="off"><span>Nieuwe spellen over</span><b id="countdown" class="tabnum">${countdown()}</b></div>
+      </div>
+      <div class="daily-grid">${DAILY_GAMES.map(dailyCard).join('')}</div>
+    </section>
+    <section style="display:grid;gap:14px" aria-label="Meer spellen">
+      <div class="section-head"><div><h2>Meer spellen</h2><p>Grote tests om te laten zien wat je kunt.</p></div></div>
+      <div class="games more">
+        ${MORE.map(g => `<a class="card game live" href="${siteUrl(g.href)}"><div class="gicon">${g.icon}</div><h3>${g.t}</h3><p>${g.d}</p></a>`).join('')}
       </div>
     </section>`;
+  setInterval(() => {
+    const el = document.getElementById('countdown');
+    if (!el) return;
+    el.textContent = countdown();
+    if (msToMidnight() < 1000) setTimeout(() => location.reload(), 1500);
+  }, 1000);
 })();

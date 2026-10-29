@@ -3,6 +3,7 @@
 import { loadDataset, loadJSON, siteUrl } from '../core/data.js';
 import { normalize, levenshtein, escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
+import { playDate, today as todayStr, isRandomMode, niceDate, hash, rng, saveResult } from './daily.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'hub' });
 const page = document.getElementById('page');
@@ -18,6 +19,13 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     : ds.items.get(id).region === area);
 
   const settings = Object.assign({ level: 'normal', area: 'world' }, prefs.get(STATS_KEY + '_settings', {}));
+  const day = playDate(), DAYS_KEY = 'landjes_grensroute_days';
+  let mode = isRandomMode() ? 'free' : 'daily';
+  const cfg = () => mode === 'daily' ? { level: 'normal', area: 'world' } : settings;
+  function saveDay() {
+    if (mode !== 'daily' || !G) return;
+    const days = prefs.get(DAYS_KEY, {}); days[day] = G; prefs.set(DAYS_KEY, days);
+  }
   const stats = Object.assign({ played: 0, won: 0, perfect: 0, streak: 0, best: 0 }, prefs.get(STATS_KEY, {}));
   let G = null, map = null;
 
@@ -31,15 +39,16 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
   }
   function pathTo(parent, from, to) { const p = [to]; while (p[0] !== from) p.unshift(parent[p[0]]); return p; }
 
-  function newPuzzle() {
-    const [, lo, hi] = LEVELS[settings.level];
-    const starts = Object.keys(borders).filter(id => borders[id].length && ds.items.has(id) && inArea(id, settings.area));
+  function newPuzzle(r = Math.random) {
+    const { level, area } = cfg();
+    const [, lo, hi] = LEVELS[level];
+    const starts = Object.keys(borders).filter(id => borders[id].length && ds.items.has(id) && inArea(id, area)).sort();
     for (let tries = 0; tries < 400; tries++) {
-      const start = starts[Math.floor(Math.random() * starts.length)];
+      const start = starts[Math.floor(r() * starts.length)];
       const { dist, parent } = bfs(start);
-      const ends = Object.keys(dist).filter(id => dist[id] >= lo && dist[id] <= hi && inArea(id, settings.area));
+      const ends = Object.keys(dist).filter(id => dist[id] >= lo && dist[id] <= hi && inArea(id, area)).sort();
       if (!ends.length) continue;
-      const end = ends[Math.floor(Math.random() * ends.length)];
+      const end = ends[Math.floor(r() * ends.length)];
       return { start, end, shortest: dist[end], best: pathTo(parent, start, end), path: [start], mistakes: 0, hints: 0, done: false, msg: '', msgCls: '' };
     }
     return null;
@@ -52,9 +61,10 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
       <div class="game-head">
         <div><div class="eyebrow">Spel</div><h1>Grensroute</h1><p class="muted">Reis van het startland naar het doel, steeds naar een buurland.</p></div>
         <div class="game-settings">
-          <div class="seg small" role="group" aria-label="Moeilijkheid">${Object.entries(LEVELS).map(([k, [t]]) => `<button data-level="${k}" aria-pressed="${settings.level === k}">${t}</button>`).join('')}</div>
+          <div class="seg small" role="group" aria-label="Spelvorm"><button data-mode="daily" aria-pressed="${mode === 'daily'}">${day === todayStr() ? 'Route van de dag' : esc(niceDate(day))}</button><button data-mode="free" aria-pressed="${mode === 'free'}">Oefenen</button></div>
+          ${mode === 'daily' ? '' : `<div class="seg small" role="group" aria-label="Moeilijkheid">${Object.entries(LEVELS).map(([k, [t]]) => `<button data-level="${k}" aria-pressed="${settings.level === k}">${t}</button>`).join('')}</div>
           <label class="visually-hidden" for="area">Gebied</label>
-          <select class="select" id="area">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${settings.area === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <select class="select" id="area">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${settings.area === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`}
         </div>
       </div>
       <div class="gr-grid">
@@ -89,7 +99,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
             <div class="card tile"><span class="v">${stats.won}</span><span class="k">Gewonnen</span></div>
             <div class="card tile"><span class="v">${stats.streak}</span><span class="k">Perfecte reeks</span></div>
           </div>
-          <button class="btn" data-act="new">Nieuwe route</button>
+          ${mode === 'free' ? '<button class="btn" data-act="new">Nieuwe route</button>' : '<a class="btn" href="archief.html?game=grensroute">Archief</a>'}
         </aside>
       </div>`;
     mountMap();
@@ -113,7 +123,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
         <p class="muted">${steps} stappen${extra ? `, ${extra} meer dan nodig` : ', de kortste route'}${G.mistakes ? ` · ${G.mistakes} ${G.mistakes === 1 ? 'fout' : 'fouten'}` : ''}${G.hints ? ` · ${G.hints} ${G.hints === 1 ? 'hint' : 'hints'}` : ''}.</p>
         ${extra ? `<p class="muted" style="margin-top:6px">Kortste route: ${G.best.map(id => esc(nameOf(id))).join(' → ')}</p>` : ''}
       </div>
-      <button class="btn lg primary" data-act="new">Nieuwe route ${I.arrow}</button>
+      ${mode === 'free' ? `<button class="btn lg primary" data-act="new">Nieuwe route ${I.arrow}</button>` : '<a class="btn lg" href="archief.html?game=grensroute">Archief</a>'}
     </div>`;
   }
 
@@ -151,6 +161,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     G.path.push(id);
     G.showHint = false;
     if (id === G.end) finish(); else say(`Op weg via ${nameOf(id)}.`, 'ok');
+    saveDay();
     render();
     if (G.done) fit();
   }
@@ -162,6 +173,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     if (perfect) { stats.perfect++; stats.streak++; stats.best = Math.max(stats.best, stats.streak); } else stats.streak = 0;
     prefs.set(STATS_KEY, stats);
     G.msg = ''; G.msgCls = '';
+    if (mode === 'daily') saveResult('grensroute', day, { done: true, won: true, steps: G.path.length - 1, shortest: G.shortest, perfect });
   }
 
   // ---------- Typing with suggestions over all countries (no hint about neighbours) ----------
@@ -196,15 +208,19 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
   page.addEventListener('click', e => {
     const s = e.target.closest('[data-sug]'); if (s) { travel(s.dataset.sug); return; }
     const lv = e.target.closest('[data-level]'); if (lv) { settings.level = lv.dataset.level; prefs.set(STATS_KEY + '_settings', settings); start(); return; }
+    const md = e.target.closest('[data-mode]');
+    if (md && md.dataset.mode !== mode) { mode = md.dataset.mode; history.replaceState(null, '', mode === 'free' ? '?mode=random' : day !== todayStr() ? `?date=${day}` : location.pathname); start(); return; }
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'new') { if (G && !G.done && G.path.length > 1) stats.streak = 0, prefs.set(STATS_KEY, stats); start(); }
-    if (a.dataset.act === 'undo' && G.path.length > 1) { G.path.pop(); say(''); render(); }
-    if (a.dataset.act === 'hint') { G.hints++; G.showHint = true; say(`${nameOf(G.path[G.path.length - 1])} heeft ${borders[G.path[G.path.length - 1]].length} buurlanden, ze lichten op.`); render(); }
+    if (a.dataset.act === 'undo' && G.path.length > 1) { G.path.pop(); say(''); saveDay(); render(); }
+    if (a.dataset.act === 'hint') { G.hints++; G.showHint = true; saveDay(); say(`${nameOf(G.path[G.path.length - 1])} heeft ${borders[G.path[G.path.length - 1]].length} buurlanden, ze lichten op.`); render(); }
   });
   page.addEventListener('change', e => { if (e.target.id === 'area') { settings.area = e.target.value; prefs.set(STATS_KEY + '_settings', settings); start(); } });
 
   function start() {
-    G = newPuzzle();
+    const saved = mode === 'daily' ? prefs.get(DAYS_KEY, {})[day] : null;
+    G = saved || newPuzzle(mode === 'daily' ? rng(hash('grensroute' + day)) : Math.random);
+    if (mode === 'daily' && !saved) saveDay();
     if (!G) { page.innerHTML = '<div class="card panel"><p>Geen route gevonden voor deze instellingen. Kies een ander gebied of niveau.</p></div>'; return; }
     render();
     if (map && map.geo) fit(false);
