@@ -962,3 +962,10 @@ a.world-card { color: #fff; }
   .account-name { display: none; }
   .account-card { padding: 22px; }
 }
+
+/* Grensroute: route vanaf twee kanten */
+.route li.gap { display: block; text-align: center; color: var(--muted); padding: 0; counter-increment: none; }
+.route li.gap::before { content: none; }
+.route li.b { counter-increment: none; }
+.route li.b::before { content: ""; }
+.route li.b.goal::before { content: "doel"; }

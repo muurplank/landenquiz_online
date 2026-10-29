@@ -57,6 +57,19 @@
       hover: '#2a3f66', target: ['#60a5fa', '#22d3ee'], ring: '#7dd3fc',
       done: '#14532d', ok: '#34d399', bad: '#f87171', grat: 'rgba(148,163,184,.07)',
       dot: '#22314d', dotGroup: '#3b5a8f', dotLine: '#5b7bb0'
+    },
+    // Geen satelliet, alleen omtrekken (bijv. Grensroute), voor licht en donker thema.
+    outline: {
+      sea: '#f4f7fb', other: null, group: 'rgba(37,99,235,.08)', border: '#334155', borderW: 1.2,
+      hover: '#dbe7ff', target: ['#2563eb', '#2563eb'], ring: '#2563eb',
+      done: '#bbf7d0', ok: '#10b981', bad: '#ef4444',
+      dot: '#e2e8f0', dotGroup: '#ffffff', dotLine: '#475569'
+    },
+    outlineDark: {
+      sea: '#0b1220', other: null, group: 'rgba(96,165,250,.12)', border: '#94a3b8', borderW: 1.2,
+      hover: '#1e3a5f', target: ['#60a5fa', '#60a5fa'], ring: '#7dd3fc',
+      done: '#14532d', ok: '#34d399', bad: '#f87171',
+      dot: '#22314d', dotGroup: '#3b5a8f', dotLine: '#94a3b8'
     }
   };
 
@@ -206,13 +219,17 @@
     fitTo(ids, { animate = true, padding = .86 } = {}) {
       if (!this.geo) return this.ready.then(() => this.fitTo(ids, { animate, padding }));
       const g = this.geo;
-      const parts = (ids || []).map(id => g.main.get(id) ||
-        (g.anchor.has(id) ? { type: 'Feature', geometry: { type: 'Point', coordinates: g.anchor.get(id) } } : null)).filter(Boolean);
-      if (!parts.length) return;
-      let boxes = parts.map(p => mpath.bounds(p));
+      const point = id => { const a = merc(g.anchor.get(id)); return [a, a]; };
+      // Een land dat zelf over de datumgrens loopt (Rusland, Fiji) telt met zijn ankerpunt mee.
+      let boxes = (ids || []).filter(id => g.main.has(id) || g.anchor.has(id)).map(id => {
+        if (!g.main.has(id)) return point(id);
+        const b = mpath.bounds(g.main.get(id));
+        return b[1][0] - b[0][0] < TILE / 2 ? b : point(id);
+      });
+      if (!boxes.length) return;
       // Een set die over de datumgrens loopt (Oceanië) schuift één wereld op.
       const cx = boxes.map(b => (b[0][0] + b[1][0]) / 2);
-      if (Math.max(...cx) - Math.min(...cx) > TILE / 2 && parts.length < 60) {
+      if (Math.max(...cx) - Math.min(...cx) > TILE / 2 && boxes.length < 60) {
         boxes = boxes.map((b, i) => cx[i] < TILE / 2 ? [[b[0][0] + TILE, b[0][1]], [b[1][0] + TILE, b[1][1]]] : b);
       }
       const x0 = d3.min(boxes, b => b[0][0]), y0 = d3.min(boxes, b => b[0][1]);
