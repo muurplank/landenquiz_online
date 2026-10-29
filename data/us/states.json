@@ -9,7 +9,7 @@
    -86.2792,
    32.3616
   ],
-  "region": "us_zuid"
+  "region": "us_zuidoost"
  },
  {
   "id": "US-AK",
@@ -33,7 +33,7 @@
    -112.0719,
    33.5419
   ],
-  "region": "us_westen"
+  "region": "us_zuid"
  },
  {
   "id": "US-AR",
@@ -71,7 +71,7 @@
    -104.986,
    39.7411
   ],
-  "region": "us_westen"
+  "region": "us_zuid"
  },
  {
   "id": "US-CT",
@@ -95,7 +95,7 @@
    -75.5247,
    39.1581
   ],
-  "region": "us_zuidoost"
+  "region": "us_noordoost"
  },
  {
   "id": "US-FL",
@@ -193,7 +193,7 @@
    -95.67,
    39.05
   ],
-  "region": "us_middenwesten"
+  "region": "us_zuid"
  },
  {
   "id": "US-KY",
@@ -301,7 +301,7 @@
    -92.1733,
    38.5766
   ],
-  "region": "us_middenwesten"
+  "region": "us_zuid"
  },
  {
   "id": "US-MT",
@@ -373,7 +373,7 @@
    -105.9372,
    35.6869
   ],
-  "region": "us_westen"
+  "region": "us_zuid"
  },
  {
   "id": "US-NY",

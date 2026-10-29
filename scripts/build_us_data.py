@@ -11,12 +11,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Nederlandse namen waar die afwijken; de Engelse naam blijft altijd goed bij typen.
 NL = {'California': 'Californië', 'Hawaii': 'Hawaï', 'North Carolina': 'Noord-Carolina', 'South Carolina': 'Zuid-Carolina',
       'North Dakota': 'Noord-Dakota', 'South Dakota': 'Zuid-Dakota', 'West Virginia': 'West-Virginia'}
-REGIONS = [
-    ('us_noordoost', 'Noordoosten', ['ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY', 'NJ', 'PA']),
-    ('us_zuidoost', 'Zuidoosten', ['DE', 'MD', 'VA', 'WV', 'NC', 'SC', 'GA', 'FL', 'KY', 'TN']),
-    ('us_zuid', 'Diepe Zuiden en Texas', ['AL', 'MS', 'LA', 'AR', 'OK', 'TX']),
-    ('us_middenwesten', 'Middenwesten', ['OH', 'MI', 'IN', 'IL', 'WI', 'MN', 'IA', 'MO', 'ND', 'SD', 'NE', 'KS']),
-    ('us_westen', 'Westen en Pacific', ['MT', 'WY', 'CO', 'NM', 'AZ', 'UT', 'ID', 'NV', 'WA', 'OR', 'CA', 'AK', 'HI']),
+REGIONS = [  # 5 sets van precies 10 staten
+    ('us_noordoost', 'Noordoosten', ['ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY', 'NJ', 'PA', 'DE']),
+    ('us_zuidoost', 'Zuidoosten', ['MD', 'VA', 'WV', 'NC', 'SC', 'GA', 'FL', 'KY', 'TN', 'AL']),
+    ('us_zuid', 'Zuiden en Zuidwesten', ['MS', 'LA', 'AR', 'MO', 'KS', 'OK', 'TX', 'NM', 'AZ', 'CO']),
+    ('us_middenwesten', 'Middenwesten', ['OH', 'MI', 'IN', 'IL', 'WI', 'MN', 'IA', 'NE', 'SD', 'ND']),
+    ('us_westen', 'Westen en Pacific', ['MT', 'WY', 'ID', 'UT', 'NV', 'CA', 'OR', 'WA', 'AK', 'HI']),
 ]
 CAPITAL_FIX = {'St.  Paul': 'Saint Paul'}
 
@@ -56,6 +56,7 @@ def main(admin1_path, places_path):
                       'geometry': {'type': 'MultiPolygon', 'coordinates': [[ring(r) for r in poly] for poly in polys]}})
 
     assert len(states) == 50, len(states)
+    assert all(len(codes) == 10 for _, _, codes in REGIONS) and len(region_of) == 50
     groups = [{'id': rid, 'title': title, 'label': f'Regio {i + 1}', 'continent': rid, 'countries': [f'US-{c}' for c in codes]}
               for i, (rid, title, codes) in enumerate(REGIONS)]
     json.dump(states, open(os.path.join(ROOT, 'data/us/states.json'), 'w'), ensure_ascii=False, indent=1)

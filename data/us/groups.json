@@ -13,7 +13,8 @@
    "US-CT",
    "US-NY",
    "US-NJ",
-   "US-PA"
+   "US-PA",
+   "US-DE"
   ]
  },
  {
@@ -22,7 +23,6 @@
   "label": "Regio 2",
   "continent": "us_zuidoost",
   "countries": [
-   "US-DE",
    "US-MD",
    "US-VA",
    "US-WV",
@@ -31,21 +31,26 @@
    "US-GA",
    "US-FL",
    "US-KY",
-   "US-TN"
+   "US-TN",
+   "US-AL"
   ]
  },
  {
   "id": "us_zuid",
-  "title": "Diepe Zuiden en Texas",
+  "title": "Zuiden en Zuidwesten",
   "label": "Regio 3",
   "continent": "us_zuid",
   "countries": [
-   "US-AL",
    "US-MS",
    "US-LA",
    "US-AR",
+   "US-MO",
+   "US-KS",
    "US-OK",
-   "US-TX"
+   "US-TX",
+   "US-NM",
+   "US-AZ",
+   "US-CO"
   ]
  },
  {
@@ -61,11 +66,9 @@
    "US-WI",
    "US-MN",
    "US-IA",
-   "US-MO",
-   "US-ND",
-   "US-SD",
    "US-NE",
-   "US-KS"
+   "US-SD",
+   "US-ND"
   ]
  },
  {
@@ -76,15 +79,12 @@
   "countries": [
    "US-MT",
    "US-WY",
-   "US-CO",
-   "US-NM",
-   "US-AZ",
-   "US-UT",
    "US-ID",
+   "US-UT",
    "US-NV",
-   "US-WA",
-   "US-OR",
    "US-CA",
+   "US-OR",
+   "US-WA",
    "US-AK",
    "US-HI"
   ]
