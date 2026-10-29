@@ -1,6 +1,6 @@
 // Set page (one week, region, continent or custom selection):
 // quiz picker on top, "Bekijken en leren" with the map below.
-import { loadDataset, getGroup, shortTitle, weekNumber, siteUrl } from '../core/data.js';
+import { loadDataset, getGroup, shortTitle, groupLabel, siteUrl } from '../core/data.js';
 import { groupProgress } from '../core/store.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
@@ -31,17 +31,17 @@ const writeInfinite = v => { try { localStorage.setItem(INFINITE_KEY, v ? '1' : 
 function subjects(ds, oceania) {
   const N = ds.noun, L = N.One, l = N.one;
   const ans = [['self', 'Zelf beoordelen', 'Antwoord tonen, dan zeg je of je het wist'], ['type', 'Typen', 'Typ het antwoord, Enter om te checken']];
-  const ord = [['deck', 'Normaal', `Elk ${l} komt aan de beurt tot je alles goed hebt`], ['smart', 'Slim herhalen', 'Vaker wat je moeilijk vindt (Thompson Sampling)']];
+  const ord = [['deck', 'Normaal', `${N.every} ${l} komt aan de beurt tot je alles goed hebt`], ['smart', 'Slim herhalen', 'Vaker wat je moeilijk vindt (Thompson Sampling)']];
   return [
     { k: 'capital', icon: 'capital', t: 'Hoofdsteden', d: `${L} en hoofdstad aan elkaar koppelen.`, steps: [
-      ['dir', 'Wat krijg je te zien?', [['a', `${L} → hoofdstad`, `Je ziet het ${l}, jij noemt de hoofdstad`], ['b', `Hoofdstad → ${l}`, `Je ziet de hoofdstad, jij noemt het ${l}`], ['both', 'Beide kanten', 'Allebei door elkaar']]],
+      ['dir', 'Wat krijg je te zien?', [['a', `${L} → hoofdstad`, `Je ziet ${N.the} ${l}, jij noemt de hoofdstad`], ['b', `Hoofdstad → ${l}`, `Je ziet de hoofdstad, jij noemt ${N.the} ${l}`], ['both', 'Beide kanten', 'Allebei door elkaar']]],
       ['ans', 'Hoe antwoord je?', ans], ['order', 'In welke volgorde?', ord]] },
     { k: 'flag', icon: 'flag', t: 'Vlaggen', d: 'Vlaggen herkennen en terugvinden.', steps: [
-      ['dir', 'Wat krijg je te zien?', [['a', `Vlag → ${l}`, `Je ziet de vlag, jij noemt het ${l}`], ['b', `${L} → vlag`, `Je ziet het ${l}, jij denkt aan de vlag`], ['both', 'Beide kanten', 'Allebei door elkaar']]],
+      ['dir', 'Wat krijg je te zien?', [['a', `Vlag → ${l}`, `Je ziet de vlag, jij noemt ${N.the} ${l}`], ['b', `${L} → vlag`, `Je ziet ${N.the} ${l}, jij denkt aan de vlag`], ['both', 'Beide kanten', 'Allebei door elkaar']]],
       ['ans', 'Hoe antwoord je?', ans, c => c.dir !== 'a' ? { type: `Typen kan alleen bij Vlag → ${l}` } : {}], ['order', 'In welke volgorde?', ord]] },
     { k: 'map', icon: 'map', t: 'Kaart', d: `${N.many[0].toUpperCase() + N.many.slice(1)} vinden op de satellietkaart.`, steps: [
-      ['dir', 'Wat krijg je te zien?', [['a', `Kaart → ${l}`, `Een ${l} licht op, jij noemt het`], ['b', `${L} → kaart`, `Je krijgt een naam en klikt het ${l} aan`]]],
-      ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Snel achter elkaar, antwoord tonen'], ['pick', 'Aanklikken of typen', 'Kies uit de lijst of typ de naam'], ['click', 'Op de kaart klikken', `Zoek het ${l} zelf op`]],
+      ['dir', 'Wat krijg je te zien?', [['a', `Kaart → ${l}`, `Er licht een ${l} op, jij noemt de naam`], ['b', `${L} → kaart`, `Je krijgt een naam en klikt ${N.the} ${l} aan`], ['c', 'Hoofdstad → plek', 'Klik op de kaart waar de hoofdstad ligt']]],
+      ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Snel achter elkaar, antwoord tonen'], ['pick', 'Aanklikken of typen', 'Kies uit de lijst of typ de naam'], ['click', 'Op de kaart klikken', 'Je zoekt de plek zelf op']],
         c => c.dir === 'a' ? { click: `Hoort bij ${L} → kaart` } : { self: `Hoort bij Kaart → ${l}`, pick: `Hoort bij Kaart → ${l}` }]] },
     { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
     { k: 'mix', icon: 'shuffle', t: 'Mix', d: 'Hoofdstad, vlag en kaart door elkaar.', steps: [
@@ -57,7 +57,7 @@ const MIX_ROWS = L => [
 ];
 
 function render(ds, group) {
-  const isWeek = weekNumber(group) !== null;
+  const isWeek = !!groupLabel(group);
   const ids = group.countries.filter(id => ds.items.has(id));
   const items = ids.map(id => ds.items.get(id)).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
   const prog = groupProgress(group.id, ids);
@@ -70,15 +70,15 @@ function render(ds, group) {
     mix: new Set(saved.mixTypes || []),
     infinite: readInfinite()
   };
-  const title = isWeek ? shortTitle(group) : group.title;
-  const sub = isWeek ? `Week ${weekNumber(group)} · ${ids.length} ${ds.noun.many}` : `${ids.length} ${ds.noun.many}`;
+  const title = isWeek && ds.name === 'world' ? shortTitle(group) : group.title;
+  const sub = isWeek ? `${groupLabel(group)} · ${ids.length} ${ds.noun.many}` : `${ids.length} ${ds.noun.many}`;
   const crumb = group.id === 'custom' ? 'Mijn selectie' : (ds.regionTitle(group.continent) || group.title);
   document.title = `${title} — Land Trainer`;
 
   page.innerHTML = `
     <div class="set-head">
       <div>
-        <nav class="crumbs" aria-label="Kruimelpad"><a href="${siteUrl('index.html')}">Spellen</a><span>/</span><a href="${siteUrl('wereld.html')}">${esc(ds.title)}</a><span>/</span><span>${esc(crumb)}</span></nav>
+        <nav class="crumbs" aria-label="Kruimelpad"><a href="${siteUrl('index.html')}">Spellen</a><span>/</span><a href="${siteUrl('wereld.html' + (ds.name === 'world' ? '' : '?dataset=' + ds.name))}">${esc(ds.title)}</a><span>/</span><span>${esc(crumb)}</span></nav>
         <h1>${esc(title)}</h1>
         <p class="sub">${esc(sub)}</p>
       </div>
@@ -192,12 +192,13 @@ function render(ds, group) {
   const clist = document.getElementById('clist');
   function showItem(id) {
     clist.querySelectorAll('li.on').forEach(li => li.classList.remove('on'));
-    if (!id || !ds.items.has(id)) { tag.hidden = true; map && map.setHighlight(null); return; }
+    if (!id || !ds.items.has(id)) { tag.hidden = true; map && map.setHighlight(null); map && map.setPointHighlight(null); return; }
     const it = ds.items.get(id);
     const li = clist.querySelector(`li[data-id="${id}"]`); if (li) li.classList.add('on');
     tag.innerHTML = `<img src="${it.flag}" alt=""><div><b>${esc(it.name)}</b><span>${esc(it.answers.join(', '))}</span></div>`;
     tag.hidden = false;
     map && map.setHighlight(id);
+    map && map.setPointHighlight(id);
   }
   clist.addEventListener('mouseover', e => { const li = e.target.closest('li[data-id]'); if (li) showItem(li.dataset.id); });
   clist.addEventListener('mouseleave', () => showItem(null));
@@ -210,6 +211,7 @@ function render(ds, group) {
     if (map || !window.MapView) return;
     const names = Object.fromEntries([...ds.items.values()].map(it => [it.id, it.name]));
     map = new MapView(document.getElementById('learn-map'), { geo: ds.geo, style: 'sat', names, group: ids, label: `Kaart van ${title}` });
+    map.setPoints(items.filter(it => it.capitalAt).map(it => ({ id: it.id, ll: it.capitalAt })));
     map.on('hover', id => showItem(id && ids.includes(id) ? id : null));
     map.ready.then(() => map.fitTo(ids, { animate: false }));
   }

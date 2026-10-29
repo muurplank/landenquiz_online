@@ -24,7 +24,7 @@ const GAMES = [
 ];
 
 (async () => {
-  let mastered = 0, total = 196;
+  let mastered = 0, total = 196, usDone = 0;
   try {
     const ds = await loadDataset('world');
     total = ds.items.size;
@@ -34,6 +34,12 @@ const GAMES = [
       for (const [id, st] of Object.entries(s.perCountryStats || {})) if (st.correct_count > 0 && ds.items.has(id)) done.add(id);
     }
     mastered = done.size;
+    const us = new Set();
+    for (const s of loadHistory().sessions) {
+      if (!s.endedAt || s.dataset !== 'us') continue;
+      for (const [id, st] of Object.entries(s.perCountryStats || {})) if (st.correct_count > 0) us.add(id);
+    }
+    usDone = us.size;
   } catch (_) { /* show the page without progress */ }
 
   const usCells = Array.from({ length: 55 }, (_, i) => `<i class="${[11, 39, 40, 51, 52, 53, 62, 63, 64].includes(i) ? 'off' : (i % 7 === 0 ? 'on' : '')}"></i>`).join('');
@@ -56,15 +62,18 @@ const GAMES = [
           <b>Oefenen ${I.arrow}</b>
         </div>
       </a>
-      <div class="world-card us" aria-disabled="true">
+      <a class="world-card us" href="${siteUrl('wereld.html?dataset=us')}">
         <div class="us-grid" aria-hidden="true">${usCells}</div>
         <div style="display:grid;gap:10px;position:relative">
           <div class="meta"><span>50 staten</span><span>5 regio's</span></div>
           <h2>Amerikaanse staten</h2>
           <p>Alle staten, hoofdsteden en staatsvlaggen, op dezelfde kaart.</p>
         </div>
-        <div class="go"><div class="prog">Komt eraan</div><b style="opacity:.7">Binnenkort</b></div>
-      </div>
+        <div class="go">
+          <div class="prog">${usDone ? `${usDone} van 50 staten minstens één keer goed` : 'Nog niet begonnen'}<div class="bar"><i style="width:${usDone / 50 * 100}%"></i></div></div>
+          <b>Oefenen ${I.arrow}</b>
+        </div>
+      </a>
     </section>
     <section style="display:grid;gap:14px" aria-label="Spellen">
       <div class="section-head"><div><h2>Spellen</h2><p>Test wat je weet, zonder hints.</p></div></div>

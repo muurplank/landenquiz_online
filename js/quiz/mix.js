@@ -30,14 +30,14 @@ export function createMode({ ds, group, params }) {
     return '';
   }
   function prompt(from, to) {
-    const what = { land: `Welk ${N.one}?`, capital: 'Welke hoofdstad?', flag: 'Welke vlag hoort erbij?', map: `Waar ligt dit ${N.one}?` }[to];
-    return from === 'map' ? `Welk ${N.one} licht op? ${to === 'land' ? '' : what}` : what;
+    const what = { land: `${N.which} ${N.one}?`, capital: 'Welke hoofdstad?', flag: 'Welke vlag hoort erbij?', map: `Waar ligt ${N.this} ${N.one}?` }[to];
+    return from === 'map' ? `${N.which} ${N.one} licht op? ${to === 'land' ? '' : what}` : what;
   }
   function answerHtml(it, to) {
     if (to === 'land') return `<div class="a">${esc(it.name)}</div>`;
     if (to === 'capital') return `<div class="a">${esc(it.answers.join(', '))}</div>`;
     if (to === 'flag') return `<img class="qflag small" src="${it.flag}" alt="Vlag van ${esc(it.name)}">`;
-    return `<div class="c">Het ${esc(N.one)} knippert op de kaart.</div>`;
+    return `<div class="c">${N.The} ${esc(N.one)} knippert op de kaart.</div>`;
   }
   function actions() {
     return revealed

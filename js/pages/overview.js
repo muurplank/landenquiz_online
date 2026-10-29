@@ -1,5 +1,5 @@
 // Overview of all weeks (or regions), grouped by continent, with multi-select for a custom quiz.
-import { loadDataset, shortTitle, weekNumber, setCustomGroup, siteUrl } from '../core/data.js';
+import { loadDataset, shortTitle, groupLabel, setCustomGroup, siteUrl } from '../core/data.js';
 import { loadHistory, groupProgress } from '../core/store.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I } from '../ui/shell.js';
@@ -20,9 +20,12 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     return { g, ids, prog: [p.capital, p.flag, p.map] };
   });
   const selected = new Set();
-  const sections = ds.regions
-    .map(r => ({ region: r, name: ds.regionTitle(r), items: groups.filter(x => x.g.continent === r) }))
-    .filter(s => s.items.length);
+  const sections = ds.singleSection
+    ? [{ region: null, name: ds.singleSection, items: groups }]
+    : ds.regions.map(r => ({ region: r, name: ds.regionTitle(r), items: groups.filter(x => x.g.continent === r) })).filter(s => s.items.length);
+  const U = ds.unit, cardTitle = g => ds.name === 'world' ? shortTitle(g) : g.title;
+  const dsParam = ds.name === 'world' ? '' : `&dataset=${ds.name}`;
+  if (ds.name !== 'world') document.title = `${ds.title} — Land Trainer`;
 
   // Last played set from the history, for "Ga verder".
   const last = [...history.sessions].reverse().find(s => groups.some(x => x.g.id === s.groupId));
@@ -42,7 +45,7 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     const flags = x.ids.slice(0, 6).map(id => `<img class="flag" src="${ds.items.get(id).flag}" alt="" width="28" height="19" loading="lazy">`).join('');
     return `<article class="card week ${sel ? 'sel' : ''}" data-open="${x.g.id}" tabindex="0" aria-label="${esc(x.g.title)} openen">
       <div class="week-top">
-        <div><div class="week-num">WEEK ${weekNumber(x.g) ?? ''}</div><h3>${esc(shortTitle(x.g))}</h3></div>
+        <div><div class="week-num">${esc(groupLabel(x.g).toUpperCase())}</div><h3>${esc(cardTitle(x.g))}</h3></div>
         <button class="check" data-toggle="${x.g.id}" aria-pressed="${sel}" aria-label="${esc(x.g.title)} meenemen in selectie"><span class="box">${I.check}</span></button>
       </div>
       <div class="flagstrip">${flags}${x.ids.length > 6 ? `<span class="more">+${x.ids.length - 6}</span>` : ''}</div>
@@ -56,22 +59,22 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     page.innerHTML = `
       <section class="home-hero">
         <div class="lead">
-          <div class="eyebrow">${total} ${N.many} · ${groups.length} weken</div>
-          <h1>Welke week oefen je?</h1>
-          <p>Open een week om te oefenen, of vink er een paar aan om ze te combineren in één quiz.</p>
+          <div class="eyebrow">${total} ${N.many} · ${groups.length} ${U.many}</div>
+          <h1>Welke ${U.one} oefen je?</h1>
+          <p>Open een ${U.one} om te oefenen, of vink er een paar aan om ze te combineren in één quiz.</p>
           <div class="row">
-            <button class="selall" data-selall="__all" data-state="${stateOf(allIds)}"><span class="box">${I.check}</span>Hele wereld selecteren</button>
+            <button class="selall" data-selall="__all" data-state="${stateOf(allIds)}"><span class="box">${I.check}</span>${ds.name === 'world' ? 'Hele wereld' : 'Alle ' + N.many} selecteren</button>
           </div>
         </div>
         ${resume ? `<div class="card resume">
           <div class="resume-top"><span class="label">Ga verder</span><span class="muted" style="font-size:12px">${esc(relDay(last.endedAt || last.startedAt))}</span></div>
-          <div><h3>${esc(shortTitle(resume.g))}</h3><p class="muted" style="font-size:13px">Week ${weekNumber(resume.g)} · ${resume.ids.length} ${N.many}</p></div>
+          <div><h3>${esc(cardTitle(resume.g))}</h3><p class="muted" style="font-size:13px">${esc(groupLabel(resume.g))} · ${resume.ids.length} ${N.many}</p></div>
           <div class="flagstrip">${resume.ids.slice(0, 8).map(id => `<img class="flag" src="${ds.items.get(id).flag}" alt="" width="30" height="20">`).join('')}${resume.ids.length > 8 ? `<span class="more">+${resume.ids.length - 8}</span>` : ''}</div>
           <div class="tri">${['Hoofdstad', 'Vlag', 'Kaart'].map((l, i) => `<div class="t"><span>${l}<b>${resume.prog[i]}%</b></span><div class="meter"><i style="width:${resume.prog[i]}%"></i></div></div>`).join('')}</div>
-          <a class="btn primary" href="${siteUrl('set.html?id=' + encodeURIComponent(resume.g.id))}">Verder met ${esc(shortTitle(resume.g))} ${I.arrow}</a>
+          <a class="btn primary" href="${siteUrl('set.html?id=' + encodeURIComponent(resume.g.id) + dsParam)}">Verder met ${esc(cardTitle(resume.g))} ${I.arrow}</a>
         </div>` : `<div class="card resume">
           <div class="resume-top"><span class="label">Zo werkt het</span></div>
-          <p class="muted" style="font-size:14px">Elke week heeft hoofdsteden, vlaggen, de kaart, Kwartet en een mix. De drie balkjes op een week laten zien hoeveel hoofdsteden, vlaggen en kaartvragen je al goed hebt.</p>
+          <p class="muted" style="font-size:14px">Elke ${U.one} heeft hoofdsteden, vlaggen, de kaart, Kwartet en een mix. De drie balkjes op een ${U.one} laten zien hoeveel hoofdsteden, vlaggen en kaartvragen je al goed hebt.</p>
         </div>`}
       </section>
       ${sections.map(sec => {
@@ -80,10 +83,10 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
         return `<section class="continent">
           <div class="continent-head">
             <h2>${esc(sec.name)}</h2>
-            <span class="count">${members} ${N.many} · ${sec.items.length} ${sec.items.length === 1 ? 'week' : 'weken'}</span>
+            <span class="count">${members} ${N.many} · ${sec.items.length} ${sec.items.length === 1 ? U.one : U.many}</span>
             <span class="spacer"></span>
-            <a class="chip" href="${siteUrl('set.html?id=continent_' + encodeURIComponent(sec.region))}">Heel ${esc(sec.name)} oefenen</a>
-            <button class="selall" data-selall="${esc(sec.region)}" data-state="${stateOf(ids)}"><span class="box">${I.check}</span>Selecteren</button>
+            ${sec.region === null ? '' : `<a class="chip" href="${siteUrl('set.html?id=continent_' + encodeURIComponent(sec.region))}">Heel ${esc(sec.name)} oefenen</a>`}
+            <button class="selall" data-selall="${esc(sec.region ?? '__all')}" data-state="${stateOf(ids)}"><span class="box">${I.check}</span>Selecteren</button>
           </div>
           <div class="weeks">${sec.items.map(card).join('')}</div>
         </section>`;
@@ -96,12 +99,12 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     const count = new Set(items.flatMap(x => x.ids)).size;
     selbar.classList.toggle('hide', !items.length);
     selbar.innerHTML = items.length ? `
-      <div class="txt"><b>${items.length} ${items.length === 1 ? 'week' : 'weken'}</b> <span>· ${count} van ${total} ${N.many}</span></div>
+      <div class="txt"><b>${items.length} ${items.length === 1 ? U.one : U.many}</b> <span>· ${count} van ${total} ${N.many}</span></div>
       <button class="btn ghost" data-act="clear">Wissen</button>
       <button class="btn primary" data-act="start">Open selectie ${I.arrow}</button>` : '';
   }
 
-  function openSet(id) { location.href = siteUrl('set.html?id=' + encodeURIComponent(id)); }
+  function openSet(id) { location.href = siteUrl('set.html?id=' + encodeURIComponent(id) + dsParam); }
 
   page.addEventListener('click', e => {
     const t = e.target;
@@ -125,7 +128,7 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'clear') { selected.clear(); render(); return; }
     const countries = [...new Set(groups.filter(x => selected.has(x.g.id)).flatMap(x => x.ids))];
-    setCustomGroup({ id: 'custom', title: 'Mijn selectie', continent: 'Custom', countries });
+    setCustomGroup({ id: 'custom', title: 'Mijn selectie', continent: 'Custom', dataset: ds.name, countries });
     openSet('custom');
   });
   render();

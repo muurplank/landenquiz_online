@@ -11,6 +11,9 @@
  *   map.setHighlight(iso);      // zachte markering (bijv. hover in een lijst)
  *   map.flash(iso, true);       // kort groen (true) of rood (false)
  *   map.setDone(isos);          // al goed beantwoord
+ *   map.setPoints([{id, ll}]);  // hoofdsteden als stipjes; map.setPointHighlight(id)
+ *   map.setPins([{ll, ok}]);    // spelden (gok en antwoord) met een lijn ertussen
+ *   map.on('clickpoint', ll => …) // elke klik, als [lon, lat]
  *
  * Kleine landen krijgen automatisch een klikbare stip zolang ze op het scherm
  * te klein zijn. De kaart herhaalt zich horizontaal, zodat Oceanië over de
@@ -116,7 +119,8 @@
       this.group = new Set(opts.group || []);
       this.done = new Set();
       this.hover = null; this.highlight = null; this.target = null; this.flashState = null;
-      this.listeners = { click: [], hover: [] };
+      this.listeners = { click: [], hover: [], clickpoint: [] };
+      this.points = []; this.pointHighlight = null; this.pins = [];
       this.T = d3.zoomIdentity;
       this.tileVersion = 0;
       this.baseKey = '';
@@ -141,6 +145,10 @@
       this.canvas.addEventListener('click', e => {
         const iso = this._hitAt(e);
         if (iso) this.listeners.click.forEach(fn => fn(iso, e));
+        if (this.listeners.clickpoint.length) {
+          const ll = this._lonLatAt(e);
+          if (ll) this.listeners.clickpoint.forEach(fn => fn(ll, e));
+        }
       });
       this.ro = new ResizeObserver(() => this._resize());
       this.ro.observe(el);
@@ -161,6 +169,11 @@
       this._schedule();
       this._flashTimer = setTimeout(() => { this.flashState = null; this._schedule(); }, ms);
     }
+    setPoints(points) { this.points = points || []; this._schedule(); }
+    setPointHighlight(id) { this.pointHighlight = id || null; this._schedule(); }
+    setPins(pins) { this.pins = pins || []; this._schedule(); }
+    /** Great-circle distance in km. */
+    static distanceKm(a, b) { return d3.geoDistance(a, b) * 6371; }
     zoomBy(f) { this.sel.transition().duration(300).call(this.zoom.scaleBy, f); }
     has(iso) { return !!this.geo && (this.geo.byId.has(iso) || this.geo.anchor.has(iso)); }
 
@@ -222,6 +235,7 @@
     _dots() {
       const out = [];
       for (const iso of this.geo.anchor.keys()) {
+        if (this.dotsFor === 'none' && iso !== this.target) continue;
         if ((this.dotsFor === 'all' || this.group.has(iso) || iso === this.target) && this._isDot(iso)) out.push(iso);
       }
       return out;
@@ -229,6 +243,18 @@
 
     _dotPositions(iso) {
       const ll = this.geo.anchor.get(iso); if (!ll) return [];
+      const p = merc(ll), T = this.T;
+      return this._copies().map(o => [(p[0] + o) * T.k + T.x, p[1] * T.k + T.y]);
+    }
+
+    _lonLatAt(e) {
+      const r = this.canvas.getBoundingClientRect();
+      let wx = (e.clientX - r.left - this.T.x) / this.T.k;
+      wx = ((wx % TILE) + TILE) % TILE;
+      return merc.invert([wx, (e.clientY - r.top - this.T.y) / this.T.k]);
+    }
+
+    _screen(ll) {
       const p = merc(ll), T = this.T;
       return this._copies().map(o => [(p[0] + o) * T.k + T.x, p[1] * T.k + T.y]);
     }
@@ -316,6 +342,32 @@
           if (isT) {
             ctx.beginPath(); ctx.arc(p[0], p[1], 7 + pulse * 14, 0, 2 * Math.PI);
             ctx.globalAlpha = 1 - pulse; ctx.strokeStyle = st.ring; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
+          }
+        }
+      }
+
+      // Capital points
+      for (const pt of this.points) {
+        const hi = pt.id === this.pointHighlight;
+        for (const p of this._screen(pt.ll)) {
+          ctx.beginPath(); ctx.arc(p[0], p[1], hi ? 5 : 3.2, 0, 2 * Math.PI);
+          ctx.fillStyle = hi ? '#facc15' : '#ffffff'; ctx.fill();
+          ctx.lineWidth = hi ? 2 : 1.3; ctx.strokeStyle = 'rgba(15,23,42,.85)'; ctx.stroke();
+        }
+      }
+      // Pins (guess / answer) with a dashed line between the first two
+      if (this.pins.length) {
+        if (this.pins.length > 1) {
+          const a = this._screen(this.pins[0].ll), b = this._screen(this.pins[1].ll);
+          const best = a.flatMap(p => b.map(q => [p, q])).sort((u, v) => Math.hypot(u[0][0] - u[1][0], u[0][1] - u[1][1]) - Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]))[0];
+          ctx.save(); ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.9)';
+          ctx.beginPath(); ctx.moveTo(best[0][0], best[0][1]); ctx.lineTo(best[1][0], best[1][1]); ctx.stroke(); ctx.restore();
+        }
+        for (const pin of this.pins) {
+          for (const p of this._screen(pin.ll)) {
+            ctx.beginPath(); ctx.arc(p[0], p[1], 7, 0, 2 * Math.PI);
+            ctx.fillStyle = pin.ok ? st.ok : st.bad; ctx.fill();
+            ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
           }
         }
       }

@@ -16,7 +16,10 @@ S.confirm = false;
 
 (async () => {
   const ds = await loadDataset('world');
+  const us = await loadDataset('us').catch(() => null);
+  const lookup = id => ds.items.get(id) || (us && us.items.get(id));
   const groupsById = Object.fromEntries(ds.groups.map(g => [g.id, g]));
+  if (us) us.groups.forEach(g => { groupsById[g.id] = g; });
   let history = loadHistory();
 
   function filtered() {
@@ -46,8 +49,8 @@ S.confirm = false;
   const starHtml = n => `<span class="stars" aria-label="${n} van 5 sterren">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
   const pct = x => `${Math.round(x * 100)}%`;
   const secs = ms => ms == null ? '–' : `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
-  const name = id => ds.items.get(id)?.name || id;
-  const flag = id => ds.items.get(id) ? `<img class="flag" src="${ds.items.get(id).flag}" alt="" width="30" height="20" loading="lazy">` : '<span class="flag-fallback" style="width:30px;height:20px"></span>';
+  const name = id => lookup(id)?.name || id;
+  const flag = id => lookup(id) ? `<img class="flag" src="${lookup(id).flag}" alt="" width="30" height="20" loading="lazy">` : '<span class="flag-fallback" style="width:30px;height:20px"></span>';
   function duration(ms) {
     if (ms <= 0) return '–';
     const m = Math.floor(ms / 60000), h = Math.floor(m / 60);
@@ -190,7 +193,7 @@ S.confirm = false;
       <div class="toolbar">
         <div class="seg small" role="group" aria-label="Periode">${[['all', 'Alles'], ['week', 'Deze week'], ['7', '7 dagen'], ['30', '30 dagen']].map(([k, t]) => `<button data-period="${k}" aria-pressed="${S.period === k}">${t}</button>`).join('')}</div>
         <label class="visually-hidden" for="f-group">Week</label>
-        <select class="select" id="f-group"><option value="">Alle weken</option>${ds.groups.map(g => `<option value="${g.id}" ${S.group === g.id ? 'selected' : ''}>${esc(g.title)}</option>`).join('')}<option value="custom" ${S.group === 'custom' ? 'selected' : ''}>Mijn selectie</option></select>
+        <select class="select" id="f-group"><option value="">Alle weken</option>${ds.groups.map(g => `<option value="${g.id}" ${S.group === g.id ? 'selected' : ''}>${esc(g.title)}</option>`).join('')}${us ? us.groups.map(g => `<option value="${g.id}" ${S.group === g.id ? 'selected' : ''}>VS · ${esc(g.title)}</option>`).join('') : ''}<option value="custom" ${S.group === 'custom' ? 'selected' : ''}>Mijn selectie</option></select>
         <label class="visually-hidden" for="f-type">Quizvorm</label>
         <select class="select" id="f-type"><option value="all">Alle quizvormen</option>${Object.entries(TYPE_LABEL).filter(([k]) => k !== 'exam').map(([k, t]) => `<option value="${k}" ${S.type === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
         <span style="flex:1"></span>

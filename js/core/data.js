@@ -31,15 +31,17 @@ const CUSTOM_GROUP_KEY = 'landjes_custom_group';
 const datasets = new Map();
 
 export function loadDataset(name = 'world') {
-  if (!datasets.has(name)) datasets.set(name, name === 'world' ? loadWorld() : Promise.reject(new Error(`Onbekende dataset: ${name}`)));
+  const loaders = { world: loadWorld, us: loadUs };
+  if (!datasets.has(name)) datasets.set(name, loaders[name] ? loaders[name]() : Promise.reject(new Error(`Onbekende dataset: ${name}`)));
   return datasets.get(name);
 }
 
 async function loadWorld() {
-  const [countries, groups, iso2] = await Promise.all([
+  const [countries, groups, iso2, capAt] = await Promise.all([
     loadJSON('data/countries.json'),
     loadJSON('data/groups.json'),
-    loadJSON('data/iso3-to-iso2.json')
+    loadJSON('data/iso3-to-iso2.json'),
+    loadJSON('data/capital_locations.json')
   ]);
   const items = new Map();
   for (const c of countries) {
@@ -49,13 +51,15 @@ async function loadWorld() {
       name: c.name_nl,
       answers: c.capitals_nl || [],
       region: c.continent,
+      capitalAt: capAt[c.iso] || null,
       flag: siteUrl(`assets/flags/${code.toLowerCase()}.svg`)
     });
   }
   return {
     name: 'world',
     title: 'De wereld',
-    noun: { one: 'land', many: 'landen', One: 'Land' },
+    noun: { one: 'land', many: 'landen', One: 'Land', which: 'Welk', the: 'het', The: 'Het', this: 'dit', every: 'Elk' },
+    unit: { one: 'week', many: 'weken' },
     geo: siteUrl('assets/maps/world.detail.json'),
     items,
     groups,
@@ -64,11 +68,33 @@ async function loadWorld() {
   };
 }
 
+async function loadUs() {
+  const [states, groups] = await Promise.all([loadJSON('data/us/states.json'), loadJSON('data/us/groups.json')]);
+  const items = new Map(states.map(s => [s.id, {
+    id: s.id, code: s.code, name: s.name, aliases: s.aliases, answers: [s.capital],
+    capitalAt: s.capital_at, region: s.region,
+    flag: siteUrl(`assets/flags/us/us-${s.code.toLowerCase()}.svg`)
+  }]));
+  const titles = Object.fromEntries(groups.map(g => [g.id, g.title]));
+  return {
+    name: 'us',
+    title: 'VS-staten',
+    noun: { one: 'staat', many: 'staten', One: 'Staat', which: 'Welke', the: 'de', The: 'De', this: 'deze', every: 'Elke' },
+    unit: { one: 'regio', many: "regio's" },
+    geo: siteUrl('assets/maps/us.detail.json'),
+    items,
+    groups,
+    regionTitle: r => titles[r] || r,
+    regions: groups.map(g => g.id),
+    singleSection: 'Verenigde Staten'
+  };
+}
+
 /** Group by id: a week/region, 'custom', 'world' or 'continent_<name>'. */
 export async function getGroup(ds, id) {
   if (id === 'custom') {
     const g = getCustomGroup();
-    if (!g || !g.countries || !g.countries.length) throw new Error('Geen selectie gevonden. Kies eerst weken op de overzichtspagina.');
+    if (!g || !g.countries || !g.countries.length || (g.dataset || 'world') !== ds.name) throw new Error('Geen selectie gevonden. Kies eerst weken op de overzichtspagina.');
     return g;
   }
   if (id === 'world') return { id, title: 'Hele wereld', continent: 'World', countries: [...ds.items.keys()] };
@@ -92,6 +118,12 @@ export function setCustomGroup(group) {
 /** Short display title: "Week 4 - Europa (deel 1)" -> "Europa · deel 1". */
 export function shortTitle(g) {
   return g.title.replace(/^Week \d+ - /, '').replace(/ \(deel (\d+)\)/, ' · deel $1');
+}
+/** "Week 4" or "Regio 2": the label above a set card. */
+export function groupLabel(g) {
+  if (g.label) return g.label;
+  const n = weekNumber(g);
+  return n === null ? '' : `Week ${n}`;
 }
 export function weekNumber(g) {
   const m = g.title.match(/^Week (\d+)/);

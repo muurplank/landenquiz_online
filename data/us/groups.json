@@ -1,0 +1,92 @@
+[
+ {
+  "id": "us_noordoost",
+  "title": "Noordoosten",
+  "label": "Regio 1",
+  "continent": "us_noordoost",
+  "countries": [
+   "US-ME",
+   "US-NH",
+   "US-VT",
+   "US-MA",
+   "US-RI",
+   "US-CT",
+   "US-NY",
+   "US-NJ",
+   "US-PA"
+  ]
+ },
+ {
+  "id": "us_zuidoost",
+  "title": "Zuidoosten",
+  "label": "Regio 2",
+  "continent": "us_zuidoost",
+  "countries": [
+   "US-DE",
+   "US-MD",
+   "US-VA",
+   "US-WV",
+   "US-NC",
+   "US-SC",
+   "US-GA",
+   "US-FL",
+   "US-KY",
+   "US-TN"
+  ]
+ },
+ {
+  "id": "us_zuid",
+  "title": "Diepe Zuiden en Texas",
+  "label": "Regio 3",
+  "continent": "us_zuid",
+  "countries": [
+   "US-AL",
+   "US-MS",
+   "US-LA",
+   "US-AR",
+   "US-OK",
+   "US-TX"
+  ]
+ },
+ {
+  "id": "us_middenwesten",
+  "title": "Middenwesten",
+  "label": "Regio 4",
+  "continent": "us_middenwesten",
+  "countries": [
+   "US-OH",
+   "US-MI",
+   "US-IN",
+   "US-IL",
+   "US-WI",
+   "US-MN",
+   "US-IA",
+   "US-MO",
+   "US-ND",
+   "US-SD",
+   "US-NE",
+   "US-KS"
+  ]
+ },
+ {
+  "id": "us_westen",
+  "title": "Westen en Pacific",
+  "label": "Regio 5",
+  "continent": "us_westen",
+  "countries": [
+   "US-MT",
+   "US-WY",
+   "US-CO",
+   "US-NM",
+   "US-AZ",
+   "US-UT",
+   "US-ID",
+   "US-NV",
+   "US-WA",
+   "US-OR",
+   "US-CA",
+   "US-AK",
+   "US-HI"
+  ]
+ }
+]

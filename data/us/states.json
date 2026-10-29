@@ -1,0 +1,616 @@
+[
+ {
+  "id": "US-AL",
+  "code": "AL",
+  "name": "Alabama",
+  "aliases": [],
+  "capital": "Montgomery",
+  "capital_at": [
+   -86.2792,
+   32.3616
+  ],
+  "region": "us_zuid"
+ },
+ {
+  "id": "US-AK",
+  "code": "AK",
+  "name": "Alaska",
+  "aliases": [],
+  "capital": "Juneau",
+  "capital_at": [
+   -134.42,
+   58.3141
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-AZ",
+  "code": "AZ",
+  "name": "Arizona",
+  "aliases": [],
+  "capital": "Phoenix",
+  "capital_at": [
+   -112.0719,
+   33.5419
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-AR",
+  "code": "AR",
+  "name": "Arkansas",
+  "aliases": [],
+  "capital": "Little Rock",
+  "capital_at": [
+   -92.3311,
+   34.7361
+  ],
+  "region": "us_zuid"
+ },
+ {
+  "id": "US-CA",
+  "code": "CA",
+  "name": "Californië",
+  "aliases": [
+   "California"
+  ],
+  "capital": "Sacramento",
+  "capital_at": [
+   -121.472,
+   38.577
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-CO",
+  "code": "CO",
+  "name": "Colorado",
+  "aliases": [],
+  "capital": "Denver",
+  "capital_at": [
+   -104.986,
+   39.7411
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-CT",
+  "code": "CT",
+  "name": "Connecticut",
+  "aliases": [],
+  "capital": "Hartford",
+  "capital_at": [
+   -72.6819,
+   41.772
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-DE",
+  "code": "DE",
+  "name": "Delaware",
+  "aliases": [],
+  "capital": "Dover",
+  "capital_at": [
+   -75.5247,
+   39.1581
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-FL",
+  "code": "FL",
+  "name": "Florida",
+  "aliases": [],
+  "capital": "Tallahassee",
+  "capital_at": [
+   -84.28,
+   30.45
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-GA",
+  "code": "GA",
+  "name": "Georgia",
+  "aliases": [],
+  "capital": "Atlanta",
+  "capital_at": [
+   -84.4019,
+   33.832
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-HI",
+  "code": "HI",
+  "name": "Hawaï",
+  "aliases": [
+   "Hawaii"
+  ],
+  "capital": "Honolulu",
+  "capital_at": [
+   -157.8599,
+   21.3088
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-ID",
+  "code": "ID",
+  "name": "Idaho",
+  "aliases": [],
+  "capital": "Boise",
+  "capital_at": [
+   -116.2275,
+   43.6086
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-IL",
+  "code": "IL",
+  "name": "Illinois",
+  "aliases": [],
+  "capital": "Springfield",
+  "capital_at": [
+   -89.65,
+   39.82
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-IN",
+  "code": "IN",
+  "name": "Indiana",
+  "aliases": [],
+  "capital": "Indianapolis",
+  "capital_at": [
+   -86.172,
+   39.7519
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-IA",
+  "code": "IA",
+  "name": "Iowa",
+  "aliases": [],
+  "capital": "Des Moines",
+  "capital_at": [
+   -93.62,
+   41.58
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-KS",
+  "code": "KS",
+  "name": "Kansas",
+  "aliases": [],
+  "capital": "Topeka",
+  "capital_at": [
+   -95.67,
+   39.05
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-KY",
+  "code": "KY",
+  "name": "Kentucky",
+  "aliases": [],
+  "capital": "Frankfort",
+  "capital_at": [
+   -84.8734,
+   38.2008
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-LA",
+  "code": "LA",
+  "name": "Louisiana",
+  "aliases": [],
+  "capital": "Baton Rouge",
+  "capital_at": [
+   -91.1402,
+   30.4579
+  ],
+  "region": "us_zuid"
+ },
+ {
+  "id": "US-ME",
+  "code": "ME",
+  "name": "Maine",
+  "aliases": [],
+  "capital": "Augusta",
+  "capital_at": [
+   -69.78,
+   44.3106
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-MD",
+  "code": "MD",
+  "name": "Maryland",
+  "aliases": [],
+  "capital": "Annapolis",
+  "capital_at": [
+   -76.4925,
+   38.9783
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-MA",
+  "code": "MA",
+  "name": "Massachusetts",
+  "aliases": [],
+  "capital": "Boston",
+  "capital_at": [
+   -71.072,
+   42.3319
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-MI",
+  "code": "MI",
+  "name": "Michigan",
+  "aliases": [],
+  "capital": "Lansing",
+  "capital_at": [
+   -84.5467,
+   42.7335
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-MN",
+  "code": "MN",
+  "name": "Minnesota",
+  "aliases": [],
+  "capital": "Saint Paul",
+  "capital_at": [
+   -93.085,
+   44.944
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-MS",
+  "code": "MS",
+  "name": "Mississippi",
+  "aliases": [],
+  "capital": "Jackson",
+  "capital_at": [
+   -90.185,
+   32.2988
+  ],
+  "region": "us_zuid"
+ },
+ {
+  "id": "US-MO",
+  "code": "MO",
+  "name": "Missouri",
+  "aliases": [],
+  "capital": "Jefferson City",
+  "capital_at": [
+   -92.1733,
+   38.5766
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-MT",
+  "code": "MT",
+  "name": "Montana",
+  "aliases": [],
+  "capital": "Helena",
+  "capital_at": [
+   -112.0353,
+   46.5927
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-NE",
+  "code": "NE",
+  "name": "Nebraska",
+  "aliases": [],
+  "capital": "Lincoln",
+  "capital_at": [
+   -96.68,
+   40.82
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-NV",
+  "code": "NV",
+  "name": "Nevada",
+  "aliases": [],
+  "capital": "Carson City",
+  "capital_at": [
+   -119.7664,
+   39.1638
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-NH",
+  "code": "NH",
+  "name": "New Hampshire",
+  "aliases": [],
+  "capital": "Concord",
+  "capital_at": [
+   -71.538,
+   43.2081
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-NJ",
+  "code": "NJ",
+  "name": "New Jersey",
+  "aliases": [],
+  "capital": "Trenton",
+  "capital_at": [
+   -74.7434,
+   40.217
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-NM",
+  "code": "NM",
+  "name": "New Mexico",
+  "aliases": [],
+  "capital": "Santa Fe",
+  "capital_at": [
+   -105.9372,
+   35.6869
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-NY",
+  "code": "NY",
+  "name": "New York",
+  "aliases": [],
+  "capital": "Albany",
+  "capital_at": [
+   -73.8199,
+   42.67
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-NC",
+  "code": "NC",
+  "name": "Noord-Carolina",
+  "aliases": [
+   "North Carolina"
+  ],
+  "capital": "Raleigh",
+  "capital_at": [
+   -78.6447,
+   35.8188
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-ND",
+  "code": "ND",
+  "name": "Noord-Dakota",
+  "aliases": [
+   "North Dakota"
+  ],
+  "capital": "Bismarck",
+  "capital_at": [
+   -100.7833,
+   46.8083
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-OH",
+  "code": "OH",
+  "name": "Ohio",
+  "aliases": [],
+  "capital": "Columbus",
+  "capital_at": [
+   -82.992,
+   39.9819
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-OK",
+  "code": "OK",
+  "name": "Oklahoma",
+  "aliases": [],
+  "capital": "Oklahoma City",
+  "capital_at": [
+   -97.5206,
+   35.472
+  ],
+  "region": "us_zuid"
+ },
+ {
+  "id": "US-OR",
+  "code": "OR",
+  "name": "Oregon",
+  "aliases": [],
+  "capital": "Salem",
+  "capital_at": [
+   -123.0239,
+   44.9281
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-PA",
+  "code": "PA",
+  "name": "Pennsylvania",
+  "aliases": [],
+  "capital": "Harrisburg",
+  "capital_at": [
+   -76.8847,
+   40.2736
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-RI",
+  "code": "RI",
+  "name": "Rhode Island",
+  "aliases": [],
+  "capital": "Providence",
+  "capital_at": [
+   -71.4169,
+   41.823
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-SC",
+  "code": "SC",
+  "name": "Zuid-Carolina",
+  "aliases": [
+   "South Carolina"
+  ],
+  "capital": "Columbia",
+  "capital_at": [
+   -80.9,
+   34.04
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-SD",
+  "code": "SD",
+  "name": "Zuid-Dakota",
+  "aliases": [
+   "South Dakota"
+  ],
+  "capital": "Pierre",
+  "capital_at": [
+   -100.3506,
+   44.3683
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-TN",
+  "code": "TN",
+  "name": "Tennessee",
+  "aliases": [],
+  "capital": "Nashville",
+  "capital_at": [
+   -86.7819,
+   36.1719
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-TX",
+  "code": "TX",
+  "name": "Texas",
+  "aliases": [],
+  "capital": "Austin",
+  "capital_at": [
+   -97.7447,
+   30.2689
+  ],
+  "region": "us_zuid"
+ },
+ {
+  "id": "US-UT",
+  "code": "UT",
+  "name": "Utah",
+  "aliases": [],
+  "capital": "Salt Lake City",
+  "capital_at": [
+   -111.932,
+   40.777
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-VT",
+  "code": "VT",
+  "name": "Vermont",
+  "aliases": [],
+  "capital": "Montpelier",
+  "capital_at": [
+   -72.5758,
+   44.26
+  ],
+  "region": "us_noordoost"
+ },
+ {
+  "id": "US-VA",
+  "code": "VA",
+  "name": "Virginia",
+  "aliases": [],
+  "capital": "Richmond",
+  "capital_at": [
+   -77.4519,
+   37.552
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-WA",
+  "code": "WA",
+  "name": "Washington",
+  "aliases": [],
+  "capital": "Olympia",
+  "capital_at": [
+   -122.8994,
+   47.038
+  ],
+  "region": "us_westen"
+ },
+ {
+  "id": "US-WV",
+  "code": "WV",
+  "name": "West-Virginia",
+  "aliases": [
+   "West Virginia"
+  ],
+  "capital": "Charleston",
+  "capital_at": [
+   -81.6327,
+   38.3497
+  ],
+  "region": "us_zuidoost"
+ },
+ {
+  "id": "US-WI",
+  "code": "WI",
+  "name": "Wisconsin",
+  "aliases": [],
+  "capital": "Madison",
+  "capital_at": [
+   -89.4011,
+   43.073
+  ],
+  "region": "us_middenwesten"
+ },
+ {
+  "id": "US-WY",
+  "code": "WY",
+  "name": "Wyoming",
+  "aliases": [],
+  "capital": "Cheyenne",
+  "capital_at": [
+   -104.8197,
+   41.14
+  ],
+  "region": "us_westen"
+ }
+]

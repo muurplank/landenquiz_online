@@ -32,7 +32,7 @@ export function createMode({ ds, params }) {
     return it.name;
   }
   function acceptedAnswers(it, d) {
-    return d === 'land-to-capital' ? it.answers : [it.name];
+    return d === 'land-to-capital' ? it.answers : [it.name, ...(it.aliases || [])];
   }
 
   function questionHtml(it, d) {
@@ -40,9 +40,9 @@ export function createMode({ ds, params }) {
       case 'land-to-capital':
         return `<div class="qprompt">Wat is de hoofdstad van</div><div class="qgiven">${esc(it.name)}</div>`;
       case 'capital-to-land':
-        return `<div class="qprompt">Van welk ${esc(N.one)} is dit de hoofdstad?</div><div class="qgiven">${esc(it.answers.join(', '))}</div>`;
+        return `<div class="qprompt">Van ${N.which.toLowerCase()} ${esc(N.one)} is dit de hoofdstad?</div><div class="qgiven">${esc(it.answers.join(', '))}</div>`;
       case 'flag-to-land':
-        return `<img class="qflag" src="${it.flag}" alt="Vlag om te raden"><div class="qprompt">Bij welk ${esc(N.one)} hoort deze vlag?</div>`;
+        return `<img class="qflag" src="${it.flag}" alt="Vlag om te raden"><div class="qprompt">Bij ${N.which.toLowerCase()} ${esc(N.one)} hoort deze vlag?</div>`;
       default:
         return `<div class="qprompt">Hoe ziet de vlag eruit van</div><div class="qgiven">${esc(it.name)}</div>`;
     }
