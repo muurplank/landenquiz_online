@@ -105,7 +105,7 @@ const label = km => km < 1 ? 'Gloeiend heet' : km < 400 ? 'Heet' : km < 1200 ? '
           <div class="card panel">
             <div class="panel-head"><h3>Gokken</h3><span class="muted tabnum" style="font-size:13px">${n}</span></div>
             ${sorted.length ? `<ol class="guesses">${sorted.map(g => `<li><i style="background:${g.id === G.secret ? 'var(--success)' : heat(g.km)}"></i><img class="flag" src="${ds.items.get(g.id).flag}" alt="" width="24" height="16"><span class="nm">${esc(ds.items.get(g.id).name)}</span><span class="km">${g.id === G.secret ? 'Raak' : fmtKm(g.km)}</span></li>`).join('')}</ol>`
-              : '<p class="muted" style="font-size:14px">Typ een land of klik er een aan op de kaart.</p>'}
+              : '<p class="muted" style="font-size:14px">Typ de naam van een land om te gokken.</p>'}
           </div>
           <div class="card panel hints">
             <h3>Hints</h3>
@@ -130,8 +130,8 @@ const label = km => km < 1 ? 'Gloeiend heet' : km < 400 ? 'Heet' : km < 1200 ? '
     if (map) { el.replaceWith(map.el); }
     else {
       const names = Object.fromEntries([...ds.items.values()].map(it => [it.id, it.name]));
-      map = new MapView(el, { geo: ds.geo, style: 'sat', names, dotsFor: 'group', label: 'Wereldkaart: klik een land om te gokken' });
-      map.on('click', id => guess(id));
+      // Alleen typen telt: de kaart toont de gokken maar is niet klikbaar.
+      map = new MapView(el, { geo: ds.geo, style: 'sat', names, dotsFor: 'group', hoverHighlight: false, label: 'Wereldkaart met je gokken' });
       map.ready.then(() => { paintMap(); map.fitTo(ids, { animate: false, padding: .98 }); });
     }
     if (map.geo) paintMap();
