@@ -16,7 +16,7 @@ const MORE = [
   { href: 'exam.html', icon: ICONS.cap, t: 'Het Grote Eindexamen', d: '588 vragen over alle 196 landen, met een seed om tegen elkaar te spelen.' },
   { href: 'sporcle.html', icon: ICONS.keyboard, t: 'Typ ze allemaal', d: 'Alle landen, hoofdsteden of vlaggen uit je hoofd typen tegen de klok.' }
 ];
-const DAILY_ICON = { warmkoud: '🌡️', silhouet: '🗺️', grensroute: '🧭', geotrivia: '⚡' };
+const DAILY_ICON = { warmkoud: '🌡️', silhouet: '🗺️', grensroute: '🧭', geotrivia: '⚡', kompas: '📍' };
 
 function dailyCard(g) {
   const r = results(g.id)[today()];

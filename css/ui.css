@@ -838,20 +838,20 @@ a.world-card { color: var(--text); }
   background: var(--sun); color: var(--sun-ink); font-size: 15px; font-weight: 700;
 }
 .countdown b { font-family: var(--font-mono); font-size: 16px; font-weight: 800; letter-spacing: .02em; }
-.daily-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.daily-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
 .daily {
-  position: relative; display: grid; gap: 10px; align-content: start; padding: 26px 24px 22px; border-radius: 28px;
+  position: relative; display: grid; gap: 10px; align-content: start; padding: 24px 20px 20px; border-radius: 28px;
   background: var(--surface); border: 1.5px solid var(--border); box-shadow: var(--shadow);
   transition: transform .2s cubic-bezier(.2, .9, .3, 1.2), box-shadow .2s;
 }
 .daily:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 .daily-icon { font-size: 44px; line-height: 1; margin-bottom: 10px; }
-.daily-title { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
-.daily-sub { font-size: 16px; color: var(--muted); line-height: 1.45; min-height: 2.9em; }
+.daily-title { font-family: var(--font-display); font-size: clamp(21px, 1.9vw, 26px); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+.daily-sub { font-size: 15px; color: var(--muted); line-height: 1.45; min-height: 2.9em; }
 .daily-status { justify-self: start; margin: 6px 0 8px; padding: 5px 13px; border-radius: 999px; background: var(--surface-2); font-size: 13.5px; font-weight: 700; color: var(--muted); }
 .daily-status.done { background: var(--success-soft); color: var(--success); }
 .daily-play { width: 100%; }
-.daily-links { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; font-size: 15px; font-weight: 700; }
+.daily-links { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; font-size: 14px; font-weight: 700; }
 .daily-links a { text-decoration: none; color: var(--muted); }
 .daily-links a:first-child { color: var(--accent-ink); }
 .daily-links a:hover { text-decoration: underline; }
@@ -974,3 +974,25 @@ a.world-card { color: var(--text); }
   .world-art.us { width: 220px; right: -50px; top: 10px; opacity: .55; }
   .world-card .go { flex-direction: column; align-items: stretch; }
 }
+
+/* Kompas */
+.kp-stage {
+  position: relative; width: 100%; border-radius: 16px; overflow: hidden;
+  background: radial-gradient(70% 70% at 50% 50%, var(--surface-2), var(--surface) 80%); border: 1px solid var(--border);
+}
+.kp-svg { display: block; width: 100%; height: auto; max-height: 62vh; margin: 0 auto; font-family: var(--font-body); }
+.kp-svg .ring { fill: none; stroke: var(--border-strong); stroke-width: 1.5; stroke-dasharray: 3 6; }
+.kp-svg .tick { stroke: var(--border-strong); stroke-width: 2; stroke-linecap: round; }
+.kp-svg .wind { fill: var(--faint); font: 700 12px var(--font-body); text-anchor: middle; dominant-baseline: middle; }
+.kp-svg .arrow { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+.kp-svg .head { fill: var(--accent); }
+.kp-svg .lead { stroke: var(--border-strong); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.kp-svg .kp-label rect { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; filter: drop-shadow(0 4px 8px rgba(12, 42, 51, .08)); }
+.kp-svg .kp-label .nm { fill: var(--text); font: 800 14px var(--font-display); text-anchor: middle; }
+.kp-svg .kp-label .km { fill: var(--muted); font: 600 10.5px var(--font-body); text-anchor: middle; }
+.kp-svg .core { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 3; }
+.kp-svg .core.won { fill: var(--success-soft); stroke: var(--success); }
+.kp-svg .core.lost { fill: var(--danger-soft); stroke: var(--danger); }
+.kp-svg .q { fill: var(--accent-ink); font: 800 64px var(--font-display); text-anchor: middle; }
+.kp-svg .answer { fill: var(--text); font: 800 15px var(--font-display); text-anchor: middle; }
+.kp-dir { display: inline-block; transform: rotate(var(--deg)); font-weight: 800; color: var(--accent-ink); }

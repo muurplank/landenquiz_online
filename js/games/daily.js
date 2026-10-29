@@ -9,7 +9,8 @@ export const DAILY_GAMES = [
   { id: 'warmkoud', href: 'warmkoud.html', title: 'Warm of koud', sub: 'Raad het land van de dag aan de hand van warmte.', color: 'heat', since: '2026-10-29' },
   { id: 'silhouet', href: 'silhouet.html', title: 'Silhouet', sub: 'Herken een land aan zijn vorm.', color: 'violet', since: '2026-10-29' },
   { id: 'grensroute', href: 'grensroute.html', title: 'Grensroute', sub: 'Reis van land naar land over de grens.', color: 'green', since: '2026-10-29' },
-  { id: 'geotrivia', href: 'geotrivia.html', title: 'Geo trivia', sub: 'Tien snelle vragen over de wereld.', color: 'blue', since: '2026-10-29' }
+  { id: 'geotrivia', href: 'geotrivia.html', title: 'Geo trivia', sub: 'Tien snelle vragen over de wereld.', color: 'blue', since: '2026-10-29' },
+  { id: 'kompas', href: 'kompas.html', title: 'Kompas', sub: 'Vijf buren in hun richting. Welk land ligt in het midden?', color: 'blue', since: '2026-10-29' }
 ];
 
 const pad = n => String(n).padStart(2, '0');
