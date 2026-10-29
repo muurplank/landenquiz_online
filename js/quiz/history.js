@@ -1,4 +1,5 @@
-// Geschiedenis: per land een meerkeuzevraag over de weetjes uit data/history.json.
+// Geschiedenis: per land (of staat) een meerkeuzevraag over de weetjes uit
+// data/history.json (wereld) of data/<dataset>/history.json.
 // Na elk antwoord staan de vijf weetjes van dat land eronder. Met "Eerst lezen"
 // zie je de weetjes vóór de vraag. Toetsen: 1-4 kiest, Enter/Spatie gaat door.
 import { loadJSON } from '../core/data.js';
@@ -7,7 +8,7 @@ import { escapeHtml as esc } from '../core/text.js';
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 export async function createMode({ ds, group, params }) {
-  const data = await loadJSON('data/history.json');
+  const data = await loadJSON(ds.name === 'world' ? 'data/history.json' : `data/${ds.name}/history.json`);
   const ids = group.countries.filter(id => ds.items.has(id) && data[id]);
   if (!ids.length) throw new Error('Voor deze set zijn nog geen geschiedenisvragen.');
   const read = params.dir === 'read';

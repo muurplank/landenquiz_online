@@ -47,9 +47,9 @@ function subjects(ds, oceania) {
     { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
     { k: 'mix', icon: 'shuffle', t: 'Mix', d: 'Hoofdstad, vlag en kaart door elkaar.', steps: [
       ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] },
-    ...(ds.name === 'world' ? [{ k: 'history', svg: HISTORY_ICON, t: 'Geschiedenis', d: 'Vijf weetjes over de geschiedenis van elk land, met vragen erover.', steps: [
-      ['dir', 'Hoe wil je oefenen?', [['ask', 'Meteen de vraag', 'Na je antwoord zie je de weetjes van het land'], ['read', 'Eerst lezen', 'Je leest de weetjes, daarna volgt de vraag']]],
-      ['order', 'In welke volgorde?', ord]] }] : [])
+    { k: 'history', svg: HISTORY_ICON, t: 'Geschiedenis', d: `Vijf weetjes over de geschiedenis van ${N.every.toLowerCase()} ${l}, met vragen erover.`, steps: [
+      ['dir', 'Hoe wil je oefenen?', [['ask', 'Meteen de vraag', `Na je antwoord zie je de weetjes van ${N.the} ${l}`], ['read', 'Eerst lezen', 'Je leest de weetjes, daarna volgt de vraag']]],
+      ['order', 'In welke volgorde?', ord]] }
   ];
 }
 
@@ -87,7 +87,7 @@ function render(ds, group) {
         <p class="sub">${esc(sub)}</p>
       </div>
       <div class="card set-progress" aria-label="Voortgang">
-        ${[['Hoofdstad', prog.capital], ['Vlag', prog.flag], ['Kaart', prog.map], ...(ds.name === 'world' ? [['Geschiedenis', prog.history]] : [])].map(([l, p]) => `<div class="ring-wrap"><div class="ring" style="--p:${p}"><b>${p}%</b></div><span>${l}</span></div>`).join('')}
+        ${[['Hoofdstad', prog.capital], ['Vlag', prog.flag], ['Kaart', prog.map], ['Geschiedenis', prog.history]].map(([l, p]) => `<div class="ring-wrap"><div class="ring" style="--p:${p}"><b>${p}%</b></div><span>${l}</span></div>`).join('')}
       </div>
     </div>
     <div class="flagstrip set-flags">${items.slice(0, 16).map(it => `<img class="flag" src="${it.flag}" alt="" width="30" height="20" loading="lazy">`).join('')}${items.length > 16 ? `<span class="more">+${items.length - 16}</span>` : ''}</div>
@@ -132,7 +132,7 @@ function render(ds, group) {
     const subj = list.find(x => x.k === S.subj);
     fix(subj);
     const c = S.cfg[subj.k];
-    const progOf = { capital: prog.capital, flag: prog.flag, map: prog.map, history: ds.name === 'world' ? prog.history : null };
+    const progOf = { capital: prog.capital, flag: prog.flag, map: prog.map, history: prog.history };
     const summary = subj.steps.map(([key, , opts]) => (opts.find(o => o[0] === c[key]) || [])[1]).filter(Boolean);
     const ownEmpty = subj.k === 'mix' && c.mix === 'own' && !S.mix.size;
     picker.innerHTML = `
