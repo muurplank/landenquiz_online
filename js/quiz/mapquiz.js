@@ -3,7 +3,7 @@
 //  dir a + ans pick  -> a country lights up, pick its name from the list or type it
 //  dir b (click)     -> "Zoek op kaart": you get a name and click the country
 //  dir c (locate)    -> you get a capital and click where it lies; scored by distance
-import { isCloseEnough, normalize, escapeHtml as esc } from '../core/text.js';
+import { isCloseEnough, normalize, escapeHtml as esc, prevAnswer } from '../core/text.js';
 
 const NEXT_OK_MS = 900;
 const NEXT_BAD_MS = 1600;
@@ -18,7 +18,7 @@ export function createMode({ ds, group, params }) {
   const sorted = [...ids].sort((a, b) => ds.items.get(a).name.localeCompare(ds.items.get(b).name, 'nl'));
   const label = { snelle: `Kaart → ${N.one} · zelf beoordelen`, pick: `Kaart → ${N.one} · aanklikken of typen`, zoek: `${N.One} → kaart`, locate: 'Hoofdstad → plek op de kaart' }[kind];
 
-  let api, map, item = null, revealed = false, locked = false;
+  let api, map, item = null, revealed = false, locked = false, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
   const $ = sel => api.card.querySelector(sel);
 
   function controlsHtml() {
@@ -42,6 +42,7 @@ export function createMode({ ds, group, params }) {
 
   function render(n) {
     $('#qnum').textContent = `Vraag ${n}`;
+    $('#qprev').innerHTML = prevAnswer(prev);
     $('#controls').innerHTML = controlsHtml();
     if (kind === 'zoek') setPrompt(`<small>Klik op</small><b>${esc(item.name)}</b>`);
     else if (kind === 'locate') setPrompt(`<small>Klik waar deze hoofdstad ligt</small><b>${esc(item.answers[0])}</b><small>hoofdstad van ${esc(item.name)}</small>`);
@@ -87,7 +88,8 @@ export function createMode({ ds, group, params }) {
   function act(a) {
     if (kind !== 'snelle' || locked) return;
     if (a === 'reveal' && !revealed) { revealed = true; revealName(); $('#controls').innerHTML = controlsHtml(); }
-    else if ((a === 'right' || a === 'wrong') && revealed) {
+    else if (a === 'right' || a === 'wrong') {
+      prev = revealed ? null : item;
       api.answered(a === 'right', { subType: 'snelle' });
       map.setDone([...Object.values(api.engine.stats)].filter(s => s.is_mastered).map(s => s.iso));
       api.next();
@@ -105,7 +107,7 @@ export function createMode({ ds, group, params }) {
       api = quizApi;
       api.card.classList.add('map-card');
       api.card.innerHTML = `
-        <div class="qmeta"><span class="pill" id="qnum">Vraag 1</span><span class="pill">${esc(label)}</span></div>
+        <div class="qmeta"><div class="qmeta-l"><span class="pill" id="qnum">Vraag 1</span><span id="qprev"></span></div><span class="pill">${esc(label)}</span></div>
         <div class="quiz-map" id="quiz-map"><div class="map-prompt" id="map-prompt"></div>
           <div class="map-zoom"><button class="zbtn" data-zoom="1.6" aria-label="Inzoomen">+</button><button class="zbtn" data-zoom="0.625" aria-label="Uitzoomen">−</button><button class="zbtn" data-zoom="fit" aria-label="Hele set tonen">⤢</button></div>
         </div>
