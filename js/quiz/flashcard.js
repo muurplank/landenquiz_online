@@ -1,5 +1,5 @@
 // Flashcards for capitals and flags: rate yourself (space, 1, 2) or type the answer.
-import { isCloseEnough, escapeHtml as esc, veil, unveil } from '../core/text.js';
+import { isCloseEnough, escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
 
 const WRONG_FEEDBACK_MS = 2200;
 
@@ -20,7 +20,7 @@ export function createMode({ ds, params }) {
   };
   const subMode = params.order === 'smart' ? 'thompson' : (dir === 'both' ? 'both' : DIRS[type][dir]);
 
-  let item = null, qdir = null, revealed = false, locked = false, api = null;
+  let item = null, qdir = null, revealed = false, locked = false, api = null, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
 
   function pickDir() {
     if (dir === 'both') return Math.random() < .5 ? DIRS[type].a : DIRS[type].b;
@@ -57,7 +57,7 @@ export function createMode({ ds, params }) {
   function render(n) {
     const card = api.card;
     card.innerHTML = `
-      <div class="qmeta"><span class="pill">Vraag ${n}</span><span class="pill">${esc(dirLabel[qdir])}</span></div>
+      <div class="qmeta"><div class="qmeta-l"><span class="pill">Vraag ${n}</span>${prevAnswer(prev)}</div><span class="pill">${esc(dirLabel[qdir])}</span></div>
       ${questionHtml(item, qdir)}
       <div class="answer" id="answer">${revealed ? unveil(revealHtml(item, qdir)) : veil(qdir === 'land-to-flag' ? 'flag' : 'text')}</div>
       ${typing ? `
@@ -92,7 +92,8 @@ export function createMode({ ds, params }) {
       revealed = true;
       api.card.querySelector('#answer').innerHTML = unveil(revealHtml(item, qdir));
       api.card.querySelector('#actions').innerHTML = actionsHtml();
-    } else if ((a === 'right' || a === 'wrong') && revealed) {
+    } else if (a === 'right' || a === 'wrong') {
+      prev = revealed ? null : item;
       api.answered(a === 'right', { subType: qdir });
       api.next();
     }
@@ -101,6 +102,7 @@ export function createMode({ ds, params }) {
   function submitTyped(value) {
     if (locked || !value.trim()) return;
     if (isCloseEnough(value, acceptedAnswers(item, qdir))) {
+      prev = null;
       api.answered(true, { subType: qdir });
       api.next();
       return;

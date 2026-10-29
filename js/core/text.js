@@ -29,4 +29,6 @@ export const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': 
  *  The stand-in is the same for every question, so its length or colours give nothing away. */
 export const veil = (kind = 'text') => `<div class="censored" aria-hidden="true">${kind === 'flag'
   ? '<div class="qflag small"></div>' : '<div class="a">Verborgen antwoord</div>'}</div>`;
+/** Small "previous answer" next to the question number, after rating without revealing (1/2 straight away). */
+export const prevAnswer = it => it ? `<span class="prev-ans" title="Vorige vraag"><img src="${it.flag}" alt="" width="18" height="12">${escapeHtml(it.name)}${it.answers && it.answers.length ? ` · ${escapeHtml(it.answers.join(', '))}` : ''}</span>` : '';
 export const unveil = html => `<div class="unveil">${html}</div>`;

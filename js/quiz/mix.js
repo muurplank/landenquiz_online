@@ -1,7 +1,7 @@
 // Mix: capital, flag and map questions mixed, always self-rated (space, 1, 2).
 //  mix=std  -> land→hoofdstad, vlag→land, kaart→land (counts per type for progress)
 //  mix=mega -> all 11 cross types, mix=own -> the chosen subset (counts as 'mix')
-import { escapeHtml as esc, veil, unveil } from '../core/text.js';
+import { escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
 
 const ALL_TYPES = ['land-capital', 'capital-land', 'land-flag', 'flag-land', 'map-land', 'capital-flag', 'capital-map', 'flag-capital', 'flag-map', 'map-capital', 'map-flag'];
 const STD_TYPES = ['land-capital', 'flag-land', 'map-land'];
@@ -20,7 +20,7 @@ export function createMode({ ds, group, params }) {
   const NAMES = { land: N.One, capital: 'Hoofdstad', flag: 'Vlag', map: 'Kaart' };
   const typeLabel = t => { const [a, b] = t.split('-'); return `${NAMES[a]} → ${b === 'map' ? N.one + ' op kaart' : NAMES[b].toLowerCase()}`; };
 
-  let api, map, item, type, revealed = false;
+  let api, map, item, type, revealed = false, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
   const $ = sel => api.card.querySelector(sel);
 
   function given(it, from) {
@@ -49,6 +49,7 @@ export function createMode({ ds, group, params }) {
     const [from, to] = type.split('-');
     const showMap = from === 'map' || (to === 'map' && revealed);
     $('#qnum').textContent = `Vraag ${n}`;
+    $('#qprev').innerHTML = prevAnswer(prev);
     $('#qtype').textContent = typeLabel(type);
     $('#given').innerHTML = given(item, from);
     $('#prompt').textContent = prompt(from, to);
@@ -63,7 +64,8 @@ export function createMode({ ds, group, params }) {
 
   function act(a) {
     if (a === 'reveal' && !revealed) { revealed = true; render(api.engine.totals.questions + 1); return; }
-    if ((a === 'right' || a === 'wrong') && revealed) {
+    if (a === 'right' || a === 'wrong') {
+      prev = revealed ? null : item;
       api.answered(a === 'right', variant === 'std' ? { quizType: STD_QUIZTYPE[type], subType: type } : { quizType: 'mix', subType: `mega-${type}` });
       api.next();
     }
@@ -79,7 +81,7 @@ export function createMode({ ds, group, params }) {
     start(quizApi) {
       api = quizApi;
       api.card.innerHTML = `
-        <div class="qmeta"><span class="pill" id="qnum">Vraag 1</span><span class="pill" id="qtype"></span></div>
+        <div class="qmeta"><div class="qmeta-l"><span class="pill" id="qnum">Vraag 1</span><span id="qprev"></span></div><span class="pill" id="qtype"></span></div>
         <div class="quiz-map mix-map" id="mix-map" hidden></div>
         <div id="given" class="mix-given"></div>
         <div class="qprompt" id="prompt"></div>
