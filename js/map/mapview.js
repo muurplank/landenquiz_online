@@ -13,6 +13,7 @@
  *   map.flash(iso, true);       // kort groen (true) of rood (false)
  *   map.setDone(isos);          // al goed beantwoord
  *   map.setColors({iso: kleur}); // eigen vulkleur per land
+ *   map.setVisible(isos);       // alleen deze landen tekenen (null = alle)
  *   map.setPoints([{id, ll}]);  // hoofdsteden als stipjes; map.setPointHighlight(id)
  *   map.setPins([{ll, ok}]);    // spelden (gok en antwoord) met een lijn ertussen
  *   map.on('clickpoint', ll => …) // elke klik, als [lon, lat]
@@ -116,6 +117,7 @@
       this.hover = null; this.highlight = null; this.target = null; this.flashState = null;
       this.listeners = { click: [], hover: [], clickpoint: [] };
       this.points = []; this.pointHighlight = null; this.pins = []; this.colors = {};
+      this.visible = null;      // Set van landen die getekend worden, of null voor alle
       this.fills = new Map();   // iso → laatst gezette vulkleur (feature-state)
       this.keys = {};           // laatst geschreven bronnen, om dubbel werk te vermijden
       this.pulse0 = performance.now();
@@ -192,6 +194,7 @@
     }
     /** Custom fill per country, e.g. heat colours: {iso: '#ff0000'}. */
     setColors(colors) { this.colors = colors || {}; this._schedule(); }
+    setVisible(ids) { this.visible = ids ? new Set(ids) : null; this._schedule(); }
     setPoints(points) { this.points = points || []; this._schedule(); }
     setPointHighlight(id) { this.pointHighlight = id || null; this._schedule(); }
     setPins(pins) { this.pins = pins || []; this._schedule(); }
@@ -297,7 +300,7 @@
 
     _k() { return kOf(this.map.getZoom()); }
 
-    _eligible(iso) { return !this.names || iso in this.names; }
+    _eligible(iso) { return (!this.names || iso in this.names) && (!this.visible || this.visible.has(iso)); }
 
     _isDot(iso, k = this._k()) {
       if (!this._eligible(iso)) return false;
@@ -370,6 +373,13 @@
         if (c === 'TARGET') c = st.target[0];
         c = c || NONE;
         if (this.fills.get(f.id) !== c) { this.fills.set(f.id, c); m.setFeatureState({ source: 'countries', id: f.id }, { fill: c }); }
+      }
+
+      const visKey = this.visible ? [...this.visible].sort().join(',') : '*';
+      if (this.keys.visible !== visKey) {
+        this.keys.visible = visKey;
+        const f = this.visible ? ['in', ['get', 'iso'], ['literal', [...this.visible]]] : null;
+        ['fill', 'halo', 'border'].forEach(l => m.setFilter(l, f));
       }
 
       const ringIso = this.target && this.geo.byId.has(this.target) && !this._isDot(this.target, k) ? this.target : '';

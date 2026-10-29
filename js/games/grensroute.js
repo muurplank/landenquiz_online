@@ -31,7 +31,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     const days = prefs.get(DAYS_KEY, {}); days[day] = G; prefs.set(DAYS_KEY, days);
   }
   const stats = Object.assign({ played: 0, won: 0, perfect: 0, streak: 0, best: 0 }, prefs.get(STATS_KEY, {}));
-  let G = null, map = null;
+  let G = null, map = null, wrongId = null;   // wrongId: fout gegokt land, even zichtbaar
 
   function bfs(from) {
     const dist = { [from]: 0 }, parent = {}, queue = [from];
@@ -135,17 +135,21 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     const el = document.getElementById('gr-map');
     const names = Object.fromEntries([...ds.items.values()].map(it => [it.id, it.name]));
     if (map) { el.replaceWith(map.el); } else {
-      map = new MapView(el, { geo: ds.geo, style: 'sat', names, dotsFor: 'all', label: 'Kaart: klik het volgende land' });
+      map = new MapView(el, { geo: ds.geo, style: 'sat', names, dotsFor: 'all', label: 'Kaart met start, doel en je route' });
       map.on('click', id => { if (G && !G.done) travel(id); });
       map.ready.then(() => { updateMap(); fit(false); });
     }
     if (map.geo) updateMap();
   }
   function fit(animate = true) { map.fitTo(G.done ? G.path.concat(G.best) : [G.start, G.end], { padding: .7, animate }); }
+  // Alleen start, doel en wat je al gegokt hebt staat op de kaart; de rest moet je zelf weten.
   function updateMap() {
+    const hint = G.showHint ? borders[G.path[G.path.length - 1]] : [];
+    map.setVisible([G.start, G.end, ...G.path, ...hint, ...(G.done ? G.best : []), ...(wrongId ? [wrongId] : [])]);
     map.setDone(G.path);
     map.setTarget(G.done ? null : G.end);
-    map.setGroup(G.showHint ? borders[G.path[G.path.length - 1]] : []);
+    map.setGroup(hint);
+    map.setColors(Object.fromEntries(hint.filter(id => !G.path.includes(id)).map(id => [id, 'rgba(250, 204, 21, .45)'])));
     map.setHighlight(G.done ? null : G.path[G.path.length - 1]);
   }
 
@@ -157,7 +161,10 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     if (G.path.includes(id)) { say(`Daar ben je al geweest. Gebruik "Stap terug" om terug te gaan.`); return; }
     if (!(borders[cur] || []).includes(id)) {
       G.mistakes++;
+      wrongId = id;
+      updateMap();
       map.flash(id, false, 700);
+      setTimeout(() => { if (wrongId === id) { wrongId = null; if (map.geo) updateMap(); } }, 700);
       say(`${nameOf(id)} grenst niet aan ${nameOf(cur)}.`);
       render();
       return;
