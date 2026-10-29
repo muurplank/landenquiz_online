@@ -1005,3 +1005,8 @@ a.world-card { color: var(--text); }
 .kp-svg .q { fill: var(--accent-ink); font: 800 64px var(--font-display); text-anchor: middle; }
 .kp-svg .answer { fill: var(--text); font: 800 15px var(--font-display); text-anchor: middle; }
 .kp-dir { display: inline-block; transform: rotate(var(--deg)); font-weight: 800; color: var(--accent-ink); }
+
+/* Omtrek-quiz: alleen de vorm van het land */
+.outline-shape { width: min(400px, 100%); height: auto; aspect-ratio: 4 / 3; display: block; }
+.outline-shape path { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.outline-ans { display: flex; align-items: center; gap: 12px; text-align: left; }

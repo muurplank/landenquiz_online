@@ -8,7 +8,7 @@ import { renderTopbar, I, prefs } from '../ui/shell.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'stats' });
 const page = document.getElementById('page');
-const TYPE_LABEL = { capital: 'Hoofdsteden', flag: 'Vlaggen', map: 'Kaart', mix: 'Mix', kwartet: 'Kwartet', history: 'Geschiedenis', exam: 'Eindexamen' };
+const TYPE_LABEL = { capital: 'Hoofdsteden', flag: 'Vlaggen', map: 'Kaart', mix: 'Mix', kwartet: 'Kwartet', history: 'Geschiedenis', outline: 'Omtrek', exam: 'Eindexamen' };
 const MIN_SEEN = 3;
 
 const S = Object.assign({ period: 'all', group: '', type: 'all', tab: 'algemeen' }, prefs.get('landjes_stats_filters', {}));

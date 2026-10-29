@@ -18,7 +18,8 @@ const MODE_LOADERS = {
   map: () => import('./mapquiz.js'),
   mix: () => import('./mix.js'),
   kwartet: () => import('./kwartet.js'),
-  history: () => import('./history.js')
+  history: () => import('./history.js'),
+  outline: () => import('./outline.js')
 };
 
 renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: params.dataset || 'world' });
