@@ -120,7 +120,7 @@
       this.done = new Set();
       this.hover = null; this.highlight = null; this.target = null; this.flashState = null;
       this.listeners = { click: [], hover: [], clickpoint: [] };
-      this.points = []; this.pointHighlight = null; this.pins = [];
+      this.points = []; this.pointHighlight = null; this.pins = []; this.colors = {};
       this.T = d3.zoomIdentity;
       this.tileVersion = 0;
       this.baseKey = '';
@@ -169,6 +169,8 @@
       this._schedule();
       this._flashTimer = setTimeout(() => { this.flashState = null; this._schedule(); }, ms);
     }
+    /** Custom fill per country, e.g. heat colours: {iso: '#ff0000'}. */
+    setColors(colors) { this.colors = colors || {}; this._schedule(); }
     setPoints(points) { this.points = points || []; this._schedule(); }
     setPointHighlight(id) { this.pointHighlight = id || null; this._schedule(); }
     setPins(pins) { this.pins = pins || []; this._schedule(); }
@@ -294,6 +296,7 @@
     _fill(iso, st) {
       if (this.flashState && this.flashState.iso === iso) return this.flashState.ok ? st.ok : st.bad;
       if (iso === this.target) return 'TARGET';
+      if (this.colors[iso]) return this.colors[iso];
       if (this.done.has(iso)) return st.done;
       if (iso === this.highlight || (iso === this.hover && this.opts.hoverHighlight !== false)) return st.hover;
       if (this.group.has(iso)) return st.group;
@@ -313,7 +316,7 @@
       const st = STYLES[this.styleName], ctx = this.ctx, T = this.T;
       const key = [this.styleName, T.x, T.y, T.k, this.W, this.H, this.hover, this.highlight, this.target,
         this.done.size, this.flashState && this.flashState.iso, this.flashState && this.flashState.ok,
-        this.group.size, this.tileVersion].join('|');
+        this.group.size, this.tileVersion, Object.keys(this.colors).length].join('|');
       if (key !== this.baseKey) { this._renderBase(st); this.baseKey = key; }
 
       ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
@@ -433,5 +436,6 @@
   }
 
   MapView.STYLES = STYLES;
+  MapView.loadGeo = loadGeo;
   window.MapView = MapView;
 })();

@@ -57,12 +57,12 @@ def main(admin1_path, places_path):
 
     assert len(states) == 50, len(states)
     assert all(len(codes) == 10 for _, _, codes in REGIONS) and len(region_of) == 50
-    groups = [{'id': rid, 'title': title, 'label': f'Regio {i + 1}', 'continent': rid, 'countries': [f'US-{c}' for c in codes]}
+    groups = [{'id': rid, 'title': title, 'label': f'Week {i + 1}', 'continent': rid, 'countries': [f'US-{c}' for c in codes]}
               for i, (rid, title, codes) in enumerate(REGIONS)]
     json.dump(states, open(os.path.join(ROOT, 'data/us/states.json'), 'w'), ensure_ascii=False, indent=1)
     json.dump(groups, open(os.path.join(ROOT, 'data/us/groups.json'), 'w'), ensure_ascii=False, indent=1)
     json.dump({'type': 'FeatureCollection', 'features': feats}, open(os.path.join(ROOT, 'assets/maps/us.detail.json'), 'w'), separators=(',', ':'))
-    print(f'{len(states)} staten, {len(groups)} regio\'s, kaart {os.path.getsize(os.path.join(ROOT, "assets/maps/us.detail.json")) // 1024} KB')
+    print(f'{len(states)} staten, {len(groups)} weken, kaart {os.path.getsize(os.path.join(ROOT, "assets/maps/us.detail.json")) // 1024} KB')
 
 
 if __name__ == '__main__':

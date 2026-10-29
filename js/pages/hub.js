@@ -18,8 +18,8 @@ const GAMES = [
   { live: true, href: 'exam.html', icon: ICONS.cap, t: 'Het Grote Eindexamen', d: '588 vragen over alle 196 landen, met een seed om tegen elkaar te spelen.' },
   { live: true, href: 'sporcle.html', icon: ICONS.keyboard, t: 'Typ ze allemaal', d: 'Alle landen, hoofdsteden of vlaggen uit je hoofd typen tegen de klok.' },
   { live: true, href: 'grensroute.html', icon: I.map, t: 'Grensroute', d: 'Reis van het ene land naar het andere, steeds naar een buurland, in zo min mogelijk stappen.' },
-  { icon: ICONS.target, t: 'Warm of koud', d: 'Raad een geheim land. Elke gok kleurt de globe warmer naarmate je dichterbij zit.', pill: 'Binnenkort' },
-  { icon: ICONS.shape, t: 'Silhouet', d: 'Raad het land aan zijn vorm. Na elke gok zie je hoe ver en welke kant op.', pill: 'Binnenkort' },
+  { live: true, href: 'warmkoud.html', icon: ICONS.target, t: 'Warm of koud', d: 'Raad het land van de dag. Elke gok kleurt de kaart warmer naarmate je dichterbij zit.' },
+  { live: true, href: 'silhouet.html', icon: ICONS.shape, t: 'Silhouet', d: 'Raad het land aan zijn vorm. Na elke foute gok zie je meer: buurlanden, continent, hoofdstad.' },
   { icon: ICONS.question, t: 'Geo trivia', d: 'Hoogste berg, langste rivier, grootste stad: snelle meerkeuzevragen.', pill: 'Idee' }
 ];
 
@@ -65,7 +65,7 @@ const GAMES = [
       <a class="world-card us" href="${siteUrl('wereld.html?dataset=us')}">
         <div class="us-grid" aria-hidden="true">${usCells}</div>
         <div style="display:grid;gap:10px;position:relative">
-          <div class="meta"><span>50 staten</span><span>5 regio's</span></div>
+          <div class="meta"><span>50 staten</span><span>5 weken</span></div>
           <h2>Amerikaanse staten</h2>
           <p>Alle staten, hoofdsteden en staatsvlaggen, op dezelfde kaart.</p>
         </div>

@@ -2,7 +2,7 @@
  {
   "id": "us_noordoost",
   "title": "Noordoosten",
-  "label": "Regio 1",
+  "label": "Week 1",
   "continent": "us_noordoost",
   "countries": [
    "US-ME",
@@ -20,7 +20,7 @@
  {
   "id": "us_zuidoost",
   "title": "Zuidoosten",
-  "label": "Regio 2",
+  "label": "Week 2",
   "continent": "us_zuidoost",
   "countries": [
    "US-MD",
@@ -38,7 +38,7 @@
  {
   "id": "us_zuid",
   "title": "Zuiden en Zuidwesten",
-  "label": "Regio 3",
+  "label": "Week 3",
   "continent": "us_zuid",
   "countries": [
    "US-MS",
@@ -56,7 +56,7 @@
  {
   "id": "us_middenwesten",
   "title": "Middenwesten",
-  "label": "Regio 4",
+  "label": "Week 4",
   "continent": "us_middenwesten",
   "countries": [
    "US-OH",
@@ -74,7 +74,7 @@
  {
   "id": "us_westen",
   "title": "Westen en Pacific",
-  "label": "Regio 5",
+  "label": "Week 5",
   "continent": "us_westen",
   "countries": [
    "US-MT",

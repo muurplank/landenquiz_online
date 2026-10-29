@@ -754,3 +754,29 @@ a.world-card { color: #fff; }
 .gr-done h2 { font-size: 22px; }
 .side > .btn { width: 100%; }
 @media (max-width: 980px) { .gr-grid { grid-template-columns: minmax(0, 1fr); } .gr-done { grid-template-columns: minmax(0, 1fr); justify-items: start; } }
+.heat-legend {
+  position: absolute; left: 14px; bottom: 12px; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px;
+  background: rgba(15, 23, 42, .55); color: #e6edf7; font-size: 11.5px; font-weight: 600; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.heat-legend i { width: 120px; height: 8px; border-radius: 999px; background: linear-gradient(90deg, #ff1f1f, #ff7a00, #ffc400, #ffe9a3, #8fd3ff, #2f6fdf); }
+.guesses { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 360px; overflow: auto; }
+.guesses li { display: grid; grid-template-columns: 10px 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14px; padding: 5px 4px; }
+.guesses li > i { width: 10px; height: 10px; border-radius: 3px; }
+.guesses .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guesses .km { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.hints { gap: 8px; }
+.hints p { font-size: 14px; }
+.hints .btn { justify-self: start; }
+.sil-stage {
+  position: relative; width: 100%; height: clamp(340px, 54vh, 540px); border-radius: 16px; overflow: hidden;
+  background: radial-gradient(80% 80% at 50% 40%, var(--surface-2), var(--surface) 80%); border: 1px solid var(--border);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.4px), radial-gradient(80% 80% at 50% 40%, var(--surface-2), var(--surface) 80%);
+  background-size: 18px 18px, auto;
+}
+.sil-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sil-chips { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 1; }
+.sil-chips .pill { background: var(--accent-soft); color: var(--accent-ink); }
+.guesses.slots li { min-height: 34px; border-radius: 9px; }
+.guesses.slots li.empty { border: 1px dashed var(--border); }
+.guesses.slots li.empty i { background: transparent; }
+.guesses.slots li.empty .nm { font-size: 12.5px; }

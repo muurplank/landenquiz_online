@@ -80,7 +80,7 @@ async function loadUs() {
     name: 'us',
     title: 'VS-staten',
     noun: { one: 'staat', many: 'staten', One: 'Staat', which: 'Welke', the: 'de', The: 'De', this: 'deze', every: 'Elke' },
-    unit: { one: 'regio', many: "regio's" },
+    unit: { one: 'week', many: 'weken' },
     geo: siteUrl('assets/maps/us.detail.json'),
     items,
     groups,
