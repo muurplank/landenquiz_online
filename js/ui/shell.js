@@ -56,7 +56,7 @@ export function renderTopbar(el, { current = 'oefenen', dataset = 'world' } = {}
       <a href="${siteUrl('index.html')}"${cur('hub')}>Spellen</a>
       <a href="${siteUrl('wereld.html' + (dataset === 'us' ? '?dataset=us' : ''))}"${cur('oefenen')}>Oefenen</a>
       <a class="opt-hide" href="${siteUrl('exam.html')}">Eindexamen</a>
-      <a href="${siteUrl('pages/stats.html')}"${cur('stats')}>Statistieken</a>
+      <a href="${siteUrl('stats.html')}"${cur('stats')}>Statistieken</a>
     </nav>
     <button class="icon-btn" type="button" data-theme-toggle aria-label="Wissel licht en donker">${isDark() ? I.sun : I.moon}</button>`;
   el.querySelector('[data-theme-toggle]').addEventListener('click', toggleTheme);
