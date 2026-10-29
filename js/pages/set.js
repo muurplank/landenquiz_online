@@ -77,7 +77,7 @@ function render(ds, group) {
   };
   const title = isWeek && ds.name === 'world' ? shortTitle(group) : group.title;
   const sub = isWeek ? `${groupLabel(group)} · ${ids.length} ${ds.noun.many}` : `${ids.length} ${ds.noun.many}`;
-  const crumb = group.id === 'custom' ? 'Mijn selectie' : (ds.regionTitle(group.continent) || group.title);
+  const crumb = group.id === 'custom' || group.id.startsWith('sel.') ? 'Mijn selectie' : (ds.regionTitle(group.continent) || group.title);
   document.title = `${title} — Land Trainer`;
 
   page.innerHTML = `

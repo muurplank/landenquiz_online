@@ -1,6 +1,6 @@
 // Statistics: filters, key figures, questions per day, per quiz type, best/hardest countries,
 // insights, per week and per continent. Reads the same history as the quizzes.
-import { loadDataset, shortTitle, weekNumber } from '../core/data.js';
+import { loadDataset, shortTitle, weekNumber, selectionGroup } from '../core/data.js';
 import { loadHistory, clearHistory, groupProgress } from '../core/store.js';
 import { QuizEngine } from '../core/engine.js';
 import { escapeHtml as esc } from '../core/text.js';
@@ -149,7 +149,7 @@ S.confirm = false;
     const ids = Object.keys(byGroup).sort((a, b) => (weekNumber(groupsById[a] || { title: '' }) ?? 99) - (weekNumber(groupsById[b] || { title: '' }) ?? 99));
     if (!ids.length) return '<div class="card panel"><p class="muted">Nog geen sessies in dit filter.</p></div>';
     return `<div class="group-cards">${ids.map(gid => {
-      const ss = byGroup[gid], g = groupsById[gid];
+      const ss = byGroup[gid], g = groupsById[gid] || selectionGroup(ds, gid);
       const q = ss.reduce((a, s) => a + (s.totals?.questions || 0), 0), c = ss.reduce((a, s) => a + (s.totals?.correct || 0), 0);
       const rt = ss.reduce((a, s) => a + (s.totals?.totalResponseTimeMs || 0), 0);
       const weak = Object.values(perCountry(ss)).filter(x => x.seen >= 2).sort((a, b) => a.acc - b.acc).slice(0, 3);

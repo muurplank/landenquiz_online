@@ -90,8 +90,30 @@ async function loadUs() {
   };
 }
 
-/** Group by id: a week/region, 'custom', 'world' or 'continent_<name>'. */
+/**
+ * Own selection of weeks/regions: 'sel.<group id>.<group id>…'. It is rebuilt from the data itself,
+ * so it works on every device without storage, and its progress is kept under its own id (and synced).
+ */
+export const selectionId = groupIds => 'sel.' + [...groupIds].sort().join('.');
+export function selectionGroup(ds, id) {
+  if (!id || !id.startsWith('sel.')) return null;
+  const parts = id.slice(4).split('.').map(g => ds.groups.find(x => x.id === g)).filter(Boolean);
+  if (!parts.length) return null;
+  const names = parts.map(g => ds.name === 'world' ? shortTitle(g) : g.title);
+  return {
+    id, continent: 'Custom', parts: parts.map(g => g.id),
+    title: parts.length <= 3 ? names.join(' + ') : `Mijn selectie · ${parts.length} ${ds.unit.many}`,
+    countries: [...new Set(parts.flatMap(g => g.countries))]
+  };
+}
+
+/** Group by id: a week/region, a selection ('sel.…', or the older 'custom'), 'world' or 'continent_<name>'. */
 export async function getGroup(ds, id) {
+  if (id && id.startsWith('sel.')) {
+    const g = selectionGroup(ds, id);
+    if (!g) throw new Error('Deze selectie bestaat niet (meer). Kies opnieuw weken op de overzichtspagina.');
+    return g;
+  }
   if (id === 'custom') {
     const g = getCustomGroup();
     if (!g || !g.countries || !g.countries.length || (g.dataset || 'world') !== ds.name) throw new Error('Geen selectie gevonden. Kies eerst weken op de overzichtspagina.');

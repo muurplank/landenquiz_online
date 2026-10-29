@@ -1,5 +1,5 @@
 // Overview of all weeks (or regions), grouped by continent, with multi-select for a custom quiz.
-import { loadDataset, shortTitle, groupLabel, setCustomGroup, siteUrl } from '../core/data.js';
+import { loadDataset, shortTitle, groupLabel, selectionId, selectionGroup, siteUrl } from '../core/data.js';
 import { loadHistory, groupProgress } from '../core/store.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I } from '../ui/shell.js';
@@ -19,6 +19,13 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     const p = groupProgress(g.id, ids, history);
     return { g, ids, prog: [p.capital, p.flag, p.map] };
   });
+  // Your own selections, newest first: rebuilt from their id, progress comes from the (synced) history.
+  const mine = [...new Set([...history.sessions].reverse().filter(s => (s.dataset || 'world') === ds.name).map(s => s.groupId))]
+    .map(id => selectionGroup(ds, id)).filter(Boolean).slice(0, 6).map(g => {
+      const ids = g.countries.filter(id => ds.items.has(id));
+      const p = groupProgress(g.id, ids, history);
+      return { g, ids, prog: [p.capital, p.flag, p.map], mine: true };
+    });
   const selected = new Set();
   const sections = ds.singleSection
     ? [{ region: null, name: ds.singleSection, items: groups }]
@@ -28,8 +35,9 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
   if (ds.name !== 'world') document.title = `${ds.title} — Land Trainer`;
 
   // Last played set from the history, for "Ga verder".
-  const last = [...history.sessions].reverse().find(s => groups.some(x => x.g.id === s.groupId));
-  const resume = last && groups.find(x => x.g.id === last.groupId);
+  const known = groups.concat(mine);
+  const last = [...history.sessions].reverse().find(s => known.some(x => x.g.id === s.groupId));
+  const resume = last && known.find(x => x.g.id === last.groupId);
   const total = new Set(groups.flatMap(x => x.ids)).size;
   const N = ds.noun;
 
@@ -45,8 +53,8 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
     const flags = x.ids.slice(0, 6).map(id => `<img class="flag" src="${ds.items.get(id).flag}" alt="" width="28" height="19" loading="lazy">`).join('');
     return `<article class="card week ${sel ? 'sel' : ''}" data-open="${x.g.id}" tabindex="0" aria-label="${esc(x.g.title)} openen">
       <div class="week-top">
-        <div><div class="week-num">${esc(groupLabel(x.g).toUpperCase())}</div><h3>${esc(cardTitle(x.g))}</h3></div>
-        <button class="check" data-toggle="${x.g.id}" aria-pressed="${sel}" aria-label="${esc(x.g.title)} meenemen in selectie"><span class="box">${I.check}</span></button>
+        <div><div class="week-num">${esc(x.mine ? 'SELECTIE' : groupLabel(x.g).toUpperCase())}</div><h3>${esc(cardTitle(x.g))}</h3></div>
+        ${x.mine ? '' : `<button class="check" data-toggle="${x.g.id}" aria-pressed="${sel}" aria-label="${esc(x.g.title)} meenemen in selectie"><span class="box">${I.check}</span></button>`}
       </div>
       <div class="flagstrip">${flags}${x.ids.length > 6 ? `<span class="more">+${x.ids.length - 6}</span>` : ''}</div>
       <div class="segbar" title="Hoofdstad · vlag · kaart">${x.prog.map(p => `<div class="meter ${p === 100 ? 'ok' : ''}"><i style="width:${p}%"></i></div>`).join('')}</div>
@@ -68,7 +76,7 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
         </div>
         ${resume ? `<div class="card resume">
           <div class="resume-top"><span class="label">Ga verder</span><span class="muted" style="font-size:12px">${esc(relDay(last.endedAt || last.startedAt))}</span></div>
-          <div><h3>${esc(cardTitle(resume.g))}</h3><p class="muted" style="font-size:13px">${esc(groupLabel(resume.g))} · ${resume.ids.length} ${N.many}</p></div>
+          <div><h3>${esc(cardTitle(resume.g))}</h3><p class="muted" style="font-size:13px">${esc(resume.mine ? 'Selectie' : groupLabel(resume.g))} · ${resume.ids.length} ${N.many}</p></div>
           <div class="flagstrip">${resume.ids.slice(0, 8).map(id => `<img class="flag" src="${ds.items.get(id).flag}" alt="" width="30" height="20">`).join('')}${resume.ids.length > 8 ? `<span class="more">+${resume.ids.length - 8}</span>` : ''}</div>
           <div class="tri">${['Hoofdstad', 'Vlag', 'Kaart'].map((l, i) => `<div class="t"><span>${l}<b>${resume.prog[i]}%</b></span><div class="meter"><i style="width:${resume.prog[i]}%"></i></div></div>`).join('')}</div>
           <a class="btn primary" href="${siteUrl('set.html?id=' + encodeURIComponent(resume.g.id) + dsParam)}">Verder met ${esc(cardTitle(resume.g))} ${I.arrow}</a>
@@ -77,6 +85,10 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
           <p class="muted" style="font-size:14px">Elke ${U.one} heeft hoofdsteden, vlaggen, de kaart, Kwartet en een mix. De drie balkjes op een ${U.one} laten zien hoeveel hoofdsteden, vlaggen en kaartvragen je al goed hebt.</p>
         </div>`}
       </section>
+      ${mine.length ? `<section class="continent">
+        <div class="continent-head"><h2>Mijn selecties</h2><span class="count">${mine.length} ${mine.length === 1 ? 'selectie' : 'selecties'}</span></div>
+        <div class="weeks">${mine.map(card).join('')}</div>
+      </section>` : ''}
       ${sections.map(sec => {
         const ids = sec.items.map(x => x.g.id);
         const members = new Set(sec.items.flatMap(x => x.ids)).size;
@@ -127,9 +139,8 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
   selbar.addEventListener('click', e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'clear') { selected.clear(); render(); return; }
-    const countries = [...new Set(groups.filter(x => selected.has(x.g.id)).flatMap(x => x.ids))];
-    setCustomGroup({ id: 'custom', title: 'Mijn selectie', continent: 'Custom', dataset: ds.name, countries });
-    openSet('custom');
+    // One week is just that week (same progress); several get a selection id of their own.
+    openSet(selected.size === 1 ? [...selected][0] : selectionId(selected));
   });
   render();
 })();
