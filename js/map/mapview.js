@@ -17,6 +17,7 @@
  *   map.setPoints([{id, ll}]);  // hoofdsteden als stipjes; map.setPointHighlight(id)
  *   map.setPins([{ll, ok}]);    // spelden (gok en antwoord) met een lijn ertussen
  *   map.on('clickpoint', ll => …) // elke klik, als [lon, lat]
+ *   map.setProjection('globe');  // aardbol i.p.v. platte kaart (vereist maplibre-gl 5)
  *
  * De kaart tekent via WebGL (GPU): de grenzen worden één keer opgebouwd en
  * schuiven/zoomen kost daarna bijna niets. Kleuren lopen via feature-state,
@@ -123,6 +124,7 @@
       this.el = el;
       this.opts = opts;
       this.styleName = opts.style || 'sat';
+      this.projection = opts.projection || 'mercator';
       this.names = opts.names || null;          // {iso: naam}: alleen deze landen krijgen stippen/klik
       this.dotsFor = opts.dotsFor || 'group';   // 'group' | 'all' | 'none'
       this.group = new Set(opts.group || []);
@@ -207,6 +209,11 @@
     }
     /** Custom fill per country, e.g. heat colours: {iso: '#ff0000'}. */
     setColors(colors) { this.colors = colors || {}; this._schedule(); }
+    setProjection(name) {
+      this.projection = name === 'globe' ? 'globe' : 'mercator';
+      if (this.map.setProjection && this.map.isStyleLoaded()) this.map.setProjection({ type: this.projection });
+      this._schedule();
+    }
     setVisible(ids) { this.visible = ids ? new Set(ids) : null; this._schedule(); }
     setPoints(points) { this.points = points || []; this._schedule(); }
     setPointHighlight(id) { this.pointHighlight = id || null; this._schedule(); }
@@ -227,6 +234,7 @@
         return b[1][0] - b[0][0] < TILE / 2 ? b : point(id);
       });
       if (!boxes.length) return;
+      if (this.projection === 'globe') return this._fitGlobe(ids, padding, animate, k => Math.min(MAX_K, k));
       // Een set die over de datumgrens loopt (Oceanië) schuift één wereld op.
       const cx = boxes.map(b => (b[0][0] + b[1][0]) / 2);
       if (Math.max(...cx) - Math.min(...cx) > TILE / 2 && boxes.length < 60) {
@@ -238,6 +246,25 @@
       const k = Math.min(MAX_K, Math.max(1, padding * Math.min(W / Math.max(.02, x1 - x0), H / Math.max(.02, y1 - y0))));
       const [lon, lat] = merc.invert([(((x0 + x1) / 2) % TILE + TILE) % TILE, (y0 + y1) / 2]);
       const cam = { center: [lon, lat], zoom: zOf(k) };
+      if (animate) this.map.easeTo({ ...cam, duration: 850, easing: d3.easeCubicInOut });
+      else this.map.jumpTo(cam);
+    }
+
+    // Globe: midden op het zwaartepunt, en zo ver uitzoomen dat het verste punt nog op de bol in beeld staat.
+    _fitGlobe(ids, padding, animate, clamp) {
+      const g = this.geo, pts = [];
+      for (const id of ids) {
+        if (g.anchor.has(id)) pts.push(g.anchor.get(id));
+        if (g.main.has(id)) { const [[x0, y0], [x1, y1]] = d3.geoBounds(g.main.get(id)); if (x1 - x0 < 180) pts.push([x0, y0], [x1, y0], [x0, y1], [x1, y1]); }
+      }
+      if (!pts.length) return;
+      const c = d3.geoCentroid({ type: 'MultiPoint', coordinates: pts });
+      const far = Math.min(Math.PI / 2, Math.max(.002, ...pts.map(p => d3.geoDistance(c, p))));
+      const W = Math.max(1, this.box.clientWidth), H = Math.max(1, this.box.clientHeight);
+      // Straal van de bol in px = 512·2^z / (2π·cos φ) in MapLibre 5; wereld = 256·k px.
+      const R = padding * Math.min(W, H) / 2 / Math.sin(far);
+      const k = clamp(Math.max(1, R * 2 * Math.PI * Math.cos(c[1] * Math.PI / 180) / TILE));
+      const cam = { center: c, zoom: zOf(k) };
       if (animate) this.map.easeTo({ ...cam, duration: 850, easing: d3.easeCubicInOut });
       else this.map.jumpTo(cam);
     }
@@ -258,6 +285,7 @@
       const fill = ['to-color', ['coalesce', ['feature-state', 'fill'], NONE]];
       return {
         version: 8,
+        ...(this.projection === 'globe' ? { projection: { type: 'globe' } } : {}),
         sources: {
           sat: { type: 'raster', tiles: [SAT_URL], tileSize: 256, maxzoom: 19, attribution: SAT_ATTR },
           // Brondata blijft volledig; MapLibre rondt per zoomniveau alleen onder-pixel af.
@@ -327,8 +355,11 @@
 
     _dots() {
       const out = [], k = this._k();
+      // Op de globe: geen stippen (en dus ook geen klikken) op de achterkant.
+      const c = this.projection === 'globe' && this.map.getCenter();
       for (const iso of this.geo.anchor.keys()) {
         if (this.dotsFor === 'none' && iso !== this.target) continue;
+        if (c && d3.geoDistance(this.geo.anchor.get(iso), [c.lng, c.lat]) > 1.45) continue;
         if ((this.dotsFor === 'all' || this.group.has(iso) || iso === this.target) && this._isDot(iso, k)) out.push(iso);
       }
       return out;

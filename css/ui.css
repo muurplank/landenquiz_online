@@ -745,6 +745,8 @@ a.world-card { color: var(--text); }
 .gr-arrow { display: grid; justify-items: center; gap: 2px; color: var(--muted); font-size: 12px; }
 .gr-arrow svg { width: 22px; height: 22px; }
 .qcard .gr-map, .gr-map { height: clamp(340px, 52vh, 560px); }
+.gr-mapwrap { position: relative; width: 100%; }
+.gr-proj { position: absolute; right: 12px; top: 12px; z-index: 2; }
 .suggest-wrap { position: relative; min-width: 0; }
 .suggest-wrap .type-input { width: 100%; }
 .suggest {

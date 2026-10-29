@@ -25,6 +25,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     : ds.items.get(id).region === area);
 
   const settings = Object.assign({ level: 'normal', area: 'world' }, prefs.get(STATS_KEY + '_settings', {}));
+  let proj = prefs.get(STATS_KEY + '_proj', 'mercator');   // platte kaart of globe, geldt ook voor de dagroute
   const day = playDate(), DAYS_KEY = 'landjes_grensroute_days';
   let mode = isRandomMode() ? 'free' : 'daily';
   const cfg = () => mode === 'daily' ? { level: 'normal', area: 'world' } : settings;
@@ -85,7 +86,10 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
             <div class="gr-arrow">${I.arrow}<span class="muted">${G.shortest} stappen kan</span></div>
             <div class="gr-end goal"><span class="label">Doel</span><div><img class="flag" src="${ds.items.get(G.end).flag}" alt="" width="36" height="24"><b>${esc(nameOf(G.end))}</b></div></div>
           </div>
-          <div class="quiz-map gr-map" id="gr-map"></div>
+          <div class="gr-mapwrap">
+            <div class="quiz-map gr-map" id="gr-map"></div>
+            <div class="seg small gr-proj" role="group" aria-label="Weergave"><button data-proj="mercator" aria-pressed="${proj === 'mercator'}">Kaart</button><button data-proj="globe" aria-pressed="${proj === 'globe'}">Globe</button></div>
+          </div>
           ${G.done ? doneHtml() : `
           <form class="type-row" id="gr-form" autocomplete="off">
             <label class="visually-hidden" for="gr-input">Volgende land</label>
@@ -145,7 +149,7 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     if (map) { el.replaceWith(map.el); } else {
       // Geen satellietbeeld: alleen de omtrekken van start, doel en je route, in de kleur van het thema.
       const outline = () => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches) ? 'outlineDark' : 'outline';
-      map = new MapView(el, { geo: ds.geo, style: outline(), names, dotsFor: 'all', label: 'Kaart met start, doel en je route' });
+      map = new MapView(el, { geo: ds.geo, style: outline(), projection: proj, names, dotsFor: 'all', label: 'Kaart met start, doel en je route' });
       new MutationObserver(() => map.setStyle(outline())).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
       map.on('click', id => { if (G && !G.done) travel(id); });
       map.ready.then(() => { updateMap(); fit(false); });
@@ -237,6 +241,8 @@ const AREAS = { world: 'Hele wereld', Europe: 'Europa', Africa: 'Afrika', Asia: 
     const lv = e.target.closest('[data-level]'); if (lv) { settings.level = lv.dataset.level; prefs.set(STATS_KEY + '_settings', settings); start(); return; }
     const md = e.target.closest('[data-mode]');
     if (md && md.dataset.mode !== mode) { mode = md.dataset.mode; history.replaceState(null, '', mode === 'free' ? '?mode=random' : day !== todayStr() ? `?date=${day}` : location.pathname); start(); return; }
+    const pj = e.target.closest('[data-proj]');
+    if (pj && pj.dataset.proj !== proj) { proj = pj.dataset.proj; prefs.set(STATS_KEY + '_proj', proj); render(); map.setProjection(proj); fit(); return; }
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'new') { if (G && !G.done && G.order.length) stats.streak = 0, prefs.set(STATS_KEY, stats); start(); }
     if (a.dataset.act === 'undo' && G.order.length) { (G.order.pop() === 'f' ? G.path : G.back).pop(); say(''); saveDay(); render(); }
