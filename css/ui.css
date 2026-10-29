@@ -1008,5 +1008,6 @@ a.world-card { color: var(--text); }
 
 /* Omtrek-quiz: alleen de vorm van het land */
 .outline-shape { width: min(400px, 100%); height: auto; aspect-ratio: 4 / 3; display: block; }
+.outline-shape.small { width: min(240px, 100%); }
 .outline-shape path { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .outline-ans { display: flex; align-items: center; gap: 12px; text-align: left; }

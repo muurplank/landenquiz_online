@@ -2,8 +2,11 @@
 //  mix=std  -> land→hoofdstad, vlag→land, kaart→land (counts per type for progress)
 //  mix=mega -> all 11 cross types, mix=own -> the chosen subset (counts as 'mix')
 import { escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
+import { outlineSvg } from './outline-shape.js';
 
 const ALL_TYPES = ['land-capital', 'capital-land', 'land-flag', 'flag-land', 'map-land', 'capital-flag', 'capital-map', 'flag-capital', 'flag-map', 'map-capital', 'map-flag'];
+// Only in 'Zelf samenstellen': questions with the outline of a country (the mega mix stays as it was).
+const OUTLINE_TYPES = ['outline-land', 'outline-capital', 'outline-flag', 'land-outline', 'capital-outline', 'flag-outline'];
 const STD_TYPES = ['land-capital', 'flag-land', 'map-land'];
 const STD_QUIZTYPE = { 'land-capital': 'capital', 'flag-land': 'flag', 'map-land': 'map' };
 
@@ -11,32 +14,36 @@ export function createMode({ ds, group, params }) {
   const variant = ['mega', 'own'].includes(params.mix) ? params.mix : 'std';
   let types = variant === 'std' ? STD_TYPES : ALL_TYPES;
   if (variant === 'own') {
-    const chosen = (params.custom || '').split(',').filter(t => ALL_TYPES.includes(t));
+    const chosen = (params.custom || '').split(',').filter(t => ALL_TYPES.includes(t) || OUTLINE_TYPES.includes(t));
     if (chosen.length) types = chosen;
   }
   const N = ds.noun;
   const ids = group.countries.filter(id => ds.items.has(id));
   const usesMap = types.some(t => t.includes('map'));
-  const NAMES = { land: N.One, capital: 'Hoofdstad', flag: 'Vlag', map: 'Kaart' };
+  const usesOutline = types.some(t => t.includes('outline'));
+  const NAMES = { land: N.One, capital: 'Hoofdstad', flag: 'Vlag', map: 'Kaart', outline: 'Omtrek' };
   const typeLabel = t => { const [a, b] = t.split('-'); return `${NAMES[a]} → ${b === 'map' ? N.one + ' op kaart' : NAMES[b].toLowerCase()}`; };
 
-  let api, map, item, type, revealed = false, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
+  let api, map, geo, item, type, revealed = false, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
   const $ = sel => api.card.querySelector(sel);
 
   function given(it, from) {
     if (from === 'land') return `<div class="qgiven">${esc(it.name)}</div>`;
     if (from === 'capital') return `<div class="qgiven">${esc(it.answers.join(', '))}</div>`;
     if (from === 'flag') return `<img class="qflag" src="${it.flag}" alt="Vlag om te raden">`;
+    if (from === 'outline') return outlineSvg(geo, it.id, `Omtrek van ${N.the} ${N.one} om te raden`);
     return '';
   }
   function prompt(from, to) {
-    const what = { land: `${N.which} ${N.one}?`, capital: 'Welke hoofdstad?', flag: 'Welke vlag hoort erbij?', map: `Waar ligt ${N.this} ${N.one}?` }[to];
+    const what = { land: `${N.which} ${N.one}?`, capital: 'Welke hoofdstad?', flag: 'Welke vlag hoort erbij?', map: `Waar ligt ${N.this} ${N.one}?`, outline: 'Welke omtrek hoort erbij?' }[to];
+    if (from === 'outline') return to === 'land' ? `${N.which} ${N.one} heeft deze vorm?` : `${N.which} ${N.one} heeft deze vorm? ${what}`;
     return from === 'map' ? `${N.which} ${N.one} licht op? ${to === 'land' ? '' : what}` : what;
   }
   function answerHtml(it, to) {
     if (to === 'land') return `<div class="a">${esc(it.name)}</div>`;
     if (to === 'capital') return `<div class="a">${esc(it.answers.join(', '))}</div>`;
     if (to === 'flag') return `<img class="qflag small" src="${it.flag}" alt="Vlag van ${esc(it.name)}">`;
+    if (to === 'outline') return outlineSvg(geo, it.id, `Omtrek van ${it.name}`).replace('class="outline-shape"', 'class="outline-shape small"');
     return `<div class="c">${N.The} ${esc(N.one)} knippert op de kaart.</div>`;
   }
   function actions() {
@@ -88,14 +95,17 @@ export function createMode({ ds, group, params }) {
         <div class="answer" id="answer" aria-live="polite"></div>
         <div class="qactions" id="actions"></div>`;
       api.card.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
-      if (!usesMap) return Promise.resolve();
+      const shapes = usesOutline ? MapView.loadGeo(ds.geo).then(g => { geo = g; }) : Promise.resolve();
+      if (!usesMap) return shapes;
       const names = Object.fromEntries([...ds.items.values()].map(it => [it.id, it.name]));
       map = new MapView($('#mix-map'), { geo: ds.geo, style: 'sat', names, group: ids, hoverHighlight: false, label: 'Kaart' });
-      return map.ready;
+      return Promise.all([map.ready, shapes]);
     },
     show(id, quizApi, n) {
       item = ds.items.get(id);
-      type = types[Math.floor(Math.random() * types.length)];
+      // A country without a shape in the map file (Maldives) gets no outline question.
+      const fits = types.filter(t => !t.includes('outline') || geo.byId.has(id));
+      type = fits.length ? fits[Math.floor(Math.random() * fits.length)] : 'land-capital';
       revealed = false;
       render(n);
     },

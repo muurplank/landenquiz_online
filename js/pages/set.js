@@ -58,10 +58,11 @@ function subjects(ds, oceania) {
 }
 
 const MIX_ROWS = L => [
-  [L, [['land-capital', 'Hoofdstad'], ['land-flag', 'Vlag']]],
-  ['Hoofdstad', [['capital-land', L], ['capital-flag', 'Vlag'], ['capital-map', `${L} op kaart`]]],
-  ['Vlag', [['flag-land', L], ['flag-capital', 'Hoofdstad'], ['flag-map', `${L} op kaart`]]],
-  ['Kaart', [['map-land', L], ['map-capital', 'Hoofdstad'], ['map-flag', 'Vlag']]]
+  [L, [['land-capital', 'Hoofdstad'], ['land-flag', 'Vlag'], ['land-outline', 'Omtrek']]],
+  ['Hoofdstad', [['capital-land', L], ['capital-flag', 'Vlag'], ['capital-map', `${L} op kaart`], ['capital-outline', 'Omtrek']]],
+  ['Vlag', [['flag-land', L], ['flag-capital', 'Hoofdstad'], ['flag-map', `${L} op kaart`], ['flag-outline', 'Omtrek']]],
+  ['Kaart', [['map-land', L], ['map-capital', 'Hoofdstad'], ['map-flag', 'Vlag']]],
+  ['Omtrek', [['outline-land', L], ['outline-capital', 'Hoofdstad'], ['outline-flag', 'Vlag']]]
 ];
 
 function render(ds, group) {
