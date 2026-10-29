@@ -9,7 +9,7 @@
 import { loadJSON } from '../core/data.js';
 import { escapeHtml as esc, isCloseEnough, normalize } from '../core/text.js';
 
-const COMBO_CHANCE = .35;
+const COMBO_CHANCE = { mix: .35, single: 0, combi: 1 };   // URL-parameter combi
 const MIN_GAP = 10;   // jaren verschil voor "Wat gebeurde eerder?"
 
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -23,6 +23,7 @@ export async function createMode({ ds, group, params }) {
   const ids = group.countries.filter(id => ds.items.has(id) && data[id]);
   if (!ids.length) throw new Error('Voor deze set zijn nog geen geschiedenisvragen.');
   const read = params.dir === 'read';
+  const combi = COMBO_CHANCE[params.combi] !== undefined ? params.combi : 'mix';
   const N = ds.noun;
   const queue = {};   // id → nog niet gestelde eigen vragen (door elkaar), zodat elk weetje aan de beurt komt
 
@@ -79,7 +80,8 @@ export async function createMode({ ds, group, params }) {
   }
 
   function choose(id) {
-    if (Math.random() < COMBO_CHANCE) {
+    // Lukt geen combinatievraag (te weinig weetjes met jaartal), dan alsnog een vraag over dit land.
+    if (Math.random() < COMBO_CHANCE[combi]) {
       const c = shuffle([comboEerder, comboVolgorde, comboWelk]).map(fn => fn(id)).find(Boolean);
       if (c) return c;
     }
@@ -210,7 +212,7 @@ export async function createMode({ ds, group, params }) {
     subMode: params.order === 'smart' ? 'thompson' : (read ? 'read' : 'ask'),
     endless: false,
     title: 'Geschiedenis',
-    label: (read ? 'Eerst lezen, dan de vraag' : 'Meteen de vraag') + (params.order === 'smart' ? ' · slim herhalen' : ''),
+    label: (read ? 'Eerst lezen, dan de vraag' : 'Meteen de vraag') + { mix: '', single: ` · over één ${N.one}`, combi: ' · combinatievragen' }[combi] + (params.order === 'smart' ? ' · slim herhalen' : ''),
     cheatItem: x => data[x.id] ? `<div class="cheat-cap hist-cheat"><b>${esc(x.name)}</b><ul>${data[x.id].facts.map(f => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '',
     show(id, quizApi, num) {
       api = quizApi;

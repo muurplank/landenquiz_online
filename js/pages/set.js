@@ -49,6 +49,7 @@ function subjects(ds, oceania) {
       ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] },
     { k: 'history', svg: HISTORY_ICON, t: 'Geschiedenis', d: `Vijf weetjes over de geschiedenis van ${N.every.toLowerCase()} ${l}, met vragen erover.`, steps: [
       ['dir', 'Hoe wil je oefenen?', [['ask', 'Meteen de vraag', `Na je antwoord zie je de weetjes van ${N.the} ${l}`], ['read', 'Eerst lezen', 'Je leest de weetjes, daarna volgt de vraag']]],
+      ['combi', 'Welke vragen?', [['mix', 'Door elkaar', `Vragen over één ${l} en combinatievragen`], ['single', `Over één ${l}`, `Elke vraag gaat over één weetje van één ${l}`], ['combi', 'Combinatievragen', `Wat was eerder, volgorde, ${N.which.toLowerCase()} ${l}`]]],
       ['order', 'In welke volgorde?', ord]] }
   ];
 }
@@ -70,7 +71,7 @@ function render(ds, group) {
   const saved = prefs.get(PICKER_KEY, {});
   const S = {
     subj: list.some(s => s.k === saved.subj) ? saved.subj : 'capital',
-    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, kwartet: {}, mix: { mix: 'std' }, history: { dir: 'ask', order: 'deck' } }, saved.cfg || {}),
+    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, kwartet: {}, mix: { mix: 'std' }, history: { dir: 'ask', combi: 'mix', order: 'deck' } }, saved.cfg || {}),
     mix: new Set(saved.mixTypes || []),
     infinite: readInfinite()
   };
@@ -123,7 +124,7 @@ function render(ds, group) {
     const c = S.cfg[subj.k];
     const q = new URLSearchParams({ set: group.id, type: subj.k });
     if (ds.name !== 'world') q.set('dataset', ds.name);
-    for (const k of ['dir', 'ans', 'order', 'mix']) if (c[k]) q.set(k, c[k]);
+    for (const k of ['dir', 'ans', 'order', 'mix', 'combi']) if (c[k]) q.set(k, c[k]);
     if (subj.k === 'mix' && c.mix === 'own') q.set('custom', [...S.mix].join(','));
     if (S.infinite) q.set('infinite', '1');
     return siteUrl('quiz.html?' + q);
