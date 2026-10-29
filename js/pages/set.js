@@ -43,7 +43,7 @@ function subjects(ds, oceania) {
       ['dir', 'Wat krijg je te zien?', [['a', `Kaart → ${l}`, `Een ${l} licht op, jij noemt het`], ['b', `${L} → kaart`, `Je krijgt een naam en klikt het ${l} aan`]]],
       ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Snel achter elkaar, antwoord tonen'], ['pick', 'Aanklikken of typen', 'Kies uit de lijst of typ de naam'], ['click', 'Op de kaart klikken', `Zoek het ${l} zelf op`]],
         c => c.dir === 'a' ? { click: `Hoort bij ${L} → kaart` } : { self: `Hoort bij Kaart → ${l}`, pick: `Hoort bij Kaart → ${l}` }]] },
-    { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: oceania ? `${L}, hoofdstad en vlag bij elkaar zoeken (zonder kaart bij Oceanië).` : `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
+    { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
     { k: 'mix', icon: 'shuffle', t: 'Mix', d: 'Hoofdstad, vlag en kaart door elkaar.', steps: [
       ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] }
   ];
@@ -149,7 +149,7 @@ function render(ds, group) {
             ${key === 'mix' && c.mix === 'own' ? `<div class="matrix inline-matrix">${mixMatrix()}</div>` : ''}
           </div>`;
         }).join('') : `<div class="kw-explain">
-            <div class="kw-cards">${['Kaart', ds.noun.One, 'Hoofdstad', 'Vlag'].filter(k => !(oceania && k === 'Kaart')).map((k, i) => `<div class="kw ${i === 1 ? 'given' : ''}"><span>${k}</span>${i === 1 ? '<b>Gegeven</b>' : '<i>?</i>'}</div>`).join('')}</div>
+            <div class="kw-cards">${['Kaart', ds.noun.One, 'Hoofdstad', 'Vlag'].map((k, i) => `<div class="kw ${i === 1 ? 'given' : ''}"><span>${k}</span>${i === 1 ? '<b>Gegeven</b>' : '<i>?</i>'}</div>`).join('')}</div>
             <p class="muted">Je krijgt er één van de vier. Zoek de andere drie die erbij horen.</p>
           </div>`}
         <div class="cfg-foot">
