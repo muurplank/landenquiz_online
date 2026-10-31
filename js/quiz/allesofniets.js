@@ -29,7 +29,7 @@ export async function createMode({ ds, group, params }) {
   }
 
   function promptText(st) {
-    return { land: `${N.which} ${N.one} heeft deze vorm?`, capital: 'Wat is de hoofdstad?', flag: 'Welke vlag hoort erbij?', map: `Waar ligt ${N.this} ${N.one}?` }[st];
+    return { land: `${N.which} ${N.one} heeft deze vorm?`, capital: `Goed, ${item.name}. Wat is de hoofdstad?`, flag: `Welke vlag hoort bij ${item.name}?`, map: `Waar ligt ${item.name}?` }[st];
   }
   function answerHtml(st) {
     if (st === 'land') return `<div class="a">${esc(item.name)}</div>`;
@@ -42,7 +42,7 @@ export async function createMode({ ds, group, params }) {
     return `<form class="type-row" id="type-form" autocomplete="off">
         <label class="visually-hidden" for="type-input">Jouw antwoord</label>
         <input id="type-input" class="type-input" placeholder="Typ ${esc(what)}…" enterkeyhint="done" spellcheck="false" autocapitalize="off">
-        <button class="btn lg primary" type="submit">Controleer <span class="kbd">Enter</span></button>
+        <button class="btn primary" type="submit">Check</button>
       </form>`;
   }
   function selfActions() {
@@ -60,11 +60,12 @@ export async function createMode({ ds, group, params }) {
   function render() {
     const st = STEPS[step];
     $('#qnum').textContent = `Vraag ${n}`;
-    $('#qstep').textContent = `Stap ${step + 1} van 4 · ${STEP_NAMES[st]}`;
-    $('#chain-steps').innerHTML = STEPS.map((_, i) => `<i class="${i < step ? 'past' : i === step ? (failed ? 'bad' : 'on') : ''}"></i>`).join('');
+    $('#qstep').textContent = `Stap ${step + 1} van 4`;
+    $('#chain-steps').innerHTML = STEPS.map((_, i) => `<i class="${i < step ? 'on' : i === step ? (failed ? 'bad' : 'on') : ''}"></i>`).join('');
     if (failed) return renderLearn(st);
 
-    $('#given').innerHTML = st === 'land' ? outlineSvg(geo, item.id, `Omtrek van ${N.the} ${N.one} om te raden`) : `<div class="qgiven">${esc(item.name)}</div>`;
+    $('#given').hidden = st === 'map';
+    $('#given').innerHTML = outlineSvg(geo, item.id, `Omtrek van ${N.the} ${N.one} om te raden`);
     $('#prompt').textContent = promptText(st);
     $('#feedback').textContent = '';
     const answer = $('#answer'), actions = $('#actions');
@@ -95,10 +96,10 @@ export async function createMode({ ds, group, params }) {
 
   // Everything about the country at once, and it stays until you go on.
   function renderLearn(st) {
-    $('#given').innerHTML = '';
+    $('#given').hidden = false;
     $('#prompt').textContent = `${STEP_NAMES[st]} ging mis`;
-    $('#answer').hidden = false;
-    $('#answer').innerHTML = `<div class="chain-learn">
+    $('#answer').hidden = true;
+    $('#given').innerHTML = `<div class="chain-learn">
         ${outlineSvg(geo, item.id, `Omtrek van ${item.name}`).replace('class="outline-shape"', 'class="outline-shape small"')}
         <div class="outline-ans"><img class="flag" src="${item.flag}" alt="Vlag van ${esc(item.name)}" height="40"><div><div class="a">${esc(item.name)}</div><div class="c">Hoofdstad: ${esc(item.answers.join(', '))}</div></div></div>
       </div>`;
@@ -153,14 +154,15 @@ export async function createMode({ ds, group, params }) {
     label: (typing ? 'Typen' : 'Zelf beoordelen') + (params.order === 'smart' ? ' · slim herhalen' : ''),
     start(quizApi) {
       api = quizApi;
+      api.card.classList.add('chain-card');
       api.card.innerHTML = `
-        <div class="qmeta"><div class="qmeta-l"><span class="pill" id="qnum">Vraag 1</span></div><span class="pill" id="qstep"></span></div>
+        <div class="qmeta"><div class="qmeta-l"><span id="qstep"></span></div><span id="qnum"></span></div>
         <div class="chain-steps" id="chain-steps" aria-hidden="true"></div>
-        <div id="given" class="mix-given"></div>
         <div class="qprompt" id="prompt"></div>
+        <p class="type-feedback" id="feedback" aria-live="assertive"></p>
+        <div id="given" class="chain-stage"></div>
         <div class="answer" id="answer" aria-live="polite"></div>
         <div id="actions"></div>
-        <p class="type-feedback" id="feedback" aria-live="assertive"></p>
         <div class="quiz-map mix-map" id="chain-map" hidden>
           <div class="map-zoom"><button class="zbtn" data-zoom="1.6" aria-label="Inzoomen">+</button><button class="zbtn" data-zoom="0.625" aria-label="Uitzoomen">−</button><button class="zbtn" data-zoom="fit" aria-label="Hele set tonen">⤢</button></div>
         </div>`;
@@ -181,6 +183,7 @@ export async function createMode({ ds, group, params }) {
       });
       return map.ready;
     },
+    onDone() { api.card.classList.remove('chain-card'); },
     show(id, quizApi, num) {
       item = ds.items.get(id);
       n = num;

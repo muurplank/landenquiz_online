@@ -1010,17 +1010,33 @@ a.world-card { color: var(--text); }
 .outline-shape { width: min(400px, 100%); height: auto; aspect-ratio: 4 / 3; display: block; }
 .outline-shape.small { width: min(240px, 100%); }
 .outline-shape path { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.chain-card { justify-items: stretch; text-align: left; gap: 14px; }
+.chain-card .qmeta { font-size: 13px; font-weight: 600; color: var(--muted); }
+.chain-card .qprompt { font-size: 20px; }
 .chain-steps { display: flex; gap: 6px; }
-.chain-steps i { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-3); }
-.chain-steps i.past { background: var(--success); }
+.chain-steps i { flex: 1; height: 7px; border-radius: 999px; background: var(--border-strong); }
 .chain-steps i.on { background: var(--accent); }
 .chain-steps i.bad { background: var(--danger); }
-.chain-flags { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: min(460px, 100%); margin: 0 auto; }
-.flag-choice { position: relative; display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+.chain-stage { display: grid; place-items: center; min-height: 190px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); overflow: hidden; }
+.chain-stage[hidden], .answer[hidden] { display: none; }
+.chain-stage .outline-shape { width: min(280px, 100%); }
+.chain-stage .outline-shape path { fill: var(--accent); stroke: var(--accent-deep); stroke-width: 1; }
+.chain-card .answer { min-height: 0; }
+.chain-card .answer:has(.censored) { min-height: 64px; }
+.chain-card .qactions { max-width: none; }
+.chain-card .type-row { display: flex; flex-wrap: nowrap; gap: 8px; width: 100%; max-width: none; margin: 0; }
+.chain-card .type-input { flex: 1; min-width: 0; height: 48px; border-radius: 999px; font-size: 16px; text-align: left; }
+.chain-card .type-row .btn { height: 48px; flex: none; }
+.chain-card .type-feedback:empty { display: none; }
+.chain-card .type-feedback { padding: 10px 14px; border-radius: 12px; background: var(--danger-soft); }
+.chain-flags { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.flag-choice { position: relative; display: grid; place-items: center; min-height: 96px; padding: 10px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--surface); box-shadow: 0 3px 0 var(--border-strong); cursor: pointer; }
 .flag-choice:hover { border-color: var(--accent); }
-.flag-choice img { max-width: 100%; max-height: 110px; border-radius: 4px; box-shadow: 0 0 0 1px rgba(15, 23, 42, .1); }
+.flag-choice:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border-strong); }
+.flag-choice img { max-width: 100%; max-height: 80px; border-radius: 4px; box-shadow: 0 0 0 1px rgba(15, 23, 42, .1); }
 .flag-choice .kbd { position: absolute; top: 6px; left: 6px; }
-.answer[hidden] { display: none; }
-.chain-learn { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; justify-content: center; }
-.chain-learn .outline-shape { width: min(180px, 100%); }
+.chain-learn { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; justify-content: center; text-align: left; }
+.chain-learn .outline-shape { width: min(170px, 100%); }
+.chain-learn .a { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1.1; }
+.chain-learn .c { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .outline-ans { display: flex; align-items: center; gap: 12px; text-align: left; }
