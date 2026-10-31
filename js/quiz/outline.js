@@ -1,8 +1,9 @@
 // Omtrek: you see the outline of a country and name it. Rate yourself (space, 1, 2) or type the name.
-import { isCloseEnough, escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
+import { isCloseEnough, typoInfo, escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
 import { outlineSvg } from './outline-shape.js';
 
 const WRONG_FEEDBACK_MS = 2200;
+const SKILL = 'outline>land';
 
 export async function createMode({ ds, group, params }) {
   const typing = params.ans === 'type';
@@ -10,6 +11,8 @@ export async function createMode({ ds, group, params }) {
   const geo = await MapView.loadGeo(ds.geo);
   // Only countries with a shape in the map file (a few anchor-only ones have none).
   const ids = group.countries.filter(id => ds.items.has(id) && geo.byId.has(id));
+  const names = it => [it.name, ...(it.aliases || [])];
+  const otherNames = it => [...ds.items.values()].filter(x => x.id !== it.id).flatMap(names);
 
   let api = null, item = null, revealed = false, locked = false, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
 
@@ -35,6 +38,7 @@ export async function createMode({ ds, group, params }) {
     if (typing) {
       const input = card.querySelector('#type-input');
       input.focus();
+      input.addEventListener('input', () => { if (input.value) api.mark(); });
       card.querySelector('#type-form').addEventListener('submit', e => { e.preventDefault(); submitTyped(input.value); });
     } else {
       card.querySelector('#actions').addEventListener('click', e => {
@@ -53,24 +57,25 @@ export async function createMode({ ds, group, params }) {
     if (locked) return;
     if (a === 'reveal' && !revealed) {
       revealed = true;
+      api.mark();
       api.card.querySelector('#answer').innerHTML = unveil(revealHtml(item));
       api.card.querySelector('#actions').innerHTML = actionsHtml();
     } else if (a === 'right' || a === 'wrong') {
       prev = revealed ? null : item;
-      api.answered(a === 'right');
+      api.answered(a === 'right', { skill: SKILL, answerMode: revealed ? 'self_reveal' : 'self_direct' });
       api.next();
     }
   }
 
   function submitTyped(value) {
     if (locked || !value.trim()) return;
-    if (isCloseEnough(value, [item.name, ...(item.aliases || [])])) {
-      api.answered(true);
+    if (isCloseEnough(value, names(item))) {
+      api.answered(true, { skill: SKILL, answerMode: 'typed', ...typoInfo(value, names(item), otherNames(item)) });
       api.next();
       return;
     }
     locked = true;
-    api.answered(false);
+    api.answered(false, { skill: SKILL, answerMode: 'typed' });
     const card = api.card;
     card.querySelector('#answer').innerHTML = unveil(revealHtml(item));
     card.querySelector('#type-input').disabled = true;
@@ -82,6 +87,7 @@ export async function createMode({ ds, group, params }) {
     ids,
     quizType: 'outline',
     subMode: typing ? 'type' : 'self',
+    skills: [SKILL],
     title: 'Omtrek',
     label: `Omtrek → ${N.one}` + (typing ? ' · typen' : ' · zelf beoordelen') + (params.order === 'smart' ? ' · slim herhalen' : ''),
     cheatItem: it => `<div><img class="flag" src="${it.flag}" alt="" width="36" height="24" loading="lazy"><span>${esc(it.name)}</span></div>`,

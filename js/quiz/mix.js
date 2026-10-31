@@ -9,6 +9,8 @@ const ALL_TYPES = ['land-capital', 'capital-land', 'land-flag', 'flag-land', 'ma
 const OUTLINE_TYPES = ['outline-land', 'outline-capital', 'outline-flag', 'land-outline', 'capital-outline', 'flag-outline'];
 const STD_TYPES = ['land-capital', 'flag-land', 'map-land'];
 const STD_QUIZTYPE = { 'land-capital': 'capital', 'flag-land': 'flag', 'map-land': 'map' };
+const toSkill = t => t.replace('-', '>');
+const FORM_W = 0.6;   // a mixed, self-rated answer counts a bit less than a focused one
 
 export function createMode({ ds, group, params }) {
   const variant = ['mega', 'own'].includes(params.mix) ? params.mix : 'std';
@@ -62,18 +64,21 @@ export function createMode({ ds, group, params }) {
     $('#prompt').textContent = prompt(from, to);
     $('#answer').innerHTML = revealed ? unveil(answerHtml(item, to)) : veil(to === 'flag' ? 'flag' : 'text');
     $('#actions').innerHTML = actions();
+    const img = $('#given .qflag');
+    if (img && !img.complete) img.decode().then(() => api.ready()).catch(() => {});
     if (map) {
       $('#mix-map').hidden = !showMap;
-      if (showMap) { map.setTarget(item.id); setTimeout(() => map.fitTo([item.id], { padding: .55, maxZoom: 5, animate: false }), 60); }
+      if (showMap) { map.setTarget(item.id); setTimeout(() => { map.fitTo([item.id], { padding: .55, maxZoom: 5, animate: false }); if (!revealed) api.ready(); }, 60); }
       else map.setTarget(null);
     }
   }
 
   function act(a) {
-    if (a === 'reveal' && !revealed) { revealed = true; render(api.engine.totals.questions + 1); return; }
+    if (a === 'reveal' && !revealed) { revealed = true; api.mark(); render(api.engine.totals.questions + 1); return; }
     if (a === 'right' || a === 'wrong') {
       prev = revealed ? null : item;
-      api.answered(a === 'right', variant === 'std' ? { quizType: STD_QUIZTYPE[type], subType: type } : { quizType: 'mix', subType: `mega-${type}` });
+      const tempo = { skill: toSkill(type), answerMode: revealed ? 'self_reveal' : 'self_direct', wForm: FORM_W };
+      api.answered(a === 'right', variant === 'std' ? { quizType: STD_QUIZTYPE[type], subType: type, ...tempo } : { quizType: 'mix', subType: `mega-${type}`, ...tempo });
       api.next();
     }
   }
@@ -82,6 +87,7 @@ export function createMode({ ds, group, params }) {
     ids,
     quizType: 'mix',
     subMode: variant === 'std' ? 'standard' : variant,
+    skills: types.map(toSkill),
     endless: false,
     title: 'Mix',
     label: { std: 'Standaard', mega: 'Mega mix', own: `Zelf samengesteld (${types.length})` }[variant],
@@ -105,7 +111,9 @@ export function createMode({ ds, group, params }) {
       item = ds.items.get(id);
       // A country without a shape in the map file (Maldives) gets no outline question.
       const fits = types.filter(t => !t.includes('outline') || geo.byId.has(id));
-      type = fits.length ? fits[Math.floor(Math.random() * fits.length)] : 'land-capital';
+      // On tempo the engine chose the question type along with the country.
+      const wanted = api.engine.picker === 'tempo' ? api.engine.skill.replace('>', '-') : null;
+      type = fits.includes(wanted) ? wanted : fits.length ? fits[Math.floor(Math.random() * fits.length)] : 'land-capital';
       revealed = false;
       render(n);
     },

@@ -1,5 +1,5 @@
 // Flashcards for capitals and flags: rate yourself (space, 1, 2) or type the answer.
-import { isCloseEnough, escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
+import { isCloseEnough, typoInfo, escapeHtml as esc, veil, unveil, prevAnswer } from '../core/text.js';
 
 const WRONG_FEEDBACK_MS = 2200;
 
@@ -7,6 +7,7 @@ const DIRS = {
   capital: { a: 'land-to-capital', b: 'capital-to-land' },
   flag: { a: 'flag-to-land', b: 'land-to-flag' }
 };
+const SKILL = { 'land-to-capital': 'land>capital', 'capital-to-land': 'capital>land', 'flag-to-land': 'flag>land', 'land-to-flag': 'land>flag' };
 
 export function createMode({ ds, params }) {
   const type = params.type === 'flag' ? 'flag' : 'capital';
@@ -19,10 +20,12 @@ export function createMode({ ds, params }) {
     'flag-to-land': `Vlag → ${N.one}`, 'land-to-flag': `${N.One} → vlag`
   };
   const subMode = params.order === 'smart' ? 'thompson' : (dir === 'both' ? 'both' : DIRS[type][dir]);
+  const skills = dir === 'both' ? [SKILL[DIRS[type].a], SKILL[DIRS[type].b]] : [SKILL[DIRS[type][dir]]];
 
   let item = null, qdir = null, revealed = false, locked = false, api = null, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
 
   function pickDir() {
+    if (api.engine.picker === 'tempo') return Object.keys(SKILL).find(d => SKILL[d] === api.engine.skill) || DIRS[type].a;
     if (dir === 'both') return Math.random() < .5 ? DIRS[type].a : DIRS[type].b;
     return DIRS[type][dir];
   }
@@ -34,6 +37,10 @@ export function createMode({ ds, params }) {
   function acceptedAnswers(it, d) {
     return d === 'land-to-capital' ? it.answers : [it.name, ...(it.aliases || [])];
   }
+  // Every other valid answer of this kind in the dataset: typing one of those is a mix-up, not a typo.
+  function otherAnswers(it, d) {
+    return [...ds.items.values()].filter(x => x.id !== it.id).flatMap(x => (d === 'land-to-capital' ? x.answers : [x.name, ...(x.aliases || [])]));
+  }
 
   function questionHtml(it, d) {
     switch (d) {
@@ -42,7 +49,7 @@ export function createMode({ ds, params }) {
       case 'capital-to-land':
         return `<div class="qprompt">Van ${N.which.toLowerCase()} ${esc(N.one)} is dit de hoofdstad?</div><div class="qgiven">${esc(it.answers.join(', '))}</div>`;
       case 'flag-to-land':
-        return `<img class="qflag" src="${it.flag}" alt="Vlag om te raden"><div class="qprompt">Bij ${N.which.toLowerCase()} ${esc(N.one)} hoort deze vlag?</div>`;
+        return `<img class="qflag" src="${it.flag}" alt="Vlag om te raden">`;
       default:
         return `<div class="qprompt">Hoe ziet de vlag eruit van</div><div class="qgiven">${esc(it.name)}</div>`;
     }
@@ -68,9 +75,13 @@ export function createMode({ ds, params }) {
         </form>
         <p class="type-feedback" id="type-feedback" aria-live="assertive"></p>`
       : `<div class="qactions" id="actions">${actionsHtml()}</div>`}`;
+    // A flag still loading would count in your time.
+    const img = card.querySelector('.qflag');
+    if (img && !img.complete) img.decode().then(() => api.ready()).catch(() => {});
     if (typing) {
       const input = card.querySelector('#type-input');
       input.focus();
+      input.addEventListener('input', () => { if (input.value) api.mark(); });
       card.querySelector('#type-form').addEventListener('submit', e => { e.preventDefault(); submitTyped(input.value); });
     } else {
       card.querySelector('#actions').addEventListener('click', e => {
@@ -90,25 +101,27 @@ export function createMode({ ds, params }) {
     if (locked) return;
     if (a === 'reveal' && !revealed) {
       revealed = true;
+      api.mark();
       api.card.querySelector('#answer').innerHTML = unveil(revealHtml(item, qdir));
       api.card.querySelector('#actions').innerHTML = actionsHtml();
     } else if (a === 'right' || a === 'wrong') {
       prev = revealed ? null : item;
-      api.answered(a === 'right', { subType: qdir });
+      api.answered(a === 'right', { subType: qdir, skill: SKILL[qdir], answerMode: revealed ? 'self_reveal' : 'self_direct' });
       api.next();
     }
   }
 
   function submitTyped(value) {
     if (locked || !value.trim()) return;
-    if (isCloseEnough(value, acceptedAnswers(item, qdir))) {
+    const accepted = acceptedAnswers(item, qdir);
+    if (isCloseEnough(value, accepted)) {
       prev = null;
-      api.answered(true, { subType: qdir });
+      api.answered(true, { subType: qdir, skill: SKILL[qdir], answerMode: 'typed', ...typoInfo(value, accepted, otherAnswers(item, qdir)) });
       api.next();
       return;
     }
     locked = true;
-    api.answered(false, { subType: qdir });
+    api.answered(false, { subType: qdir, skill: SKILL[qdir], answerMode: 'typed' });
     const card = api.card;
     card.querySelector('#answer').innerHTML = unveil(revealHtml(item, qdir));
     card.querySelector('#type-input').disabled = true;
@@ -119,6 +132,7 @@ export function createMode({ ds, params }) {
   return {
     quizType: type,
     subMode,
+    skills,
     endless: dir === 'both',
     title: type === 'flag' ? 'Vlaggen' : 'Hoofdsteden',
     label: (dir === 'both' ? 'Beide kanten' : dirLabel[DIRS[type][dir]]) + (typing ? ' · typen' : '') + (params.order === 'smart' ? ' · slim herhalen' : ''),

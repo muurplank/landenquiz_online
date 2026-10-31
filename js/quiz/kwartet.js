@@ -1,8 +1,11 @@
 // Kwartet: one of land / capital / flag is given; find the other three (and the country on the map).
 // Checks automatically once every column has a choice. A wrong set can be corrected and tried again.
+// For the tempo score only the first try counts, as a mistake per wrong column (no times: it is recognising from lists).
 import { normalize, escapeHtml as esc } from '../core/text.js';
 
 const HINTS = ['land', 'capital', 'flag'];
+const COLS = ['map', 'land', 'capital', 'flag'];
+const SKILLS = HINTS.flatMap(h => COLS.filter(c => c !== h).map(c => `${h}>${c}`));
 
 export function createMode({ ds, group }) {
   const N = ds.noun;
@@ -12,9 +15,9 @@ export function createMode({ ds, group }) {
   const byCap = [...items].sort((a, b) => (a.answers[0] || '').localeCompare(b.answers[0] || '', 'nl'));
   const byFlag = [...items].sort(() => Math.random() - .5);
 
-  let api, map, target, hint, sel = {}, completed = new Set(), checking = false;
+  let api, map, target, hint, sel = {}, completed = new Set(), checking = false, tries = 0;
   const $ = s => api.card.querySelector(s);
-  const required = () => ['map', 'land', 'capital', 'flag'].filter(c => c !== hint);
+  const required = () => COLS.filter(c => c !== hint);
 
   function hintHtml(it) {
     if (hint === 'land') return `<b>${esc(it.name)}</b><span>${esc(N.one)}</span>`;
@@ -56,14 +59,15 @@ export function createMode({ ds, group }) {
 
   function check() {
     const ok = required().every(c => sel[c] === target.id);
-    api.answered(ok, { quizType: 'kwartet', subType: `hint-${hint}` });
+    const steps = tries++ ? [] : required().map(c => ({ skill: `${hint}>${c}`, correct: sel[c] === target.id, answerMode: 'none', wErr: 0.5 }));
+    api.answered(ok, { quizType: 'kwartet', subType: `hint-${hint}`, steps });
     if (!ok) {
       updateStatus('Niet goed. Pas je keuze aan en probeer opnieuw.');
       return;
     }
     checking = true;
     completed.add(target.id);
-    map.setDone([...completed]);
+    if (api.engine.picker !== 'tempo') map.setDone([...completed]);
     map.flash(target.id, true, 700);
     updateStatus(`Goed! ${target.name} is compleet.`, 'ok');
     setTimeout(() => { checking = false; api.next(); }, 700);
@@ -73,6 +77,8 @@ export function createMode({ ds, group }) {
     ids,
     quizType: 'kwartet',
     subMode: 'kwartet',
+    skills: SKILLS,
+    skillCount: 1,   // one set is one question
     endless: false,
     wide: true,
     title: 'Kwartet',
@@ -100,8 +106,11 @@ export function createMode({ ds, group }) {
     },
     show(id) {
       target = ds.items.get(id);
-      hint = HINTS[Math.floor(Math.random() * HINTS.length)];
+      // On tempo the engine chose what is given along with the country.
+      const wanted = api.engine.picker === 'tempo' ? api.engine.skill.split('>')[0] : null;
+      hint = HINTS.includes(wanted) ? wanted : HINTS[Math.floor(Math.random() * HINTS.length)];
       sel = {};
+      tries = 0;
       map.setHighlight(null);
       $('#kw-hint').innerHTML = `<span class="label">Gegeven</span>${hintHtml(target)}`;
       lists();

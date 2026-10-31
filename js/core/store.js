@@ -1,6 +1,8 @@
 // Session history in localStorage. Same key and shape as the old app (js/app.js),
 // so existing progress and statistics keep working.
 
+import { encodeItems, decodeItems, mergeTempo, seedFromHistory } from './tempo.js';
+
 const HISTORY_KEY = 'landjes_history_v1';
 const empty = () => ({ version: 1, sessions: [], perGroup: {} });
 
@@ -33,7 +35,36 @@ export function saveHistory(history) {
 }
 
 // clearedAt keeps the reset on every device when progress is synced (see js/core/merge.js).
-export function clearHistory() { saveHistory({ ...empty(), clearedAt: new Date().toISOString() }); }
+export function clearHistory() {
+  saveHistory({ ...empty(), clearedAt: new Date().toISOString() });
+  try { localStorage.removeItem(TEMPO_KEY); localStorage.removeItem(TEMPO_BASE_KEY); } catch (_) { /* blocked */ }
+}
+
+// Tempo scores per country and skill (js/core/tempo.js). The items sync; the baselines are per device.
+const TEMPO_KEY = 'landjes_tempo_v1';
+const TEMPO_BASE_KEY = 'landjes__tempo_base';
+const OWNER_KEY = 'landjes__sync_owner';
+const getJSON = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch (_) { return fb; } };
+const putJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn('Kon tempo niet opslaan.', e); } };
+
+/** The tempo store for the engine. The first time, the old history seeds it (with low weight). */
+export function loadTempo() {
+  let enc = getJSON(TEMPO_KEY, null);
+  if (!enc || !enc.items) { enc = { v: 1, items: encodeItems(seedFromHistory(loadHistory())) }; putJSON(TEMPO_KEY, enc); }
+  const store = {
+    items: decodeItems(enc.items),
+    baselines: getJSON(TEMPO_BASE_KEY, {}),
+    device: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine',
+    uid: (() => { try { return localStorage.getItem(OWNER_KEY) || ''; } catch (_) { return ''; } })(),
+    save() {
+      // Merge with what is stored, so a quiz in another tab does not get overwritten.
+      const current = getJSON(TEMPO_KEY, { v: 1, items: {} });
+      putJSON(TEMPO_KEY, mergeTempo({ v: 1, items: encodeItems(store.items) }, current));
+      putJSON(TEMPO_BASE_KEY, store.baselines);
+    }
+  };
+  return store;
+}
 
 export function startSession({ groupId, quizType, subMode, dataset = 'world' }) {
   return {

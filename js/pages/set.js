@@ -2,6 +2,7 @@
 // quiz picker on top, "Bekijken en leren" with the map below.
 import { loadDataset, getGroup, shortTitle, groupLabel, siteUrl } from '../core/data.js';
 import { groupProgress } from '../core/store.js';
+import { sessionLength } from '../core/tempo.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
 
@@ -35,32 +36,36 @@ const writeInfinite = v => { try { localStorage.setItem(INFINITE_KEY, v ? '1' : 
 function subjects(ds, oceania) {
   const N = ds.noun, L = N.One, l = N.one;
   const ans = [['self', 'Zelf beoordelen', 'Antwoord tonen, dan zeg je of je het wist'], ['type', 'Typen', 'Typ het antwoord, Enter om te checken']];
-  const ord = [['deck', 'Normaal', `${N.every} ${l} komt aan de beurt tot je alles goed hebt`], ['smart', 'Slim herhalen', 'Vaker wat je moeilijk vindt (Thompson Sampling)']];
+  const ord = [['deck', 'Normaal', `${N.every} ${l} komt aan de beurt tot je alles goed hebt`], ['smart', 'Slim herhalen', 'Vaker wat je moeilijk vindt (Thompson Sampling)'],
+    ['tempo', 'Op tempo', `Vaker wat je traag weet, ook over sessies heen. Voor als je alles al goed hebt`]];
+  const ordStep = ['order', 'In welke volgorde?', ord];
+  // Geschiedenis has no times worth using, so no tempo there (see the research notes in docs/).
+  const ordNoTempo = ['order', 'In welke volgorde?', ord.slice(0, 2)];
   return [
     { k: 'capital', icon: 'capital', t: 'Hoofdsteden', d: `${L} en hoofdstad aan elkaar koppelen.`, steps: [
       ['dir', 'Wat krijg je te zien?', [['a', `${L} → hoofdstad`, `Je ziet ${N.the} ${l}, jij noemt de hoofdstad`], ['b', `Hoofdstad → ${l}`, `Je ziet de hoofdstad, jij noemt ${N.the} ${l}`], ['both', 'Beide kanten', 'Allebei door elkaar']]],
-      ['ans', 'Hoe antwoord je?', ans], ['order', 'In welke volgorde?', ord]] },
+      ['ans', 'Hoe antwoord je?', ans], ordStep] },
     { k: 'flag', icon: 'flag', t: 'Vlaggen', d: 'Vlaggen herkennen en terugvinden.', steps: [
       ['dir', 'Wat krijg je te zien?', [['a', `Vlag → ${l}`, `Je ziet de vlag, jij noemt ${N.the} ${l}`], ['b', `${L} → vlag`, `Je ziet ${N.the} ${l}, jij denkt aan de vlag`], ['both', 'Beide kanten', 'Allebei door elkaar']]],
-      ['ans', 'Hoe antwoord je?', ans, c => c.dir !== 'a' ? { type: `Typen kan alleen bij Vlag → ${l}` } : {}], ['order', 'In welke volgorde?', ord]] },
+      ['ans', 'Hoe antwoord je?', ans, c => c.dir !== 'a' ? { type: `Typen kan alleen bij Vlag → ${l}` } : {}], ordStep] },
     { k: 'map', icon: 'map', t: 'Kaart', d: `${N.many[0].toUpperCase() + N.many.slice(1)} vinden op de satellietkaart.`, steps: [
       ['dir', 'Wat krijg je te zien?', [['a', `Kaart → ${l}`, `Er licht een ${l} op, jij noemt de naam`], ['b', `${L} → kaart`, `Je krijgt een naam en klikt ${N.the} ${l} aan`], ['c', 'Hoofdstad → plek', 'Klik op de kaart waar de hoofdstad ligt']]],
       ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Snel achter elkaar, antwoord tonen'], ['pick', 'Aanklikken of typen', 'Kies uit de lijst of typ de naam'], ['click', 'Op de kaart klikken', 'Je zoekt de plek zelf op']],
-        c => c.dir === 'a' ? { click: `Hoort bij ${L} → kaart` } : { self: `Hoort bij Kaart → ${l}`, pick: `Hoort bij Kaart → ${l}` }]] },
+        c => c.dir === 'a' ? { click: `Hoort bij ${L} → kaart` } : { self: `Hoort bij Kaart → ${l}`, pick: `Hoort bij Kaart → ${l}` }], ordStep] },
     { k: 'outline', svg: OUTLINE_ICON, t: 'Omtrek', d: `Je ziet alleen de omtrek van ${N.the} ${l}, jij noemt de naam.`, steps: [
-      ['ans', 'Hoe antwoord je?', ans], ['order', 'In welke volgorde?', ord]] },
+      ['ans', 'Hoe antwoord je?', ans], ordStep] },
     { k: 'alles', svg: CHAIN_ICON, t: 'Alles of niets', d: `Vier vragen achter elkaar over ${N.the} ${l}: naam, hoofdstad, vlag en plek op de kaart. Eén fout en ${N.the} ${l} komt later terug.`, steps: [
-      ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Antwoord tonen, dan zeg je of je het wist'], ['type', 'Typen', 'Typ naam en hoofdstad, kies de vlag, klik op de kaart']]], ['order', 'In welke volgorde?', ord]] },
+      ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Antwoord tonen, dan zeg je of je het wist'], ['type', 'Typen', 'Typ naam en hoofdstad, kies de vlag, klik op de kaart']]], ordStep] },
     { k: 'snel', svg: SPEED_ICON, t: 'Snelheidstest', d: `Voor wat je al weet, maar sneller wilt weten. Je typt tegen de klok en traint daarna je traagste ${N.many}.`, steps: [
       ['dir', 'Wat wil je sneller weten?', [['map', `Kaart → ${l}`, `Er licht een ${l} op, jij typt de naam`], ['capital', `${L} → hoofdstad`, `Je ziet ${N.the} ${l}, jij typt de hoofdstad`], ['flag', `Vlag → ${l}`, `Je ziet de vlag, jij typt ${N.the} ${l}`], ['outline', `Omtrek → ${l}`, `Je ziet de vorm, jij typt ${N.the} ${l}`], ['mix', 'Door elkaar', 'Alle vier gemengd, zo ken je het op elke manier']]],
       ['ans', 'Hoe wil je oefenen?', [['test', 'Test en trainen', `${N.every} ${l} één keer op tijd, daarna train je de traagste`], ['train', 'Alleen trainen', `Meteen de ${N.many} die vorige keer traag waren`]]]] },
-    { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
+    { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [ordStep] },
     { k: 'mix', icon: 'shuffle', t: 'Mix', d: 'Hoofdstad, vlag en kaart door elkaar.', steps: [
-      ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] },
+      ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]], ordStep] },
     { k: 'history', svg: HISTORY_ICON, t: 'Geschiedenis', d: `Vijf weetjes over de geschiedenis van ${N.every.toLowerCase()} ${l}, met vragen erover.`, steps: [
       ['dir', 'Hoe wil je oefenen?', [['ask', 'Meteen de vraag', `Na je antwoord zie je de weetjes van ${N.the} ${l}`], ['read', 'Eerst lezen', 'Je leest de weetjes, daarna volgt de vraag']]],
       ['combi', 'Welke vragen?', [['mix', 'Door elkaar', `Vragen over één ${l} en combinatievragen`], ['single', `Over één ${l}`, `Elke vraag gaat over één weetje van één ${l}`], ['combi', 'Combinatievragen', `Wat was eerder, volgorde, ${N.which.toLowerCase()} ${l}`]]],
-      ['order', 'In welke volgorde?', ord]] }
+      ordNoTempo] }
   ];
 }
 
@@ -82,7 +87,7 @@ function render(ds, group) {
   const saved = prefs.get(PICKER_KEY, {});
   const S = {
     subj: list.some(s => s.k === saved.subj) ? saved.subj : 'capital',
-    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, outline: { ans: 'self', order: 'deck' }, alles: { ans: 'self', order: 'deck' }, snel: { dir: 'map', ans: 'test' }, kwartet: {}, mix: { mix: 'std' }, history: { dir: 'ask', combi: 'mix', order: 'deck' } }, saved.cfg || {}),
+    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self', order: 'deck' }, outline: { ans: 'self', order: 'deck' }, alles: { ans: 'self', order: 'deck' }, snel: { dir: 'map', ans: 'test' }, kwartet: { order: 'deck' }, mix: { mix: 'std', order: 'deck' }, history: { dir: 'ask', combi: 'mix', order: 'deck' } }, saved.cfg || {}),
     mix: new Set(saved.mixTypes || []),
     infinite: readInfinite()
   };
@@ -157,22 +162,25 @@ function render(ds, group) {
       </div>
       <div class="cfg">
         <div class="cfg-head"><h2>${subj.t}</h2><p>${esc(subj.d)}</p></div>
-        ${subj.steps.length ? subj.steps.map(([key, label, opts, rule], si) => {
+        ${subj.k === 'kwartet' ? `<div class="kw-explain">
+            <div class="kw-cards">${['Kaart', ds.noun.One, 'Hoofdstad', 'Vlag'].map((k, i) => `<div class="kw ${i === 1 ? 'given' : ''}"><span>${k}</span>${i === 1 ? '<b>Gegeven</b>' : '<i>?</i>'}</div>`).join('')}</div>
+            <p class="muted">Je krijgt er één van de vier. Zoek de andere drie die erbij horen.</p>
+          </div>` : ''}
+        ${subj.steps.map(([key, label, opts, rule], si) => {
           const dis = rule ? rule(c) : {};
           return `<div class="step">
             <div class="step-label"><span class="n">${si + 1}</span>${label}</div>
             <div class="choices" role="radiogroup" aria-label="${esc(label)}">${opts.map(([v, t, d]) => `<button class="choice" role="radio" data-choice="${key}:${v}" aria-checked="${c[key] === v}" ${dis[v] ? `aria-disabled="true" title="${esc(dis[v])}"` : ''}><b>${esc(t)}</b><span>${esc(dis[v] || d)}</span></button>`).join('')}</div>
             ${key === 'mix' && c.mix === 'own' ? `<div class="matrix inline-matrix">${mixMatrix()}</div>` : ''}
           </div>`;
-        }).join('') : `<div class="kw-explain">
-            <div class="kw-cards">${['Kaart', ds.noun.One, 'Hoofdstad', 'Vlag'].map((k, i) => `<div class="kw ${i === 1 ? 'given' : ''}"><span>${k}</span>${i === 1 ? '<b>Gegeven</b>' : '<i>?</i>'}</div>`).join('')}</div>
-            <p class="muted">Je krijgt er één van de vier. Zoek de andere drie die erbij horen.</p>
-          </div>`}
+        }).join('')}
         <div class="cfg-foot">
           ${subj.k === 'snel' ? '' : `<label class="switch" title="De quiz stopt niet als je alles goed hebt, maar blijft vragen stellen.">
             <input type="checkbox" id="infinite" ${S.infinite ? 'checked' : ''}><span class="track"></span><span>Oneindig</span>
           </label>`}
-          <div class="summary"><b>${esc(subj.t + (summary.length ? ' · ' + summary.join(' · ') : ''))}</b>${subj.k === 'snel' ? 'Stopt als je traagste ' + esc(ds.noun.many) + ' snel gaan' : S.infinite ? 'Stopt niet als alles goed is' : 'Stopt als je alles goed hebt'}</div>
+          <div class="summary"><b>${esc(subj.t + (summary.length ? ' · ' + summary.join(' · ') : ''))}</b>${subj.k === 'snel' ? 'Stopt als je traagste ' + esc(ds.noun.many) + ' snel gaan'
+            : S.infinite ? (c.order === 'tempo' ? 'Stopt niet, blijft op tempo vragen' : 'Stopt niet als alles goed is')
+            : c.order === 'tempo' ? `Stopt na ${sessionLength(ids.length, c.dir === 'both' || subj.k === 'mix' ? 2 : 1)} vragen` : 'Stopt als je alles goed hebt'}</div>
           <a class="btn primary lg" id="start" href="${ownEmpty ? '#' : quizUrl(subj)}" ${ownEmpty ? 'aria-disabled="true" style="opacity:.45;pointer-events:none"' : ''}>Start ${I.arrow}</a>
         </div>
       </div>`;

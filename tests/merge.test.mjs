@@ -90,6 +90,13 @@ test('compactHistory keeps mix events trimmed to quizType and result (needed for
   assert.deepEqual(c.sessions[0].perCountryStats.nl.events, [{ quizType: 'flag', result: 'correct' }]);
 });
 
+test('tempo: items are merged per item, the newest day wins', () => {
+  const m = mergeValue('landjes_tempo_v1', { v: 1, items: { a: [1, 1, 100, 0] } }, { v: 1, items: { a: [2, 2, 101, 0], b: [3, 3, 50, 0] } }, 9, 1);
+  assert.deepEqual(m.items, { a: [2, 2, 101, 0], b: [3, 3, 50, 0] });
+  assert.equal(isSyncedKey('landjes_tempo_v1'), true);
+  assert.equal(isSyncedKey('landjes__tempo_base'), false);
+});
+
 test('history: a reset (clearedAt) drops older sessions from the other side', () => {
   const local = { version: 1, sessions: [], perGroup: {}, clearedAt: '2026-10-20T00:00:00Z' };
   const remote = { version: 1, sessions: [sess('a', 'g', 1, 0), { ...sess('z', 'g', 1, 0), startedAt: '2026-10-25T00:00:00Z' }], perGroup: {} };

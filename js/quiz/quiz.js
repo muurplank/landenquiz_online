@@ -2,11 +2,15 @@
 // this file owns the header, session stats, cheat sheet, keyboard and end screen.
 //
 // URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet|history|outline|alles|snel&dir=a|b|both
-//      &ans=self|type|pick|click&order=deck|smart&infinite=1&mix=std|mega|own&custom=a,b
+//      &ans=self|type|pick|click&order=deck|smart|tempo&infinite=1&mix=std|mega|own&custom=a,b
+//
+// A mode may expose `skills` (what the engine can pick per country, like 'flag>land') and calls
+// api.ready() once the stimulus is on screen and api.mark() at the first key, click or reveal:
+// that is what the tempo order measures (js/core/tempo.js).
 
 import { loadDataset, getGroup, shortTitle, siteUrl } from '../core/data.js';
 import { QuizEngine } from '../core/engine.js';
-import { loadHistory } from '../core/store.js';
+import { loadHistory, loadTempo } from '../core/store.js';
 import { escapeHtml as esc } from '../core/text.js';
 import { renderTopbar, I, prefs } from '../ui/shell.js';
 
@@ -44,15 +48,20 @@ renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: p
 
 function run(ds, group, mode) {
   const ids = mode.ids || group.countries.filter(id => ds.items.has(id));
+  const onTempo = params.order === 'tempo' && !!mode.skills;
   const engine = new QuizEngine({
     ids, groupId: group.id, dataset: ds.name,
     quizType: mode.quizType, subMode: mode.subMode,
-    picker: params.order === 'smart' ? 'smart' : 'deck',
+    picker: params.order === 'smart' ? 'smart' : onTempo ? 'tempo' : 'deck',
     endless: params.infinite === '1' || mode.endless,
-    retryOnly: mode.retryOnly
+    retryOnly: mode.retryOnly,
+    skills: mode.skills || [], skillCount: mode.skillCount,
+    tempo: loadTempo()
   });
   const backUrl = siteUrl(`set.html?id=${encodeURIComponent(group.id)}${ds.name !== 'world' ? '&dataset=' + ds.name : ''}`);
   const cheatKey = `landjes_cheat_open_${mode.quizType}`;
+  // On tempo the cheat sheet starts closed: with it open, your times say nothing.
+  const cheatOpen = onTempo ? false : prefs.get(cheatKey, true);
   let menuOpen = false;
   let flashTimer = null;
 
@@ -60,7 +69,7 @@ function run(ds, group, mode) {
   page.innerHTML = `
     <div class="quiz-head">
       <a class="icon-btn" href="${backUrl}" aria-label="Terug naar de set">${I.back}</a>
-      <div class="t"><h1>${esc(mode.title)}</h1><p>${esc(mode.label)} · ${esc(shortTitle(group))}</p></div>
+      <div class="t"><h1>${esc(mode.title)}</h1><p>${esc(mode.label)}${onTempo ? ' · op tempo' : ''} · ${esc(shortTitle(group))}</p></div>
       <div style="display:flex;gap:12px;align-items:center">
         <div class="deck"><span>Deck<b class="tabnum" id="deck-txt"></b></span><div class="meter ok"><i id="deck-bar"></i></div></div>
         <div class="menu-wrap">
@@ -90,8 +99,8 @@ function run(ds, group, mode) {
         ${mode.sideHtml ? mode.sideHtml() : ''}
       </aside>
     </div>
-    ${mode.cheatItem ? `<section class="card learn cheat ${prefs.get(cheatKey, true) ? '' : 'closed'}" id="cheat" aria-label="Spiekbrief">
-      <div class="learn-head"><button id="cheat-toggle" aria-expanded="${prefs.get(cheatKey, true)}">${I.chev} Spiekbrief</button>
+    ${mode.cheatItem ? `<section class="card learn cheat ${cheatOpen ? '' : 'closed'}" id="cheat" aria-label="Spiekbrief">
+      <div class="learn-head"><button id="cheat-toggle" aria-expanded="${cheatOpen}">${I.chev} Spiekbrief</button>
         <div class="search" style="padding:0;border:0;max-width:260px;flex:1"><span style="position:relative;display:block">${I.search.replace('<svg', '<svg style="left:12px"')}<input id="cheat-search" placeholder="Zoek…" autocomplete="off" aria-label="Zoek in spiekbrief"></span></div>
       </div>
       <div class="learn-body cheat-body"><div class="cheat-grid" id="cheat-grid"></div></div>
@@ -103,8 +112,13 @@ function run(ds, group, mode) {
   // ---------- Header, stats, menu ----------
   function updateStats() {
     const t = engine.totals;
-    $('deck-txt').textContent = `${engine.mastered}/${engine.total} beheerst`;
-    $('deck-bar').style.width = `${engine.mastered / engine.total * 100}%`;
+    if (onTempo && !engine.endless) {
+      $('deck-txt').textContent = `${t.questions}/${engine.limit} vragen`;
+      $('deck-bar').style.width = `${Math.min(100, t.questions / engine.limit * 100)}%`;
+    } else {
+      $('deck-txt').textContent = `${engine.mastered}/${engine.total} beheerst`;
+      $('deck-bar').style.width = `${engine.mastered / engine.total * 100}%`;
+    }
     $('s-q').textContent = t.questions;
     $('s-acc').textContent = `${t.questions ? Math.round(t.correct / t.questions * 100) : 0}%`;
     $('s-time').textContent = t.avgResponseTimeMs ? `${(t.avgResponseTimeMs / 1000).toFixed(1).replace('.', ',')} s` : '–';
@@ -148,11 +162,16 @@ function run(ds, group, mode) {
   }
 
   // ---------- Question flow ----------
+  const cheatVisible = () => !!mode.cheatItem && !$('cheat').classList.contains('closed');
   const api = {
     ds, group, engine, card, params,
+    /** The stimulus is on screen: the clock for the tempo score starts now. */
+    ready: () => engine.ready(),
+    /** First key, click or reveal of this question. */
+    mark: () => engine.mark(),
     /** Called by the mode when the user answered. */
     answered(correct, meta = {}) {
-      engine.answer(correct, meta);
+      engine.answer(correct, { cheatOpen: cheatVisible(), ...meta });
       updateStats();
       card.classList.remove('flash-ok', 'flash-bad');
       void card.offsetWidth;
@@ -172,7 +191,13 @@ function run(ds, group, mode) {
   function showDone() {
     const t = engine.totals;
     const acc = t.questions ? Math.round(t.correct / t.questions * 100) : 0;
-    card.innerHTML = `
+    card.innerHTML = onTempo ? `
+      <div class="done">
+        <div class="done-icon">${I.check}</div>
+        <h2>Klaar voor nu</h2>
+        <p class="muted">${t.questions} vragen, ${acc}% goed. Wat je traag of fout had, komt de volgende keer vaker terug; liever morgen nog een sessie dan nu doorgaan.</p>
+        <div class="qactions"><a class="btn lg" href="${backUrl}">Terug naar de set</a><button class="btn lg primary" id="again">Nog een sessie</button></div>
+      </div>` : `
       <div class="done">
         <div class="done-icon">${I.check}</div>
         <h2>Alles beheerst</h2>

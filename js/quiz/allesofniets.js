@@ -2,11 +2,14 @@
 // One mistake ends the chain: you see everything about the country and it comes back later.
 //  ans=self -> show the answer and rate yourself at every step (space, 1, 2)
 //  ans=type -> type name and capital, pick the flag (1-4), click on the map
-import { isCloseEnough, escapeHtml as esc, veil, unveil } from '../core/text.js';
+// Every step is timed on its own for the tempo score, as its own skill.
+import { isCloseEnough, typoInfo, escapeHtml as esc, veil, unveil } from '../core/text.js';
 import { outlineSvg } from './outline-shape.js';
 
 const STEPS = ['land', 'capital', 'flag', 'map'];
+const SKILL = { land: 'outline>land', capital: 'land>capital', flag: 'land>flag', map: 'land>map' };
 const FOCUS = { padding: .55, maxZoom: 5 };
+const FORM_W = 0.6;
 
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
@@ -17,8 +20,9 @@ export async function createMode({ ds, group, params }) {
   // Only countries with a shape in the map file (a few anchor-only ones have none).
   const ids = group.countries.filter(id => ds.items.has(id) && geo.byId.has(id));
   const STEP_NAMES = { land: N.One, capital: 'Hoofdstad', flag: 'Vlag', map: 'Kaart' };
+  const others = (it, st) => [...ds.items.values()].filter(x => x.id !== it.id).flatMap(x => (st === 'land' ? [x.name, ...(x.aliases || [])] : x.answers));
 
-  let api, map, item, n, step, revealed, failed, flags, fitTimer;
+  let api, map, item, n, step, revealed, failed, flags, fitTimer, stepT0, stepFirst, steps;
   const $ = sel => api.card.querySelector(sel);
 
   // The real flag among three flags of nearby countries in the set, those are the ones you mix up.
@@ -57,6 +61,15 @@ export async function createMode({ ds, group, params }) {
     if (show) fitTimer = setTimeout(fit, 60);
   }
 
+  // Timing per step: the clock starts when the step is on screen, the first key/click/reveal is the recall.
+  const startStep = () => { stepT0 = performance.now(); stepFirst = null; };
+  const markStep = () => { if (stepFirst === null) stepFirst = performance.now() - stepT0; };
+  function bookStep(ok, extra = {}) {
+    const st = STEPS[step];
+    const answerMode = typing ? { land: 'typed', capital: 'typed', flag: 'mc', map: 'click' }[st] : revealed ? 'self_reveal' : 'self_direct';
+    steps.push({ skill: SKILL[st], correct: ok, answerMode, rtMs: stepFirst ?? performance.now() - stepT0, k: st === 'flag' && typing ? 4 : undefined, wForm: FORM_W, ...extra });
+  }
+
   function render() {
     const st = STEPS[step];
     $('#qnum').textContent = `Vraag ${n}`;
@@ -76,6 +89,7 @@ export async function createMode({ ds, group, params }) {
         actions.innerHTML = typeForm(st);
         const input = $('#type-input');
         input.focus();
+        input.addEventListener('input', () => { if (input.value) markStep(); });
         $('#type-form').addEventListener('submit', e => { e.preventDefault(); submitTyped(input.value); });
       } else if (st === 'flag') {
         actions.innerHTML = `<div class="chain-flags">${flags.map((id, i) => `<button class="flag-choice" data-flag="${id}" aria-label="Vlag ${i + 1}"><img src="${ds.items.get(id).flag}" alt=""><span class="kbd">${i + 1}</span></button>`).join('')}</div>`;
@@ -92,6 +106,7 @@ export async function createMode({ ds, group, params }) {
       map.setTarget(null);
       showMap(false);
     }
+    if (!revealed) startStep();
   }
 
   // Everything about the country at once, and it stays until you go on.
@@ -109,9 +124,10 @@ export async function createMode({ ds, group, params }) {
     showMap(true, () => map.fitTo([item.id], FOCUS));
   }
 
-  function advance() {
+  function advance(extra) {
+    bookStep(true, extra);
     if (step === STEPS.length - 1) {
-      api.answered(true, { subType: 'compleet' });
+      api.answered(true, { subType: 'compleet', steps });
       api.next();
       return;
     }
@@ -120,28 +136,31 @@ export async function createMode({ ds, group, params }) {
     render();
   }
 
-  function fail() {
+  function fail(extra) {
+    bookStep(false, extra);
     failed = true;
-    api.answered(false, { subType: `fout-${STEPS[step]}` });
+    api.answered(false, { subType: `fout-${STEPS[step]}`, steps });
     render();
   }
 
   function submitTyped(value) {
     if (failed || !value.trim()) return;
-    const accepted = STEPS[step] === 'land' ? [item.name, ...(item.aliases || [])] : item.answers;
-    isCloseEnough(value, accepted) ? advance() : fail();
+    const st = STEPS[step];
+    const accepted = st === 'land' ? [item.name, ...(item.aliases || [])] : item.answers;
+    isCloseEnough(value, accepted) ? advance(typoInfo(value, accepted, others(item, st))) : fail();
   }
 
   function act(a) {
     if (a === 'next' && failed) { api.next(); return; }
     if (failed || typing) return;
-    if (a === 'reveal' && !revealed) { revealed = true; render(); }
+    if (a === 'reveal' && !revealed) { revealed = true; markStep(); render(); }
     else if (a === 'right') advance();
     else if (a === 'wrong') fail();
   }
 
   function pickFlag(id) {
     if (failed || !typing || STEPS[step] !== 'flag' || !id) return;
+    markStep();
     id === item.id ? advance() : fail();
   }
 
@@ -149,6 +168,8 @@ export async function createMode({ ds, group, params }) {
     ids,
     quizType: 'alles',
     subMode: typing ? 'type' : 'self',
+    skills: Object.values(SKILL),
+    skillCount: 1,   // one chain is one question
     retryOnly: true,
     title: 'Alles of niets',
     label: (typing ? 'Typen' : 'Zelf beoordelen') + (params.order === 'smart' ? ' · slim herhalen' : ''),
@@ -178,6 +199,7 @@ export async function createMode({ ds, group, params }) {
       map = new MapView($('#chain-map'), { geo: ds.geo, style: 'sat', names, group: ids, hoverHighlight: typing, label: 'Kaart' });
       map.on('click', id => {
         if (failed || !typing || !item || STEPS[step] !== 'map' || !id) return;
+        markStep();
         map.flash(id, id === item.id);
         id === item.id ? advance() : fail();
       });
@@ -190,6 +212,7 @@ export async function createMode({ ds, group, params }) {
       step = 0;
       revealed = false;
       failed = false;
+      steps = [];
       flags = flagOptions(id);
       render();
     },

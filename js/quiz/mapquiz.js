@@ -3,7 +3,7 @@
 //  dir a + ans pick  -> a country lights up, pick its name from the list or type it
 //  dir b (click)     -> "Zoek op kaart": you get a name and click the country
 //  dir c (locate)    -> you get a capital and click where it lies; scored by distance
-import { isCloseEnough, normalize, escapeHtml as esc, prevAnswer } from '../core/text.js';
+import { isCloseEnough, typoInfo, normalize, escapeHtml as esc, prevAnswer } from '../core/text.js';
 
 const NEXT_OK_MS = 900;
 const NEXT_BAD_MS = 1600;
@@ -17,9 +17,14 @@ export function createMode({ ds, group, params }) {
   const LIMIT_KM = ds.name === 'us' ? 100 : 250;
   const sorted = [...ids].sort((a, b) => ds.items.get(a).name.localeCompare(ds.items.get(b).name, 'nl'));
   const label = { snelle: `Kaart → ${N.one} · zelf beoordelen`, pick: `Kaart → ${N.one} · aanklikken of typen`, zoek: `${N.One} → kaart`, locate: 'Hoofdstad → plek op de kaart' }[kind];
+  const skill = { snelle: 'map>land', pick: 'map>land', zoek: 'land>map', locate: 'capital>map' }[kind];
+  const names = it => [it.name, ...(it.aliases || [])];
+  const otherNames = it => [...ds.items.values()].filter(x => x.id !== it.id).flatMap(names);
 
   let api, map, item = null, revealed = false, locked = false, prev = null;   // prev: vorige vraag, beoordeeld zonder antwoord te tonen
   const $ = sel => api.card.querySelector(sel);
+  // Finished countries stay marked on the map, except on tempo: there it would let you answer by elimination.
+  const markDone = () => { if (api.engine.picker !== 'tempo') map.setDone([...Object.values(api.engine.stats)].filter(s => s.is_mastered).map(s => s.iso)); };
 
   function controlsHtml() {
     if (kind === 'snelle') {
@@ -53,10 +58,14 @@ export function createMode({ ds, group, params }) {
       const input = $('#pick-input');
       input.focus();
       input.addEventListener('input', () => {
+        if (input.value) api.mark();
         const q = normalize(input.value);
         api.card.querySelectorAll('[data-pick]').forEach(b => { b.hidden = !!q && !normalize(b.textContent).includes(q); });
       });
-      $('#pick-form').addEventListener('submit', e => { e.preventDefault(); if (input.value.trim()) judge(isCloseEnough(input.value, [item.name, ...(item.aliases || [])], 4)); });
+      $('#pick-form').addEventListener('submit', e => {
+        e.preventDefault();
+        if (input.value.trim()) judge(isCloseEnough(input.value, names(item), 4), null, { answerMode: 'typed', ...typoInfo(input.value, names(item), otherNames(item)) });
+      });
     }
   }
 
@@ -64,10 +73,10 @@ export function createMode({ ds, group, params }) {
     setPrompt(`<small>${ok === false ? 'Het juiste antwoord' : 'Dit is'}</small><b>${esc(item.name)}</b>`);
   }
 
-  function judge(correct, clickedId) {
+  function judge(correct, clickedId, meta = {}) {
     if (locked) return;
     locked = true;
-    api.answered(correct, { subType: kind === 'pick' ? 'continent-only' : kind });
+    api.answered(correct, { subType: kind === 'pick' ? 'continent-only' : kind, skill, ...meta });
     if (kind === 'zoek') {
       map.flash(clickedId, correct, correct ? NEXT_OK_MS : NEXT_BAD_MS);
       if (!correct) map.setTarget(item.id);
@@ -81,17 +90,17 @@ export function createMode({ ds, group, params }) {
       fb.textContent = correct ? `Goed, het was ${item.name}.`
         : (kind === 'zoek' && clickedId ? `Dat was ${ds.items.get(clickedId)?.name || 'iets anders'}. ${item.name} knippert.` : `Fout, het was ${item.name}.`);
     }
-    map.setDone([...Object.values(api.engine.stats)].filter(s => s.is_mastered).map(s => s.iso));
+    markDone();
     setTimeout(() => { locked = false; map.setTarget(null); api.next(); }, correct ? NEXT_OK_MS : NEXT_BAD_MS);
   }
 
   function act(a) {
     if (kind !== 'snelle' || locked) return;
-    if (a === 'reveal' && !revealed) { revealed = true; revealName(); $('#controls').innerHTML = controlsHtml(); }
+    if (a === 'reveal' && !revealed) { revealed = true; api.mark(); revealName(); $('#controls').innerHTML = controlsHtml(); }
     else if (a === 'right' || a === 'wrong') {
       prev = revealed ? null : item;
-      api.answered(a === 'right', { subType: 'snelle' });
-      map.setDone([...Object.values(api.engine.stats)].filter(s => s.is_mastered).map(s => s.iso));
+      api.answered(a === 'right', { subType: 'snelle', skill, answerMode: revealed ? 'self_reveal' : 'self_direct' });
+      markDone();
       api.next();
     }
   }
@@ -100,6 +109,7 @@ export function createMode({ ds, group, params }) {
     ids,
     quizType: 'map',
     subMode: kind === 'pick' ? 'satellite' : kind,
+    skills: [skill],
     endless: kind === 'snelle',
     title: 'Kaart',
     label,
@@ -115,25 +125,25 @@ export function createMode({ ds, group, params }) {
         <p class="type-feedback" id="feedback" aria-live="assertive"></p>`;
       const names = Object.fromEntries([...ds.items.values()].map(it => [it.id, it.name]));
       map = new MapView($('#quiz-map'), { geo: ds.geo, style: 'sat', names, group: ids, hoverHighlight: kind === 'zoek', dotsFor: kind === 'locate' ? 'none' : 'group', label: 'Quizkaart' });
-      map.on('click', id => { if (kind === 'zoek' && item && !locked) judge(id === item.id, id); });
+      map.on('click', id => { if (kind === 'zoek' && item && !locked) judge(id === item.id, id, { answerMode: 'click' }); });
       map.on('clickpoint', ll => {
         if (kind !== 'locate' || !item || locked) return;
         locked = true;
         const km = Math.round(MapView.distanceKm(ll, item.capitalAt));
         const ok = km <= LIMIT_KM;
-        api.answered(ok, { subType: 'locate' });
+        api.answered(ok, { subType: 'locate', skill, answerMode: 'locate', distKm: km });
         map.setPins([{ ll, ok }, { ll: item.capitalAt, ok: true }]);
         const fb = $('#feedback');
         fb.className = 'type-feedback ' + (ok ? 'ok' : '');
         fb.textContent = ok ? `Goed, ${km} km ernaast.` : `${km} km ernaast. Binnen ${LIMIT_KM} km telt als goed.`;
-        map.setDone([...Object.values(api.engine.stats)].filter(s => s.is_mastered).map(s => s.iso));
+        markDone();
         setTimeout(() => { locked = false; map.setPins([]); api.next(); }, ok ? 1400 : 2400);
       });
       api.card.addEventListener('click', e => {
         const z = e.target.closest('[data-zoom]');
         if (z) { z.dataset.zoom === 'fit' ? map.fitTo(ids) : map.zoomBy(Number(z.dataset.zoom)); return; }
         const p = e.target.closest('[data-pick]');
-        if (p && item) { judge(p.dataset.pick === item.id); return; }
+        if (p && item) { judge(p.dataset.pick === item.id, null, { answerMode: 'list', k: ids.length }); return; }
         const b = e.target.closest('[data-act]');
         if (b) act(b.dataset.act);
       });
@@ -145,7 +155,8 @@ export function createMode({ ds, group, params }) {
       locked = false;
       map.setTarget(kind === 'zoek' || kind === 'locate' ? null : id);
       // Naar het gevraagde land zoomen, met de omgeving erbij; bij zoeken/plaatsen zou dat het antwoord verraden.
-      if (kind !== 'zoek' && kind !== 'locate') map.fitTo([id], FOCUS);
+      // De klok start pas als de animatie klaar is.
+      if (kind !== 'zoek' && kind !== 'locate') { map.map.once('moveend', () => api.ready()); map.fitTo([id], FOCUS); }
       render(n);
     },
     onKey(e) {

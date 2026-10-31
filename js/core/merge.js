@@ -1,4 +1,5 @@
 // Pure merge rules for syncing localStorage progress between devices (no DOM, no network).
+import { mergeTempo } from './tempo.js';
 
 const DEVICE_ONLY = [/^landjes__/, /^landjes_theme$/, /^landjes_oefenen_collapsed$/, /^landjes_stats_filters$/,
   /^landjes_exam_intro_seen$/, /^landjes_exam_show_feedback$/, /^landjes_picker_v/, /^landjes_alles_oneindig$/, /^landjes_cheat_open_/];
@@ -70,6 +71,7 @@ export function mergeValue(key, local, remote, localAt, remoteAt) {
   if (local == null) return remote;
   if (remote == null) return local;
   if (key === 'landjes_history_v1') return mergeHistory(local, remote);
+  if (key === 'landjes_tempo_v1') return mergeTempo(local, remote);
   if (key === 'landjes_daily_results') return mergeDaily(local, remote);
   if (/^landjes_.+_days$/.test(key)) return mergeDays(local, remote);
   if (/^landjes_.+_stats(_daily)?$/.test(key)) return mergeStats(local, remote);

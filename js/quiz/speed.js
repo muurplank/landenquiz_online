@@ -10,6 +10,7 @@ import { outlineSvg } from './outline-shape.js';
 import { isExact, scoreMs, targetMs, pickSlow, pastScores, latestTimes, timesToResults, Drill, LIMIT_MS, FAST_HITS } from './speed-plan.js';
 
 const KINDS = ['map', 'capital', 'flag', 'outline'];
+const SKILL = { map: 'map>land', capital: 'land>capital', flag: 'flag>land', outline: 'outline>land' };   // for the tempo score
 const FOCUS = { padding: .55, maxZoom: 5, animate: false };
 const MISS_MS = 1600;      // the answer stays this long, outside your time
 const NOT_FAST_MS = 700;
@@ -142,7 +143,8 @@ export async function createMode({ ds, group, params }) {
     startedAt = null;
     $('#sp-bar').style.animation = 'none';
     $('#sp-input').readOnly = true;
-    api.answered(ok, { id: item.id, subType: ok ? kind : 'gemist' });
+    // The think time is the cleanest measurement the app has, so it feeds the tempo score too.
+    api.answered(ok, { id: item.id, subType: ok ? kind : 'gemist', skill: SKILL[kind], answerMode: 'typed', rtMs: thinkMs ?? LIMIT_MS });
     // Only the first ask per session is a cold measurement.
     if (!(item.id in speed.times)) speed.times[item.id] = thinkMs;
 

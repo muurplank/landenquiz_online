@@ -23,6 +23,14 @@ export function isCloseEnough(input, accepted, max = 3) {
   return accepted.some(t => { const tn = normalize(t); return tn && levenshtein(n, tn) <= max; });
 }
 
+/** How far a typed answer is from the nearest accepted one, and whether it is in fact another valid
+ *  answer in the set (Iran for Irak): the quiz may accept it, the tempo score counts it as a miss. */
+export function typoInfo(input, accepted, others = []) {
+  const n = normalize(input);
+  const editDist = Math.min(...accepted.map(t => levenshtein(n, normalize(t))));
+  return { editDist, confusable: editDist > 0 && others.some(o => normalize(o) === n) };
+}
+
 export const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /** Blurred stand-in until the answer is revealed; unveil() animates the real answer in.
