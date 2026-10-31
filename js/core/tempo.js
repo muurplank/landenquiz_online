@@ -202,6 +202,28 @@ export function pickNext(candidates, items, session, today = dayOf(), rand = Mat
   return candidates[candidates.length - 1];
 }
 
+/* ---------- For display ---------- */
+
+export const levelOf = m => (m <= -0.2 ? 'snel' : m >= 0.2 ? 'traag' : 'gemiddeld');
+const LABELS = { 'land>capital': 'Hoofdstad', 'capital>land': 'Hoofdstad → land', 'flag>land': 'Vlag', 'land>flag': 'Land → vlag', 'map>land': 'Kaart', 'land>map': 'Zoek op kaart', 'capital>map': 'Hoofdstad op kaart', 'outline>land': 'Omtrek' };
+const PART = { land: 'land', capital: 'hoofdstad', flag: 'vlag', map: 'kaart', outline: 'omtrek' };
+export function skillLabel(skill) {
+  if (LABELS[skill]) return LABELS[skill];
+  const [a, b] = skill.split('>'), from = PART[a] || a;
+  return `${from[0].toUpperCase() + from.slice(1)} → ${PART[b] || b}`;
+}
+
+/** How well you know a country: the mean over its measured skills, slowest skill first; null when nothing is measured.
+ *  `rel` is your time relative to your own baseline (×0,8 = faster than usual), `legacy` = only estimated from old sessions. */
+export function countrySummary(items, country) {
+  const skills = Object.entries(items).filter(([k, it]) => k.startsWith(country + '|') && it.n > 0)
+    .map(([k, it]) => ({ skill: parseKey(k).skill, m: it.m, n: it.n, rel: Math.exp(it.m), level: levelOf(it.m), err: !!(it.flags & FLAG_ERR), legacy: isLegacy(it) }))
+    .sort((a, b) => b.m - a.m);
+  if (!skills.length) return null;
+  const m = skills.reduce((s, x) => s + x.m, 0) / skills.length;
+  return { m, n: skills.reduce((s, x) => s + x.n, 0), rel: Math.exp(m), level: levelOf(m), legacy: skills.every(s => s.legacy), err: skills.some(s => s.err), skills };
+}
+
 /* ---------- Storage ---------- */
 
 export const encodeItems = items => Object.fromEntries(Object.entries(items).filter(([, it]) => it.n > 0 || it.flags)

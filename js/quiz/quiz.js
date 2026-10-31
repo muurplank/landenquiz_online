@@ -11,8 +11,11 @@
 import { loadDataset, getGroup, shortTitle, siteUrl } from '../core/data.js';
 import { QuizEngine } from '../core/engine.js';
 import { loadHistory, loadTempo } from '../core/store.js';
+import { countrySummary } from '../core/tempo.js';
 import { escapeHtml as esc } from '../core/text.js';
-import { renderTopbar, I, prefs } from '../ui/shell.js';
+import { renderTopbar, I, prefs, tempoBadge } from '../ui/shell.js';
+
+const DONE_LIST_MAX = 30;
 
 const params = Object.fromEntries(new URLSearchParams(location.search));
 const page = document.getElementById('page');
@@ -204,8 +207,26 @@ function run(ds, group, mode) {
         <p class="muted">Je hebt alle ${engine.total} ${esc(ds.noun.many)} minstens één keer goed. ${t.questions} vragen, ${acc}% goed in één keer.</p>
         <div class="qactions"><a class="btn lg" href="${backUrl}">Terug naar de set</a><button class="btn lg primary" id="again">Nog een keer</button></div>
       </div>`;
+    card.insertAdjacentHTML('beforeend', doneCountries());
     $('again').addEventListener('click', () => location.reload());
     mode.onDone && mode.onDone(api);
+  }
+
+  /** Per country of this session: how it went just now and how fast you know it overall; mistakes and slow ones first. */
+  function doneCountries() {
+    const rows = ids.filter(id => engine.stats[id].seen_count)
+      .map(id => ({ id, st: engine.stats[id], sum: countrySummary(engine.tempo.items, id) }))
+      .sort((a, b) => (b.st.incorrect_count - a.st.incorrect_count) || ((b.sum ? b.sum.m : 0) - (a.sum ? a.sum.m : 0)));
+    if (!rows.length) return '';
+    const li = ({ id, st, sum }) => {
+      const it = ds.items.get(id);
+      return `<li><img class="flag" src="${it.flag}" alt="" width="30" height="20"><span class="nm">${esc(it.name)}</span><span class="res tabnum">${st.correct_count}× goed${st.incorrect_count ? ` · <span class="speed-miss">${st.incorrect_count}× fout</span>` : ''}</span>${tempoBadge(sum)}</li>`;
+    };
+    return `<section class="done-countries" aria-label="Per ${esc(ds.noun.one)}">
+      <h3>Per ${esc(ds.noun.one)}</h3>
+      <ul class="speed-list">${rows.slice(0, DONE_LIST_MAX).map(li).join('')}</ul>
+      <p class="muted" style="font-size:12.5px">${rows.length > DONE_LIST_MAX ? `En nog ${rows.length - DONE_LIST_MAX} meer. ` : ''}Het tempo is je tijd ten opzichte van je eigen gemiddelde; alles per ${esc(ds.noun.one)} en vaardigheid staat bij <a href="${siteUrl('stats.html')}">Statistieken → Per ${esc(ds.noun.one)}</a>.</p>
+    </section>`;
   }
 
   document.addEventListener('keydown', e => {

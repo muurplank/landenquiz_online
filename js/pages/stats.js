@@ -1,10 +1,11 @@
 // Statistics: filters, key figures, questions per day, per quiz type, best/hardest countries,
 // insights, per week and per continent. Reads the same history as the quizzes.
 import { loadDataset, shortTitle, weekNumber, selectionGroup } from '../core/data.js';
-import { loadHistory, clearHistory, groupProgress } from '../core/store.js';
+import { loadHistory, clearHistory, groupProgress, loadTempo } from '../core/store.js';
 import { QuizEngine } from '../core/engine.js';
+import { countrySummary, skillLabel } from '../core/tempo.js';
 import { escapeHtml as esc } from '../core/text.js';
-import { renderTopbar, I, prefs } from '../ui/shell.js';
+import { renderTopbar, I, prefs, tempoBadge } from '../ui/shell.js';
 
 renderTopbar(document.getElementById('topbar'), { current: 'stats' });
 const page = document.getElementById('page');
@@ -21,6 +22,18 @@ S.confirm = false;
   const groupsById = Object.fromEntries(ds.groups.map(g => [g.id, g]));
   if (us) us.groups.forEach(g => { groupsById[g.id] = g; });
   let history = loadHistory();
+  const tempo = loadTempo();
+
+  // Countries in the chosen week (or all), for the tempo views that do not depend on sessions.
+  const inScope = () => {
+    const g = S.group && groupsById[S.group];
+    return g ? new Set(g.countries) : null;
+  };
+  const tempoRows = () => {
+    const scope = inScope();
+    const seen = new Set(Object.keys(tempo.items).map(k => k.split('|')[0]));
+    return [...seen].filter(id => lookup(id) && (!scope || scope.has(id))).map(id => ({ id, sum: countrySummary(tempo.items, id) })).filter(r => r.sum);
+  };
 
   function filtered() {
     const now = new Date();
@@ -118,6 +131,8 @@ S.confirm = false;
     const fastWrong = two.filter(x => x.acc < .5 && x.avgMs).sort((a, b) => a.avgMs - b.avgMs).slice(0, 5);
     const slowGood = two.filter(x => x.acc >= .7 && x.avgMs).sort((a, b) => b.avgMs - a.avgMs).slice(0, 5);
     const insight = (t, arr, f) => `<div class="insight"><h4>${t}</h4>${arr.length ? `<ul>${arr.map(x => `<li>${flag(x.id)}<span>${esc(name(x.id))}</span><span class="muted">${f(x)}</span></li>`).join('')}</ul>` : '<p class="muted">Nog niets</p>'}</div>`;
+    const tr = tempoRows().sort((a, b) => b.sum.m - a.sum.m);   // estimates from old sessions show as dashed chips
+    const slowest = tr.slice(0, 6), fastest = [...tr].reverse().slice(0, 6).filter(r => r.sum.level === 'snel');
     return `
       <div class="kpis">
         <div class="card kpi"><span class="k">Sessies</span><span class="v">${sessions.length}</span><span class="sub">${rounds} rondes · ${duration(study)} geoefend</span></div>
@@ -136,11 +151,37 @@ S.confirm = false;
         <div class="card panel"><div class="panel-head"><h3>Lastigste landen</h3><span class="muted" style="font-size:13px">min. ${MIN_SEEN}× gezien</span></div>${countryList(worst, 'Speel wat meer om hier je lastigste landen te zien.')}</div>
         <div class="card panel"><div class="panel-head"><h3>Beste landen</h3><span class="muted" style="font-size:13px">min. ${MIN_SEEN}× gezien</span></div>${countryList(bestC, 'Nog niet genoeg data.')}</div>
       </div>
+      <div class="card panel"><div class="panel-head"><h3>Op tempo</h3><span class="muted" style="font-size:13px">je tijd t.o.v. je eigen gemiddelde · <button class="linkish" data-tab="land">alles per land</button></span></div><div class="insights">
+        ${insight('Traagste landen', slowest, x => tempoBadge(x.sum, x.sum.skills[0] ? skillLabel(x.sum.skills[0].skill) : x.sum.level, true))}
+        ${insight('Snelste landen', fastest, x => tempoBadge(x.sum, x.sum.level, true))}
+        ${insight('Laatst fout', tr.filter(r => r.sum.err).slice(0, 6), x => tempoBadge(x.sum, skillLabel(x.sum.skills.find(s => s.err).skill), true))}
+      </div></div>
       <div class="card panel"><h3>Inzichten</h3><div class="insights">
         ${insight('Meest geoefend', most, x => `${x.seen}×`)}
         ${insight('Snel maar fout', fastWrong, x => `${pct(x.acc)} · ${secs(x.avgMs)}`)}
         ${insight('Langzaam maar goed', slowGood, x => `${pct(x.acc)} · ${secs(x.avgMs)}`)}
       </div></div>`;
+  }
+
+  // Every country with a tempo score: slowest first, with a chip per skill; the search box filters the rows in place.
+  function tabLand(sessions) {
+    const pc = perCountry(sessions);
+    const rows = tempoRows().sort((a, b) => b.sum.m - a.sum.m);
+    const scope = inScope();
+    const unseen = [...ds.items.keys()].filter(id => (!scope || scope.has(id)) && !tempo.items[`${id}|land>capital`] && !rows.some(r => r.id === id));
+    if (!rows.length) return `<div class="card panel empty"><h3>Nog geen tempo per land</h3><p class="muted">Speel een quiz; elke vorm meet hoe snel je elk land weet, ook in de normale volgorde.</p></div>`;
+    const chip = s => tempoBadge(s, skillLabel(s.skill), true);
+    const row = ({ id, sum }) => `<div class="land-row" data-search="${esc(name(id).toLowerCase())}">${flag(id)}
+        <div class="land-main"><b>${esc(name(id))}</b><span>${pc[id] ? `${pct(pc[id].acc)} goed · ${pc[id].seen}× gezien` : 'niet gespeeld in dit filter'}${sum.legacy ? ' · schatting uit oude sessies' : ''}</span></div>
+        ${tempoBadge(sum)}
+        <div class="skill-chips">${sum.skills.map(chip).join('')}</div>
+      </div>`;
+    const counts = ['traag', 'gemiddeld', 'snel'].map(l => `${rows.filter(r => r.sum.level === l).length} ${l}`).join(' · ');
+    return `<div class="card panel">
+      <div class="panel-head"><h3>Per land</h3><span class="muted" style="font-size:13px">${counts}${unseen.length ? ` · ${unseen.length} nog zonder meting` : ''}</span></div>
+      <div class="land-tools"><input class="kw-search" id="land-search" placeholder="Zoek land…" autocomplete="off" aria-label="Zoek land"><span class="muted" style="font-size:12.5px">Traagste eerst. ×1,0 is je eigen gemiddelde tempo; een gestippelde chip is een schatting uit oude sessies, een rode stip betekent laatst fout.</span></div>
+      <div class="land-rows">${rows.map(row).join('')}</div>
+    </div>`;
   }
 
   function tabWeek(sessions) {
@@ -182,7 +223,7 @@ S.confirm = false;
     prefs.set('landjes_stats_filters', { period: S.period, group: S.group, type: S.type, tab: S.tab });
     const sessions = filtered();
     const lastEnd = history.sessions.filter(s => s.endedAt).map(s => new Date(s.endedAt)).sort((a, b) => b - a)[0];
-    const content = !sessions.length
+    const content = S.tab === 'land' ? tabLand(sessions) : !sessions.length
       ? `<div class="card panel empty"><h3>Nog geen sessies${S.period !== 'all' || S.group || S.type !== 'all' ? ' in dit filter' : ''}</h3><p class="muted">Rond een quiz af of verlaat hem halverwege; elke sessie met minstens één antwoord komt hier.</p></div>`
       : S.tab === 'week' ? tabWeek(sessions) : S.tab === 'continent' ? tabContinent(sessions) : tabAlgemeen(sessions);
     page.innerHTML = `
@@ -197,7 +238,7 @@ S.confirm = false;
         <label class="visually-hidden" for="f-type">Quizvorm</label>
         <select class="select" id="f-type"><option value="all">Alle quizvormen</option>${Object.entries(TYPE_LABEL).filter(([k]) => k !== 'exam').map(([k, t]) => `<option value="${k}" ${S.type === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
         <span style="flex:1"></span>
-        <div class="seg small" role="tablist" aria-label="Weergave">${[['algemeen', 'Algemeen'], ['week', 'Per week'], ['continent', 'Per continent']].map(([k, t]) => `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}" aria-pressed="${S.tab === k}">${t}</button>`).join('')}</div>
+        <div class="seg small" role="tablist" aria-label="Weergave">${[['algemeen', 'Algemeen'], ['land', 'Per land'], ['week', 'Per week'], ['continent', 'Per continent']].map(([k, t]) => `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}" aria-pressed="${S.tab === k}">${t}</button>`).join('')}</div>
       </div>
       ${content}
       <div class="card danger-zone">
@@ -237,6 +278,11 @@ S.confirm = false;
   page.addEventListener('change', e => {
     if (e.target.id === 'f-group') { S.group = e.target.value; render(); }
     if (e.target.id === 'f-type') { S.type = e.target.value; render(); }
+  });
+  page.addEventListener('input', e => {
+    if (e.target.id !== 'land-search') return;
+    const q = e.target.value.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    page.querySelectorAll('.land-row').forEach(r => { r.hidden = !!q && !r.dataset.search.normalize('NFD').replace(/\p{Diacritic}/gu, '').includes(q); });
   });
   render();
 })();

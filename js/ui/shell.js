@@ -68,6 +68,15 @@ export function renderTopbar(el, { current = 'oefenen', dataset = 'world' } = {}
 // Service worker that revalidates every file, so a deploy shows up right away (see sw.js).
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register(siteUrl('sw.js')).catch(() => {});
 
+/** Small chip with how fast you know a country or one skill (js/core/tempo.js countrySummary): level and your time
+ *  relative to your own baseline. A dashed chip is an estimate from old sessions. */
+export function tempoBadge(s, label = s && s.level, small = false) {
+  if (!s) return `<span class="tempo-badge lvl-geen${small ? ' sm' : ''}">nog geen tempo</span>`;
+  const x = `×${s.rel.toFixed(1).replace('.', ',')}`;
+  const tip = `${s.legacy ? 'Schatting uit oude sessies. ' : ''}Tijd ten opzichte van je eigen tempo: ${x}${s.err ? '. Laatste antwoord was fout' : ''}`;
+  return `<span class="tempo-badge lvl-${s.level}${s.legacy ? ' est' : ''}${s.err ? ' had-err' : ''}${small ? ' sm' : ''}" title="${tip}">${label} <b class="tabnum">${x}</b></span>`;
+}
+
 /** localStorage helpers that never throw (private mode, blocked storage). */
 export const prefs = {
   get(key, fallback) { try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch (_) { return fallback; } },

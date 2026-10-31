@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { P, stale, processAnswer, computeNeed, pickNext, newSession, sessionLength, gapFor, encodeItems, decodeItems, mergeTempo, seedFromHistory, skillOf, armOf } from '../js/core/tempo.js';
+import { P, stale, processAnswer, computeNeed, pickNext, newSession, sessionLength, gapFor, encodeItems, decodeItems, mergeTempo, seedFromHistory, skillOf, armOf, levelOf, countrySummary, skillLabel } from '../js/core/tempo.js';
 
 const near = (a, b, eps = 2e-4) => assert.ok(Math.abs(a - b) < eps, `${a} ≠ ${b}`);
 const B = Math.log(1500);
@@ -256,6 +256,39 @@ test('skillOf maps old quiz types and sub types to skills', () => {
   assert.equal(skillOf('mix', 'mega-flag-capital'), 'flag>capital');
   assert.equal(skillOf('capital', 'thompson'), null);
   assert.equal(skillOf('kwartet', 'hint-land'), null);
+});
+
+test('levelOf: fast below -0.2, slow above 0.2, average in between', () => {
+  assert.equal(levelOf(-0.5), 'snel');
+  assert.equal(levelOf(-0.2), 'snel');
+  assert.equal(levelOf(0), 'gemiddeld');
+  assert.equal(levelOf(0.2), 'traag');
+});
+
+test('countrySummary: mean over measured skills, per skill level, relative time and flags', () => {
+  const items = {
+    'DE|land>capital': { m: -0.4, n: 3, day: 100, flags: 0 },
+    'DE|flag>land': { m: 0.6, n: 1, day: 99, flags: 1 },
+    'DE|map>land': { m: 0, n: 0, day: null, flags: 0 },
+    'FR|land>capital': { m: 0.1, n: 2, day: 100, flags: 8 }
+  };
+  const de = countrySummary(items, 'DE');
+  near(de.m, 0.1); near(de.n, 4); assert.equal(de.level, 'gemiddeld'); assert.equal(de.legacy, false);
+  assert.deepEqual(de.skills.map(s => s.skill), ['flag>land', 'land>capital']);   // slowest first
+  assert.equal(de.skills[0].level, 'traag'); assert.equal(de.skills[0].err, true);
+  near(de.skills[1].rel, Math.exp(-0.4));
+  assert.equal(countrySummary(items, 'FR').legacy, true);
+  assert.equal(countrySummary(items, 'NL'), null);
+});
+
+test('skillLabel gives readable Dutch names', () => {
+  assert.equal(skillLabel('land>capital'), 'Hoofdstad');
+  assert.equal(skillLabel('flag>land'), 'Vlag');
+  assert.equal(skillLabel('map>land'), 'Kaart');
+  assert.equal(skillLabel('land>map'), 'Zoek op kaart');
+  assert.equal(skillLabel('capital>map'), 'Hoofdstad op kaart');
+  assert.equal(skillLabel('outline>land'), 'Omtrek');
+  assert.equal(skillLabel('flag>capital'), 'Vlag → hoofdstad');
 });
 
 test('seedFromHistory caps the legacy weight at n = 1.5', () => {

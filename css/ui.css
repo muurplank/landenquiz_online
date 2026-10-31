@@ -433,6 +433,45 @@ button { cursor: pointer; }
 .choice[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
 .choice[aria-checked="true"]::after { border: 5px solid var(--accent); background: var(--surface); }
 .choice[aria-disabled="true"] { opacity: .5; cursor: not-allowed; border-style: dashed; }
+/* A choice card with a small "i" in its corner (Op tempo); the card fills the grid cell, the "i" sits below the text. */
+.choice-wrap { position: relative; display: grid; }
+.choice-wrap > .choice { width: 100%; height: 100%; box-sizing: border-box; padding-bottom: 34px; }
+.info-btn {
+  position: absolute; right: 10px; bottom: 9px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong);
+  background: var(--surface); color: var(--muted); font: 600 11px/1 var(--font-mono); display: grid; place-items: center; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.info-btn:hover, .info-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+.order-info { padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13.5px; line-height: 1.5; display: grid; gap: 8px; }
+.order-info ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.order-info li { color: var(--muted); }
+
+/* Tempo chips: how fast you know a country or skill, relative to your own baseline (see js/ui/shell.js tempoBadge). */
+.tempo-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--surface-3); color: var(--muted); white-space: nowrap; line-height: 1.3; }
+.tempo-badge b { font-weight: 700; }
+.tempo-badge.lvl-snel { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.tempo-badge.lvl-gemiddeld { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.tempo-badge.lvl-traag { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.tempo-badge.lvl-geen { font-weight: 500; }
+.tempo-badge.est { border: 1px dashed currentColor; background: transparent; }
+.tempo-badge.had-err::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+.tempo-badge.sm { font-size: 11.5px; padding: 2px 8px; }
+.skill-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.clist li:has(.tempo-badge) { grid-template-columns: 30px minmax(0, 1fr) auto; }
+.linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
+.done-countries { width: 100%; max-width: 520px; margin: 4px auto 0; display: grid; gap: 8px; text-align: left; }
+.done-countries h3 { font-size: 15px; }
+.done-countries .speed-list { max-width: none; }
+.done-countries .speed-list .nm { font-weight: 500; }
+.done-countries .res { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.land-rows { display: grid; }
+.land-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.land-row .flag { width: 30px; height: 20px; object-fit: contain; }
+.land-row .land-main { display: grid; min-width: 0; }
+.land-row .land-main span { font-size: 12.5px; color: var(--muted); }
+.land-row .skill-chips { grid-column: 2 / -1; }
+.land-row[hidden] { display: none; }
+.land-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.land-tools .kw-search { flex: 1; min-width: 180px; }
 .inline-matrix { padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }
 .inline-matrix .mrow { grid-template-columns: 130px minmax(0, 1fr); }
 .kw-explain { display: grid; gap: 12px; }

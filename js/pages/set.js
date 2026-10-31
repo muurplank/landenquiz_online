@@ -1,10 +1,10 @@
 // Set page (one week, region, continent or custom selection):
 // quiz picker on top, "Bekijken en leren" with the map below.
 import { loadDataset, getGroup, shortTitle, groupLabel, siteUrl } from '../core/data.js';
-import { groupProgress } from '../core/store.js';
-import { sessionLength } from '../core/tempo.js';
+import { groupProgress, loadTempo } from '../core/store.js';
+import { sessionLength, countrySummary, skillLabel } from '../core/tempo.js';
 import { escapeHtml as esc } from '../core/text.js';
-import { renderTopbar, I, prefs } from '../ui/shell.js';
+import { renderTopbar, I, prefs, tempoBadge } from '../ui/shell.js';
 
 const params = Object.fromEntries(new URLSearchParams(location.search));
 const page = document.getElementById('page');
@@ -82,6 +82,13 @@ function render(ds, group) {
   const ids = group.countries.filter(id => ds.items.has(id));
   const items = ids.map(id => ds.items.get(id)).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
   const prog = groupProgress(group.id, ids);
+  const tempo = loadTempo();
+  // How fast you know each country, with the skills in the tooltip (slowest first).
+  const tempoCell = it => {
+    const s = countrySummary(tempo.items, it.id);
+    const tip = s ? s.skills.map(k => `${skillLabel(k.skill)}: ${k.level} ×${k.rel.toFixed(1).replace('.', ',')}`).join(' · ') : 'Nog geen tempo gemeten';
+    return `<span title="${esc(tip)}">${tempoBadge(s, s ? s.level : undefined, true)}</span>`;
+  };
   const oceania = group.continent === 'Oceania';
   const list = subjects(ds, oceania);
   const saved = prefs.get(PICKER_KEY, {});
@@ -120,7 +127,7 @@ function render(ds, group) {
         </div>
         <div class="list-side">
           <div class="search">${I.search}<label class="visually-hidden" for="lsearch">Zoek</label><input id="lsearch" placeholder="Zoek ${esc(ds.noun.one)} of hoofdstad…" autocomplete="off"></div>
-          <ul class="clist" id="clist">${items.map(it => `<li data-id="${it.id}" data-search="${esc(fold(it.name + ' ' + it.answers.join(' ')))}"><img class="flag" src="${it.flag}" alt="" width="30" height="20" loading="lazy"><div><div class="nm">${esc(it.name)}</div><div class="cap">${esc(it.answers.join(', '))}</div></div></li>`).join('')}</ul>
+          <ul class="clist" id="clist">${items.map(it => `<li data-id="${it.id}" data-search="${esc(fold(it.name + ' ' + it.answers.join(' ')))}"><img class="flag" src="${it.flag}" alt="" width="30" height="20" loading="lazy"><div><div class="nm">${esc(it.name)}</div><div class="cap">${esc(it.answers.join(', '))}</div></div>${tempoCell(it)}</li>`).join('')}</ul>
         </div>
       </div>
     </section>`;
@@ -145,6 +152,18 @@ function render(ds, group) {
     if (S.infinite) q.set('infinite', '1');
     return siteUrl('quiz.html?' + q);
   }
+  // Questions per tempo session: 1.5 per country, doubled with two or more skills (see js/core/tempo.js).
+  const tempoQ = (subj, c) => sessionLength(ids.length, c.dir === 'both' || subj.k === 'mix' ? 2 : 1);
+  const tempoInfo = (subj, c) => `<div class="order-info" id="order-info">
+      <b>Op tempo</b> is voor als je alles eigenlijk al goed hebt.
+      <ul>
+        <li>Per ${esc(ds.noun.one)} en per vaardigheid (vlag, hoofdstad, kaart, omtrek) houdt de app bij hoe snel je antwoordt, vergeleken met je eigen tempo bij dezelfde soort vraag.</li>
+        <li>Wat je traag weet komt tot 5× zo vaak, wat je snel weet blijft meedoen. Een fout komt na drie vragen terug, en wat je vier weken niet zag komt vanzelf voorbij.</li>
+        <li>Je ziet geen klok. Een tijd telt alleen als de spiekbrief dicht is en het tabblad in beeld; bij zelf beoordelen telt de tijd tot je het antwoord toont.</li>
+        <li>De score groeit in elke volgorde, ook bij Normaal, en gaat mee naar je andere apparaten als je bent ingelogd.</li>
+        <li>Een sessie stopt na ${tempoQ(subj, c)} vragen. Liever morgen nog een dan nu doorgaan.</li>
+      </ul>
+    </div>`;
   function renderPicker() {
     const subj = list.find(x => x.k === S.subj);
     fix(subj);
@@ -170,7 +189,12 @@ function render(ds, group) {
           const dis = rule ? rule(c) : {};
           return `<div class="step">
             <div class="step-label"><span class="n">${si + 1}</span>${label}</div>
-            <div class="choices" role="radiogroup" aria-label="${esc(label)}">${opts.map(([v, t, d]) => `<button class="choice" role="radio" data-choice="${key}:${v}" aria-checked="${c[key] === v}" ${dis[v] ? `aria-disabled="true" title="${esc(dis[v])}"` : ''}><b>${esc(t)}</b><span>${esc(dis[v] || d)}</span></button>`).join('')}</div>
+            <div class="choices" role="radiogroup" aria-label="${esc(label)}">${opts.map(([v, t, d]) => {
+              const btn = `<button class="choice" role="radio" data-choice="${key}:${v}" aria-checked="${c[key] === v}" ${dis[v] ? `aria-disabled="true" title="${esc(dis[v])}"` : ''}><b>${esc(t)}</b><span>${esc(dis[v] || d)}</span></button>`;
+              // The tempo card gets a small "i" that unfolds an explanation below the choices.
+              return key === 'order' && v === 'tempo' ? `<div class="choice-wrap">${btn}<button class="info-btn" type="button" data-info aria-expanded="${!!S.info}" aria-controls="order-info" aria-label="Uitleg over Op tempo">i</button></div>` : btn;
+            }).join('')}</div>
+            ${key === 'order' && S.info ? tempoInfo(subj, c) : ''}
             ${key === 'mix' && c.mix === 'own' ? `<div class="matrix inline-matrix">${mixMatrix()}</div>` : ''}
           </div>`;
         }).join('')}
@@ -180,7 +204,7 @@ function render(ds, group) {
           </label>`}
           <div class="summary"><b>${esc(subj.t + (summary.length ? ' · ' + summary.join(' · ') : ''))}</b>${subj.k === 'snel' ? 'Stopt als je traagste ' + esc(ds.noun.many) + ' snel gaan'
             : S.infinite ? (c.order === 'tempo' ? 'Stopt niet, blijft op tempo vragen' : 'Stopt niet als alles goed is')
-            : c.order === 'tempo' ? `Stopt na ${sessionLength(ids.length, c.dir === 'both' || subj.k === 'mix' ? 2 : 1)} vragen` : 'Stopt als je alles goed hebt'}</div>
+            : c.order === 'tempo' ? `Stopt na ${tempoQ(subj, c)} vragen` : 'Stopt als je alles goed hebt'}</div>
           <a class="btn primary lg" id="start" href="${ownEmpty ? '#' : quizUrl(subj)}" ${ownEmpty ? 'aria-disabled="true" style="opacity:.45;pointer-events:none"' : ''}>Start ${I.arrow}</a>
         </div>
       </div>`;
@@ -192,6 +216,7 @@ function render(ds, group) {
   picker.addEventListener('click', e => {
     const t = e.target;
     const s = t.closest('[data-subj]'); if (s) { S.subj = s.dataset.subj; save(); renderPicker(); return; }
+    if (t.closest('[data-info]')) { S.info = !S.info; renderPicker(); picker.querySelector('[data-info]').focus(); return; }
     const ch = t.closest('[data-choice]');
     if (ch) { if (ch.getAttribute('aria-disabled') === 'true') return; const [k, v] = ch.dataset.choice.split(':'); S.cfg[S.subj][k] = v; save(); renderPicker(); return; }
     const m = t.closest('[data-mix]'); if (m) { const k = m.dataset.mix; S.mix.has(k) ? S.mix.delete(k) : S.mix.add(k); save(); renderPicker(); return; }
