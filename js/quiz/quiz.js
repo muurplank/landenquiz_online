@@ -1,7 +1,7 @@
 // Quiz page: one layout for every quiz type. The mode module fills the question card;
 // this file owns the header, session stats, cheat sheet, keyboard and end screen.
 //
-// URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet|history|outline|alles&dir=a|b|both
+// URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet|history|outline|alles|snel&dir=a|b|both
 //      &ans=self|type|pick|click&order=deck|smart&infinite=1&mix=std|mega|own&custom=a,b
 
 import { loadDataset, getGroup, shortTitle, siteUrl } from '../core/data.js';
@@ -20,7 +20,8 @@ const MODE_LOADERS = {
   kwartet: () => import('./kwartet.js'),
   history: () => import('./history.js'),
   outline: () => import('./outline.js'),
-  alles: () => import('./allesofniets.js')
+  alles: () => import('./allesofniets.js'),
+  snel: () => import('./speed.js')
 };
 
 renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: params.dataset || 'world' });

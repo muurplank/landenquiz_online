@@ -1040,3 +1040,21 @@ a.world-card { color: var(--text); }
 .chain-learn .a { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1.1; }
 .chain-learn .c { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .outline-ans { display: flex; align-items: center; gap: 12px; text-align: left; }
+.speed-card .quiz-map { width: 100%; }
+.speed-card .qgiven { margin-top: 0; }
+.speed-bar { width: 100%; height: 7px; margin-top: -10px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.speed-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transform-origin: left; animation: speed-drain 10s linear forwards; }
+@keyframes speed-drain { from { transform: scaleX(1); } to { transform: scaleX(0); background: var(--danger); } }
+.speed-time { font-size: clamp(44px, 9vw, 64px); line-height: 1; }
+.speed-up { color: var(--success); }
+.speed-miss { color: var(--danger); font-weight: 600; }
+.speed-done h3 { font-size: 17px; margin-top: 6px; }
+.speed-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 420px; margin: 0; }
+.speed-facts div { padding: 10px; border: 1px solid var(--border); border-radius: 14px; }
+.speed-facts dt { font-size: 12.5px; color: var(--muted); }
+.speed-facts dd { margin: 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.speed-list { list-style: none; margin: 0; padding: 0; display: grid; width: 100%; max-width: 420px; text-align: left; }
+.speed-list li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.speed-list .flag { width: 30px; height: 20px; object-fit: contain; flex: none; }
+.speed-list .nm { flex: 1; min-width: 0; font-weight: 600; }
+.speed-done .qactions { max-width: 420px; }

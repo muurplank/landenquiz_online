@@ -12,6 +12,7 @@ const PICKER_KEY = 'landjes_picker_v2';
 const LEARN_KEY = 'landjes_oefenen_collapsed';    // same key as the old group page: {groupId: true}
 const OUTLINE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l5 2 4-1 3 4-1 4 2 3-4 4-5-1-3 2-3-4 1-4-2-4z"/></svg>';
 const CHAIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/></svg>';
+const SPEED_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="8"/><path d="M12 10v4l2.5 2M9.5 2h5M12 2v4"/></svg>';
 const HISTORY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h12v16H6a2 2 0 00-2 2V5z"/><path d="M4 19a2 2 0 002 2h12M9 7h5M9 11h5"/></svg>';
 
 renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: params.dataset || 'world' });
@@ -50,6 +51,9 @@ function subjects(ds, oceania) {
       ['ans', 'Hoe antwoord je?', ans], ['order', 'In welke volgorde?', ord]] },
     { k: 'alles', svg: CHAIN_ICON, t: 'Alles of niets', d: `Vier vragen achter elkaar over ${N.the} ${l}: naam, hoofdstad, vlag en plek op de kaart. Eén fout en ${N.the} ${l} komt later terug.`, steps: [
       ['ans', 'Hoe antwoord je?', [['self', 'Zelf beoordelen', 'Antwoord tonen, dan zeg je of je het wist'], ['type', 'Typen', 'Typ naam en hoofdstad, kies de vlag, klik op de kaart']]], ['order', 'In welke volgorde?', ord]] },
+    { k: 'snel', svg: SPEED_ICON, t: 'Snelheidstest', d: `Voor wat je al weet, maar sneller wilt weten. Je typt tegen de klok en traint daarna je traagste ${N.many}.`, steps: [
+      ['dir', 'Wat wil je sneller weten?', [['map', `Kaart → ${l}`, `Er licht een ${l} op, jij typt de naam`], ['capital', `${L} → hoofdstad`, `Je ziet ${N.the} ${l}, jij typt de hoofdstad`], ['flag', `Vlag → ${l}`, `Je ziet de vlag, jij typt ${N.the} ${l}`], ['outline', `Omtrek → ${l}`, `Je ziet de vorm, jij typt ${N.the} ${l}`], ['mix', 'Door elkaar', 'Alle vier gemengd, zo ken je het op elke manier']]],
+      ['ans', 'Hoe wil je oefenen?', [['test', 'Test en trainen', `${N.every} ${l} één keer op tijd, daarna train je de traagste`], ['train', 'Alleen trainen', `Meteen de ${N.many} die vorige keer traag waren`]]]] },
     { k: 'kwartet', icon: 'cards', t: 'Kwartet', d: `Kaart, ${l}, hoofdstad en vlag bij elkaar zoeken.`, steps: [] },
     { k: 'mix', icon: 'shuffle', t: 'Mix', d: 'Hoofdstad, vlag en kaart door elkaar.', steps: [
       ['mix', 'Welke mix?', [['std', 'Standaard', 'Hoofdstad-, vlag- en kaartvragen'], ['mega', 'Mega mix', 'Ook kruisvragen, zoals vlag → hoofdstad'], ['own', 'Zelf samenstellen', 'Kies precies welke vraagtypen']]]] },
@@ -78,7 +82,7 @@ function render(ds, group) {
   const saved = prefs.get(PICKER_KEY, {});
   const S = {
     subj: list.some(s => s.k === saved.subj) ? saved.subj : 'capital',
-    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, outline: { ans: 'self', order: 'deck' }, alles: { ans: 'self', order: 'deck' }, kwartet: {}, mix: { mix: 'std' }, history: { dir: 'ask', combi: 'mix', order: 'deck' } }, saved.cfg || {}),
+    cfg: Object.assign({ capital: { dir: 'a', ans: 'self', order: 'deck' }, flag: { dir: 'a', ans: 'self', order: 'deck' }, map: { dir: 'a', ans: 'self' }, outline: { ans: 'self', order: 'deck' }, alles: { ans: 'self', order: 'deck' }, snel: { dir: 'map', ans: 'test' }, kwartet: {}, mix: { mix: 'std' }, history: { dir: 'ask', combi: 'mix', order: 'deck' } }, saved.cfg || {}),
     mix: new Set(saved.mixTypes || []),
     infinite: readInfinite()
   };
@@ -165,10 +169,10 @@ function render(ds, group) {
             <p class="muted">Je krijgt er één van de vier. Zoek de andere drie die erbij horen.</p>
           </div>`}
         <div class="cfg-foot">
-          <label class="switch" title="De quiz stopt niet als je alles goed hebt, maar blijft vragen stellen.">
+          ${subj.k === 'snel' ? '' : `<label class="switch" title="De quiz stopt niet als je alles goed hebt, maar blijft vragen stellen.">
             <input type="checkbox" id="infinite" ${S.infinite ? 'checked' : ''}><span class="track"></span><span>Oneindig</span>
-          </label>
-          <div class="summary"><b>${esc(subj.t + (summary.length ? ' · ' + summary.join(' · ') : ''))}</b>${S.infinite ? 'Stopt niet als alles goed is' : 'Stopt als je alles goed hebt'}</div>
+          </label>`}
+          <div class="summary"><b>${esc(subj.t + (summary.length ? ' · ' + summary.join(' · ') : ''))}</b>${subj.k === 'snel' ? 'Stopt als je traagste ' + esc(ds.noun.many) + ' snel gaan' : S.infinite ? 'Stopt niet als alles goed is' : 'Stopt als je alles goed hebt'}</div>
           <a class="btn primary lg" id="start" href="${ownEmpty ? '#' : quizUrl(subj)}" ${ownEmpty ? 'aria-disabled="true" style="opacity:.45;pointer-events:none"' : ''}>Start ${I.arrow}</a>
         </div>
       </div>`;
