@@ -216,7 +216,7 @@ function run(ds, group, mode) {
   function doneCountries() {
     const rows = ids.filter(id => engine.stats[id].seen_count)
       .map(id => ({ id, st: engine.stats[id], sum: countrySummary(engine.tempo.items, id) }))
-      .sort((a, b) => (b.st.incorrect_count - a.st.incorrect_count) || ((b.sum ? b.sum.m : 0) - (a.sum ? a.sum.m : 0)));
+      .sort((a, b) => (b.st.incorrect_count - a.st.incorrect_count) || ((b.sum ? b.sum.est : 0) - (a.sum ? a.sum.est : 0)));
     if (!rows.length) return '';
     const li = ({ id, st, sum }) => {
       const it = ds.items.get(id);

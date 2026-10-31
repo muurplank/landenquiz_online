@@ -23,6 +23,8 @@ export const P = {
   minMs: 250, maxMs: 15000,
   ceilRatio: 1.15, ceilMin: 30, p10Keep: 50,
   legacyMax: 1.5, // old, impure measurements never weigh more than this
+  seedW: 0.3,     // weight of one old measurement in the seed
+  selfDirectW: 0.4, // a self-rated "good" without revealing is unverified
   control: false  // evaluation: arm 1 pairs drawn uniformly (off until there is a baseline)
 };
 const LAMBDA = Math.log(P.R) / 2;
@@ -54,12 +56,16 @@ const streakOf = it => (it.flags >> STREAK_SHIFT) & 3;
 const setStreak = (it, s) => { it.flags = (it.flags & ~(3 << STREAK_SHIFT)) | (s << STREAK_SHIFT); };
 const setBucket = n => (n <= 12 ? 'S' : n <= 30 ? 'M' : n <= 60 ? 'L' : 'XL');
 
+// Revealing and rating directly are the same recall up to the key press, so they share a baseline:
+// people reveal mostly on hard countries, and a baseline of only those would make them look normal.
+const baseMode = ev => (ev.answerMode === 'self_reveal' || ev.answerMode === 'self_direct' ? 'self' : ev.answerMode);
+
 /** Lists are bucketed by their length, clicking on the map by the size of the set (what is in view is unstable). */
 export function ctxKey(ev) {
   const bucket = ev.answerMode === 'list' ? `|${setBucket(ev.k || ev.setSize || 0)}` : ev.answerMode === 'click' ? `|${setBucket(ev.setSize || 0)}` : '';
-  return `${ev.answerMode}|${ev.skill}|${ev.device}${bucket}`;
+  return `${baseMode(ev)}|${ev.skill}|${ev.device}${bucket}`;
 }
-const fallbackKey = ev => `${ev.answerMode}|${ev.device}`;
+const fallbackKey = ev => `${baseMode(ev)}|${ev.device}`;
 
 /** Baseline ln(RT) for this answer: the full context once it has enough data, else answerMode × device,
  *  else the mean of what the context saw so far including this answer (so the first residuals are ~0). */
@@ -100,6 +106,13 @@ export function countryMean(items, country) {
  */
 export function processAnswer(ev, items, baselines, session, today = dayOf()) {
   const key = keyOf(ev.country, ev.skill);
+  // A key or click within 250 ms of the question is a mis-press, right or wrong: book nothing,
+  // only keep the country from coming straight back. The next ask still counts as cold.
+  if (ev.answerMode !== 'none' && ev.rtMs != null && ev.rtMs < P.minMs) {
+    session.lastCountryTrial.set(ev.country, session.trial);
+    session.trial++;
+    return items[key] || null;
+  }
   const it = items[key] || { m: 0, n: 0, day: null, flags: 0 };
   const cold = !session.lastTrial.has(key);
   const correct = !!ev.correct && !ev.confusable;
@@ -116,7 +129,7 @@ export function processAnswer(ev, items, baselines, session, today = dayOf()) {
     if (ev.distKm != null && ev.distKm > 50) r += 0.3 * Math.min(1, (ev.distKm - 50) / 200);
     r = Math.min(r, P.rErr);
     w = ev.wForm ?? FORM_W[ev.answerMode] ?? 0;
-    if (ev.answerMode === 'self_direct') w *= 0.4;
+    if (ev.answerMode === 'self_direct') w *= P.selfDirectW;
     if (ev.k > 1 && (ev.answerMode === 'mc' || ev.answerMode === 'list')) w *= 1 - 1 / ev.k;
     const ceil = ceilingMs(baselines, ev);
     updateBaseline(baselines, ev, lnRt, cold);
@@ -213,15 +226,20 @@ export function skillLabel(skill) {
   return `${from[0].toUpperCase() + from.slice(1)} → ${PART[b] || b}`;
 }
 
-/** How well you know a country: the mean over its measured skills, slowest skill first; null when nothing is measured.
- *  `rel` is your time relative to your own baseline (×0,8 = faster than usual), `legacy` = only estimated from old sessions. */
+/** How well you know a country, slowest skill first; null when nothing is measured.
+ *  `m` is the model's cautious mean (pulled towards 0 while there are few measurements) and drives the order;
+ *  `est` is what the measurements themselves say (the update behaves like a mean with one prior measurement, so
+ *  m·(n+1)/n), and that is what `level` and `rel` (your time relative to your own baseline, ×0,8 = faster) show.
+ *  `legacy` = only estimated from old sessions. */
 export function countrySummary(items, country) {
+  const estOf = it => clip(it.m * (it.n + 1) / it.n, -1.2, 1.2);
   const skills = Object.entries(items).filter(([k, it]) => k.startsWith(country + '|') && it.n > 0)
-    .map(([k, it]) => ({ skill: parseKey(k).skill, m: it.m, n: it.n, rel: Math.exp(it.m), level: levelOf(it.m), err: !!(it.flags & FLAG_ERR), legacy: isLegacy(it) }))
-    .sort((a, b) => b.m - a.m);
+    .map(([k, it]) => { const est = estOf(it); return { skill: parseKey(k).skill, m: it.m, n: it.n, est, rel: Math.exp(est), level: levelOf(est), err: !!(it.flags & FLAG_ERR), legacy: isLegacy(it) }; })
+    .sort((a, b) => b.est - a.est);
   if (!skills.length) return null;
-  const m = skills.reduce((s, x) => s + x.m, 0) / skills.length;
-  return { m, n: skills.reduce((s, x) => s + x.n, 0), rel: Math.exp(m), level: levelOf(m), legacy: skills.every(s => s.legacy), err: skills.some(s => s.err), skills };
+  const mean = f => skills.reduce((s, x) => s + f(x), 0) / skills.length;
+  const est = mean(x => x.est);
+  return { m: mean(x => x.m), est, n: skills.reduce((s, x) => s + x.n, 0), rel: Math.exp(est), level: levelOf(est), legacy: skills.every(s => s.legacy), err: skills.some(s => s.err), skills };
 }
 
 /* ---------- Storage ---------- */
@@ -270,6 +288,7 @@ export function seedFromHistory(history, today = dayOf()) {
         if (!skill) continue;
         const ok = e.result === 'correct';
         if (ok && seen) continue;
+        if (!ok && e.responseTimeMs < P.minMs) continue;   // a mis-press, not a mistake
         seen = seen || ok;
         rows.push({ country, skill, ok, ms: e.responseTimeMs, ctx: `${e.quizType || s.quizType}|${e.subType || s.subMode}`, t: Date.parse(e.timestamp || s.startedAt) || 0 });
       }
@@ -288,7 +307,7 @@ export function seedFromHistory(history, today = dayOf()) {
     const it = items[key] || (items[key] = { m: 0, n: 0, day: null, flags: FLAG_LEGACY });
     const day = dayOf(r.t);
     const rAdj = rr - (it.day == null ? 0 : stale(day - it.day));
-    const w = 0.3, a = Math.max(1 / (it.n + P.n0), P.aMin);
+    const w = P.seedW, a = Math.max(1 / (it.n + P.n0), P.aMin);
     it.m += a * w * (rAdj - it.m);
     it.n = Math.min(P.legacyMax, it.n + w);
     it.day = day;

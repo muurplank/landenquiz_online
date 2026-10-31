@@ -68,7 +68,7 @@ test('tempo: a chain of steps books every step on its own skill (Alles of niets,
   const id = engine.next();
   engine.answer(false, { steps: [
     { skill: 'outline>land', correct: true, answerMode: 'typed', rtMs: 1500, wForm: 0.6 },
-    { skill: 'land>capital', correct: false, answerMode: 'typed', wForm: 0.6 }
+    { skill: 'land>capital', correct: false, answerMode: 'typed', rtMs: 2000, wForm: 0.6 }
   ] });
   assert.ok(tempo.items[`${id}|outline>land`].n > 0);
   assert.equal(tempo.items[`${id}|land>capital`].flags & 1, 1);

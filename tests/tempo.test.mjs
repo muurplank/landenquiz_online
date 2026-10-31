@@ -75,16 +75,35 @@ test('hidden tab: the time is thrown away, only the session state moves', () => 
   near(base[CTX].B, B);
 });
 
-test('cheat sheet open or an anticipation (< 250 ms) also drops the time, but a mistake still counts', () => {
+test('cheat sheet open drops the time, but a mistake still counts', () => {
   const items = {};
-  processAnswer(typed('DE', 200), items, fixedBase(), newSession(10), 100);
+  processAnswer(typed('DE', 3000, { cheatOpen: true }), items, fixedBase(), newSession(10), 100);
   assert.equal(items['DE|land>capital'].n, 0);
   processAnswer(typed('DE', 3000, { cheatOpen: true, correct: false }), items, fixedBase(), newSession(10), 100);
   near(items['DE|land>capital'].m, 0.6);
 });
 
+test('an answer within 250 ms is a mis-press: nothing is booked, not even a mistake, and the country is not asked straight away', () => {
+  const items = {}, session = newSession(10);
+  processAnswer({ country: 'DE', skill: 'land>capital', answerMode: 'self_direct', device: 'fine', correct: false, rtMs: 150, tMs: 0 }, items, fixedBase(), session, 100);
+  assert.equal(items['DE|land>capital'], undefined);
+  assert.deepEqual(session.errQueue, []);
+  assert.equal(session.trial, 1);
+  assert.equal(session.lastCountryTrial.get('DE'), 0);
+  assert.equal(session.lastTrial.has('DE|land>capital'), false);   // the next real ask is still a cold measurement
+});
+
+test('revealing and rating directly share one baseline, so revealing only on hard countries cannot hide that they are slow', () => {
+  const base = {};
+  for (let i = 0; i < 6; i++) processAnswer({ country: `c${i}`, skill: 'land>capital', answerMode: 'self_direct', device: 'fine', correct: true, rtMs: 1500, tMs: 0 }, {}, base, newSession(10), 100);
+  const it = processAnswer({ country: 'KN', skill: 'land>capital', answerMode: 'self_reveal', device: 'fine', correct: true, rtMs: 4500, tMs: 0 }, {}, base, newSession(10), 100);
+  assert.ok(it.m > 0.3, `m=${it.m}`);
+  assert.equal(base['self_reveal|land>capital|fine'], undefined);
+  assert.equal(base['self|land>capital|fine'].n, 7);
+});
+
 test('self-rated "good" without revealing weighs 0.4, multiple choice is corrected for guessing', () => {
-  const base = { 'self_direct|flag>land|fine': { B, n: 100 }, 'mc|alles|fine': { B, n: 100 } };
+  const base = { 'self|flag>land|fine': { B, n: 100 }, 'mc|alles|fine': { B, n: 100 } };
   const a = processAnswer({ country: 'DE', skill: 'flag>land', answerMode: 'self_direct', device: 'fine', correct: true, rtMs: 1500, tMs: 0 }, {}, base, newSession(10), 100);
   near(a.n, 0.7 * 0.4);
   const b = processAnswer({ country: 'DE', skill: 'alles', answerMode: 'mc', device: 'fine', k: 4, correct: true, rtMs: 1500, tMs: 0 }, {}, base, newSession(10), 100);
@@ -94,7 +113,7 @@ test('self-rated "good" without revealing weighs 0.4, multiple choice is correct
 test('a new skill of a known country starts at half the country mean', () => {
   const items = {};
   processAnswer(typed('FR', 3500, { editDist: 1 }), items, fixedBase(), newSession(10), 100);
-  const it = processAnswer({ ...typed('FR', 1500), skill: 'flag>land', answerMode: 'self_reveal' }, items, { 'self_reveal|flag>land|fine': { B, n: 100 } }, newSession(10), 100);
+  const it = processAnswer({ ...typed('FR', 1500), skill: 'flag>land', answerMode: 'self_reveal' }, items, { 'self|flag>land|fine': { B, n: 100 } }, newSession(10), 100);
   // m0 = 0.5 * 0.5163; alpha 0.5; w 0.7; r 0
   near(it.m, 0.25815 + 0.5 * 0.7 * (0 - 0.25815));
 });
@@ -265,7 +284,7 @@ test('levelOf: fast below -0.2, slow above 0.2, average in between', () => {
   assert.equal(levelOf(0.2), 'traag');
 });
 
-test('countrySummary: mean over measured skills, per skill level, relative time and flags', () => {
+test('countrySummary: level and relative time show what the measurements say (without the prior), slowest skill first', () => {
   const items = {
     'DE|land>capital': { m: -0.4, n: 3, day: 100, flags: 0 },
     'DE|flag>land': { m: 0.6, n: 1, day: 99, flags: 1 },
@@ -273,12 +292,20 @@ test('countrySummary: mean over measured skills, per skill level, relative time 
     'FR|land>capital': { m: 0.1, n: 2, day: 100, flags: 8 }
   };
   const de = countrySummary(items, 'DE');
-  near(de.m, 0.1); near(de.n, 4); assert.equal(de.level, 'gemiddeld'); assert.equal(de.legacy, false);
-  assert.deepEqual(de.skills.map(s => s.skill), ['flag>land', 'land>capital']);   // slowest first
+  near(de.m, 0.1); near(de.n, 4); assert.equal(de.legacy, false);
+  assert.deepEqual(de.skills.map(s => s.skill), ['flag>land', 'land>capital']);
+  near(de.skills[1].est, -0.4 * 4 / 3); near(de.skills[1].rel, Math.exp(-0.4 * 4 / 3)); assert.equal(de.skills[1].level, 'snel');
+  near(de.skills[0].est, 1.2);   // one slow measurement, capped
   assert.equal(de.skills[0].level, 'traag'); assert.equal(de.skills[0].err, true);
-  near(de.skills[1].rel, Math.exp(-0.4));
+  near(de.est, (1.2 - 0.4 * 4 / 3) / 2); assert.equal(de.level, 'traag'); near(de.rel, Math.exp(de.est));
   assert.equal(countrySummary(items, 'FR').legacy, true);
   assert.equal(countrySummary(items, 'NL'), null);
+});
+
+test('countrySummary: a single legacy measurement of a slow country is shown as slow', () => {
+  // seeded: one old measurement of r = 1.0 at weight 0.3 gives m = 0.15, n = 0.3
+  const s = countrySummary({ 'GD|land>capital': { m: 0.15, n: 0.3, day: 100, flags: 8 } }, 'GD');
+  assert.equal(s.level, 'traag'); assert.equal(s.legacy, true);
 });
 
 test('skillLabel gives readable Dutch names', () => {
@@ -289,6 +316,14 @@ test('skillLabel gives readable Dutch names', () => {
   assert.equal(skillLabel('capital>map'), 'Hoofdstad op kaart');
   assert.equal(skillLabel('outline>land'), 'Omtrek');
   assert.equal(skillLabel('flag>capital'), 'Vlag → hoofdstad');
+});
+
+test('seedFromHistory ignores mistakes given within 250 ms (mis-presses)', () => {
+  const ev = (ms, r) => ({ timestamp: '2026-10-10T10:00:01Z', quizType: 'map', subType: 'snelle', result: r, responseTimeMs: ms });
+  const items = seedFromHistory({ sessions: [{ quizType: 'map', subMode: 'snelle', startedAt: '2026-10-10T10:00:00Z', endedAt: 'x',
+    perCountryStats: { HN: { events: [ev(130, 'incorrect')] }, VE: { events: [ev(1320, 'incorrect')] } } }] }, 100);
+  assert.equal(items['HN|map>land'], undefined);
+  assert.equal(items['VE|map>land'].flags & 1, 1);
 });
 
 test('seedFromHistory caps the legacy weight at n = 1.5', () => {

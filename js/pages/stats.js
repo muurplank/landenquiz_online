@@ -131,7 +131,7 @@ S.confirm = false;
     const fastWrong = two.filter(x => x.acc < .5 && x.avgMs).sort((a, b) => a.avgMs - b.avgMs).slice(0, 5);
     const slowGood = two.filter(x => x.acc >= .7 && x.avgMs).sort((a, b) => b.avgMs - a.avgMs).slice(0, 5);
     const insight = (t, arr, f) => `<div class="insight"><h4>${t}</h4>${arr.length ? `<ul>${arr.map(x => `<li>${flag(x.id)}<span>${esc(name(x.id))}</span><span class="muted">${f(x)}</span></li>`).join('')}</ul>` : '<p class="muted">Nog niets</p>'}</div>`;
-    const tr = tempoRows().sort((a, b) => b.sum.m - a.sum.m);   // estimates from old sessions show as dashed chips
+    const tr = tempoRows().sort((a, b) => b.sum.est - a.sum.est);   // estimates from old sessions show as dashed chips
     const slowest = tr.slice(0, 6), fastest = [...tr].reverse().slice(0, 6).filter(r => r.sum.level === 'snel');
     return `
       <div class="kpis">
@@ -166,7 +166,7 @@ S.confirm = false;
   // Every country with a tempo score: slowest first, with a chip per skill; the search box filters the rows in place.
   function tabLand(sessions) {
     const pc = perCountry(sessions);
-    const rows = tempoRows().sort((a, b) => b.sum.m - a.sum.m);
+    const rows = tempoRows().sort((a, b) => b.sum.est - a.sum.est);
     const scope = inScope();
     const unseen = [...ds.items.keys()].filter(id => (!scope || scope.has(id)) && !tempo.items[`${id}|land>capital`] && !rows.some(r => r.id === id));
     if (!rows.length) return `<div class="card panel empty"><h3>Nog geen tempo per land</h3><p class="muted">Speel een quiz; elke vorm meet hoe snel je elk land weet, ook in de normale volgorde.</p></div>`;

@@ -129,6 +129,16 @@ Goed onderzocht: RT bij correcte antwoorden voorspelt het volgende antwoord (Pap
 8. Q = clamp(round(1,5·N·min(S, 2)), 15, 40); in g en κ blijft N het aantal landen.
 9. Evaluatie: toewijzing nu inbouwen (hash(account + item) mod 2, arm loggen), controleconditie achter een feature flag (`P.control`) en pas na 2–3 weken aanzetten; daarna de parameters niet meer veranderen.
 
+## 8b. Eerste resultaten (31 oktober 2026, 28 sessies, 1047 antwoorden, 99% goed)
+
+Analyse van de eigen geschiedenis van de programmeur met de gebouwde code (scripts buiten de repo):
+
+- Meetkwaliteit: medianen per context 1,5–2,7 s, P90 4–9 s; 1% van de goede antwoorden boven 15 s (afleiding). Eén sessie bestond uit 42 van 44 antwoorden onder 250 ms (doorrammen); die vallen allemaal af. Vier van de tien "fouten" waren toetsaanslagen van 130–190 ms. **Aanpassing:** elk antwoord onder 250 ms wordt genegeerd, ook een fout, en in de seed ook.
+- Tonen gebeurt vrijwel alleen bij moeilijke landen (8 van 151 antwoorden, allemaal 2–5 s). Een eigen basislijn voor "tonen" maakte die trage antwoorden normaal. **Aanpassing:** tonen en direct beoordelen delen één basislijn (`self`); de gewichten blijven verschillend.
+- Rangorde klopt: rangcorrelatie 0,89 tussen de modelscore en het ruwe gemiddelde residu per land. Schaal is gecomprimeerd (×0,89–×1,17 model tegenover ×0,65–×2,10 ruw) door de prior en de lage seed-gewichten; varianten (zelf-direct 0,7 of 1,0; seed 0,6 met cap 3; n₀ = 1) veranderen daar weinig aan en verbeteren de rangorde niet. **Besluit:** modelparameters ongewijzigd; de weergave toont de schatting zonder prior (m·(n+1)/n, begrensd op ±1,2), het model blijft voorzichtig voor de selectie.
+- Gevolg voor de selectie bij deze datahoeveelheid: gewichten liggen dicht bij elkaar (verhouding ≈ 1,4 tussen traag en snel). Dat loopt vanzelf op naarmate echte koude metingen de seed vervangen.
+- Vraag aan de onderzoeker: is de gedeelde basislijn voor tonen/direct en het negeren van fouten onder 250 ms akkoord, en is zelf-direct 0,4 niet te laag voor iemand die vrijwel alleen zo antwoordt (143 van 151)?
+
 ## 9. Bronnen
 
 - Benjamin, A. S., Bjork, R. A., & Schwartz, B. L. (1998). The mismeasure of memory: When retrieval fluency is misleading as a metamnemonic index. *JEP: General, 127*(1), 55–68. https://doi.org/10.1037/0096-3445.127.1.55
