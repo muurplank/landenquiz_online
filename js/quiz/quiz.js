@@ -1,7 +1,7 @@
 // Quiz page: one layout for every quiz type. The mode module fills the question card;
 // this file owns the header, session stats, cheat sheet, keyboard and end screen.
 //
-// URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet|history&dir=a|b|both
+// URL: quiz.html?set=<groupId>&type=capital|flag|map|mix|kwartet|history|outline|alles&dir=a|b|both
 //      &ans=self|type|pick|click&order=deck|smart&infinite=1&mix=std|mega|own&custom=a,b
 
 import { loadDataset, getGroup, shortTitle, siteUrl } from '../core/data.js';
@@ -19,7 +19,8 @@ const MODE_LOADERS = {
   mix: () => import('./mix.js'),
   kwartet: () => import('./kwartet.js'),
   history: () => import('./history.js'),
-  outline: () => import('./outline.js')
+  outline: () => import('./outline.js'),
+  alles: () => import('./allesofniets.js')
 };
 
 renderTopbar(document.getElementById('topbar'), { current: 'oefenen', dataset: params.dataset || 'world' });
@@ -46,7 +47,8 @@ function run(ds, group, mode) {
     ids, groupId: group.id, dataset: ds.name,
     quizType: mode.quizType, subMode: mode.subMode,
     picker: params.order === 'smart' ? 'smart' : 'deck',
-    endless: params.infinite === '1' || mode.endless
+    endless: params.infinite === '1' || mode.endless,
+    retryOnly: mode.retryOnly
   });
   const backUrl = siteUrl(`set.html?id=${encodeURIComponent(group.id)}${ds.name !== 'world' ? '&dataset=' + ds.name : ''}`);
   const cheatKey = `landjes_cheat_open_${mode.quizType}`;

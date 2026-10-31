@@ -30,10 +30,11 @@ function sampleBeta(alpha, beta) {
 }
 
 export class QuizEngine {
-  constructor({ ids, groupId, quizType, subMode, picker = 'deck', endless = false, dataset = 'world' }) {
+  constructor({ ids, groupId, quizType, subMode, picker = 'deck', endless = false, dataset = 'world', retryOnly = false }) {
     this.ids = [...ids];
     this.picker = picker;
     this.endless = endless || picker === 'smart';
+    this.retryOnly = retryOnly;   // a new deck holds only what is not answered correctly yet
     this.session = startSession({ groupId, quizType, subMode, dataset });
     this.stats = Object.fromEntries(this.ids.map(id => [id, { iso: id, seen_count: 0, correct_count: 0, incorrect_count: 0, is_mastered: false, events: [] }]));
     this.deck = [];
@@ -65,7 +66,8 @@ export class QuizEngine {
     } else {
       if (!this.deck.length) {
         if (this.current !== null) this.rounds++;
-        this.deck = shuffle(this.ids);
+        const open = this.retryOnly ? this.ids.filter(id => !this.stats[id].is_mastered) : [];
+        this.deck = shuffle(open.length ? open : this.ids);
       }
       this.current = this.deck.pop();
       this.session.totals.rounds = this.rounds;
